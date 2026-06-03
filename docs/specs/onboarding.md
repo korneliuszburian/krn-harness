@@ -10,6 +10,8 @@
 6. Start work with `krn start "<task>"` and `krn context`.
 7. Record P0 verification with `krn verify`.
 8. Produce review-ready current state with `krn handoff`.
+9. Inspect local health with `krn doctor`.
+10. Run harness-only fixture checks with `krn eval`.
 
 ## Operator Rule
 

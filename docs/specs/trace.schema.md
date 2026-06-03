@@ -16,7 +16,7 @@ Trace JSONL records auditable KRN runtime events.
 
 `cli.status`, `task.started`, `context.built`, `verify.ran`, `handoff.created`, `doctor.ran`, `eval.ran`, and `hook.received`.
 
-The P0 current-state loop records `task.started -> context.built -> verify.ran -> handoff.created` when the operator runs `krn start`, `krn context`, `krn verify`, and `krn handoff` in order.
+The P0 current-state loop records `task.started -> context.built -> verify.ran -> handoff.created -> doctor.ran -> eval.ran` when the operator runs `krn start`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, and `krn eval` in order.
 
 ## P0 Trace Location
 

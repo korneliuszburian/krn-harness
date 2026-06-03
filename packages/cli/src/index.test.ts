@@ -303,4 +303,82 @@ describe("krn CLI", () => {
     );
     expect(handoffMarkdown).toContain("Status: blocked");
   });
+
+  it("writes doctor and eval artifacts with full P0 trace order", async () => {
+    const start = await runInTemp(["start", "goal", "4", "smoke", "task"]);
+    expect(start.code).toBe(0);
+
+    await expect(runInCwd(start.cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["verify"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
+
+    const doctor = await runInCwd(start.cwd, ["doctor"]);
+    expect(doctor).toMatchObject({ code: 0 });
+    expect(doctor.stdout).toContain("KRN doctor: warn");
+
+    const evalResult = await runInCwd(start.cwd, ["eval"]);
+    expect(evalResult).toMatchObject({ code: 0 });
+    expect(evalResult.stdout).toContain("KRN eval: pass");
+
+    const doctorJson = await readJson<{
+      status: string;
+      checks: Array<{ name: string; status: string }>;
+    }>(start.cwd, ".krn/current/doctor-result.json");
+    const doctorMarkdown = await readFile(
+      path.join(start.cwd, ".krn/current/doctor-result.md"),
+      "utf8",
+    );
+    const evalJson = await readJson<{
+      status: string;
+      passCount: number;
+      failCount: number;
+      fixtures: Array<{ name: string; status: string }>;
+      trace: { status: string };
+    }>(start.cwd, ".krn/current/eval-result.json");
+    const evalMarkdown = await readFile(
+      path.join(start.cwd, ".krn/current/eval-result.md"),
+      "utf8",
+    );
+
+    expect(doctorJson.status).toBe("warn");
+    expect(doctorJson.checks.map((check) => check.name)).toEqual([
+      "config",
+      "current-task-contract",
+      "current-context-package",
+      "context-stop",
+      "current-verify-result",
+      "current-handoff",
+      "adapter-templates",
+      "build-time-skills",
+      "trace",
+    ]);
+    expect(doctorMarkdown).toContain("Status: warn");
+
+    expect(evalJson).toMatchObject({
+      status: "pass",
+      passCount: 10,
+      failCount: 0,
+      trace: { status: "pass" },
+    });
+    expect(evalJson.fixtures.map((fixture) => fixture.name)).toEqual([
+      "frontend-section-context",
+      "stale-doc-trap",
+      "missing-context-stop",
+    ]);
+    expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
+    expect(evalMarkdown).toContain("### frontend-section-context");
+    expect(evalMarkdown).toContain("## Trace");
+
+    await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
+      { name: "task.started", taskId: "task-a39f90427522" },
+      { name: "context.built", taskId: "task-a39f90427522" },
+      { name: "verify.ran", taskId: "task-a39f90427522" },
+      { name: "handoff.created", taskId: "task-a39f90427522" },
+      { name: "doctor.ran", data: { status: "warn", checks: 9 } },
+      {
+        name: "eval.ran",
+        data: { status: "pass", fixtures: 3, passCount: 10, failCount: 0 },
+      },
+    ]);
+  });
 });

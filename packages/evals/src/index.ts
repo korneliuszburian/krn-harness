@@ -5,5 +5,6 @@ export * from "./graders/runtime-skill-adapter-usage.js";
 export * from "./graders/stale-doc-leakage.js";
 export * from "./graders/stop-precision.js";
 export * from "./graders/trace-completeness.js";
+export * from "./graders/types.js";
 export * from "./harness-only.js";
 export * from "./run-eval.js";
