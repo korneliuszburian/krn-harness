@@ -20,6 +20,8 @@ Usage:
   krn handoff
   krn doctor
   krn eval
+  krn install
+  krn hook codex <event>
 `;
 
 export async function runCli(

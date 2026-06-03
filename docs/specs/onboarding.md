@@ -3,9 +3,9 @@
 ## New Repo Flow
 
 1. Install KRN Harness.
-2. Add or generate downstream `AGENTS.md`.
-3. Add generated hooks template if trusted.
-4. Add generated `.agents/skills/krn-harness/SKILL.md` if desired.
+2. Run `krn install` in the downstream repository.
+3. Review generated `AGENTS.md`, `.codex/hooks.json`, and `.agents/skills/krn-harness/SKILL.md`.
+4. Keep or adapt generated hooks only if the repo owner trusts the local command.
 5. Run `krn status`.
 6. Start work with `krn start "<task>"` and `krn context`.
 7. Record P0 verification with `krn verify`.
@@ -16,3 +16,5 @@
 ## Operator Rule
 
 If KRN reports STOP, do not edit until the missing context or unsafe condition is resolved.
+
+`krn install` preserves existing downstream files. It reports skipped files instead of overwriting project-owned instructions.

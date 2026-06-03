@@ -146,6 +146,17 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
       await pathExists(path.join(currentDir, "handoff.md")),
       ".krn/current/handoff.md",
     ),
+    artifactCheck("downstream-agents", await pathExists(path.join(cwd, "AGENTS.md")), "AGENTS.md"),
+    artifactCheck(
+      "downstream-runtime-skill",
+      await pathExists(path.join(cwd, ".agents", "skills", "krn-harness", "SKILL.md")),
+      ".agents/skills/krn-harness/SKILL.md",
+    ),
+    artifactCheck(
+      "downstream-hooks-template",
+      await pathExists(path.join(cwd, ".codex", "hooks.json")),
+      ".codex/hooks.json",
+    ),
     await sourceTreeCheck(cwd, {
       name: "adapter-templates",
       paths: [

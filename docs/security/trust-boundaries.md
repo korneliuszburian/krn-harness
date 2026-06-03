@@ -6,7 +6,9 @@
 - Repository files: checked-in source truth.
 - `.krn/`: local runtime state and trace evidence.
 - Hooks: guardrails and trace points, not a sandbox.
-- Generated templates: downstream guidance, not enforcement.
+- Generated `AGENTS.md`: downstream guidance, not enforcement.
+- Generated hooks template: local command execution that requires repo-owner review.
+- Generated runtime skill: workflow adapter, not the product brain.
 - Future MCP: external tool boundary requiring separate auth and policy.
 - Memory: local recall that requires governance before active truth.
 

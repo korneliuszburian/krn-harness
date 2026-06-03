@@ -7,6 +7,7 @@ export type TraceEventName =
   | "context.built"
   | "verify.ran"
   | "handoff.created"
+  | "install.ran"
   | "doctor.ran"
   | "eval.ran"
   | "hook.received";

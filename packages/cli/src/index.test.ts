@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -47,6 +47,13 @@ async function readJson<T>(cwd: string, relativePath: string): Promise<T> {
   return JSON.parse(await readFile(path.join(cwd, relativePath), "utf8")) as T;
 }
 
+async function expectDirectory(cwd: string, relativePath: string): Promise<void> {
+  await expect(stat(path.join(cwd, relativePath))).resolves.toMatchObject({
+    isDirectory: expect.any(Function),
+  });
+  expect((await stat(path.join(cwd, relativePath))).isDirectory()).toBe(true);
+}
+
 describe("krn CLI", () => {
   it("parses git status paths for handoff changed files", () => {
     expect(parseGitStatusPath(" M packages/cli/src/commands/handoff.ts")).toBe(
@@ -61,6 +68,8 @@ describe("krn CLI", () => {
 
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("krn status");
+    expect(result.stdout).toContain("krn install");
+    expect(result.stdout).toContain("krn hook codex <event>");
   });
 
   it("runs status and writes a trace event", async () => {
@@ -69,6 +78,157 @@ describe("krn CLI", () => {
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("KRN status: ready");
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([{ name: "cli.status" }]);
+  });
+
+  it("installs deterministic downstream onboarding artifacts safely and idempotently", async () => {
+    const install = await runInTemp(["install"]);
+
+    expect(install.code).toBe(0);
+    expect(install.stdout).toContain("KRN install: installed");
+    expect(install.stdout).toContain("created: 7");
+    expect(install.stdout).toContain("skipped: 0");
+
+    await expectDirectory(install.cwd, ".krn/current");
+    await expectDirectory(install.cwd, ".krn/graph");
+    await expectDirectory(install.cwd, ".krn/traces");
+
+    await expect(readJson(install.cwd, "krn.config.json")).resolves.toEqual({
+      version: 1,
+      runtime: {
+        dir: ".krn",
+      },
+    });
+
+    const agents = await readFile(path.join(install.cwd, "AGENTS.md"), "utf8");
+    const hooks = await readJson<{
+      hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+    }>(install.cwd, ".codex/hooks.json");
+    const runtimeSkill = await readFile(
+      path.join(install.cwd, ".agents/skills/krn-harness/SKILL.md"),
+      "utf8",
+    );
+
+    expect(agents).toContain("KRN Harness");
+    expect(agents).toContain("krn start");
+    expect(agents).toContain("STOP");
+    expect(hooks.hooks.SessionStart?.[0]?.hooks[0]?.command).toBe("krn hook codex SessionStart");
+    expect(hooks.hooks.Stop?.[0]?.hooks[0]?.command).toBe("krn hook codex Stop");
+    expect(runtimeSkill).toContain("krn status");
+    expect(runtimeSkill).toContain("krn handoff");
+
+    await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
+      {
+        name: "install.ran",
+        data: {
+          status: "installed",
+          created: 7,
+          skipped: 0,
+        },
+      },
+    ]);
+
+    const secondInstall = await runInCwd(install.cwd, ["install"]);
+    expect(secondInstall).toMatchObject({ code: 0 });
+    expect(secondInstall.stdout).toContain("created: 0");
+    expect(secondInstall.stdout).toContain("skipped: 7");
+
+    const doctor = await runInCwd(install.cwd, ["doctor"]);
+    expect(doctor).toMatchObject({ code: 0 });
+    const doctorJson = await readJson<{
+      checks: Array<{ name: string; status: string }>;
+    }>(install.cwd, ".krn/current/doctor-result.json");
+
+    expect(doctorJson.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "config",
+          status: "pass",
+          detail: "krn.config.json is valid",
+        }),
+        expect.objectContaining({
+          name: "downstream-agents",
+          status: "pass",
+          detail: "AGENTS.md is present",
+        }),
+        expect.objectContaining({
+          name: "downstream-runtime-skill",
+          status: "pass",
+          detail: ".agents/skills/krn-harness/SKILL.md is present",
+        }),
+        expect.objectContaining({
+          name: "downstream-hooks-template",
+          status: "pass",
+          detail: ".codex/hooks.json is present",
+        }),
+      ]),
+    );
+  });
+
+  it("preserves existing downstream instructions during install", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "AGENTS.md"), "# Existing Instructions\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      '{\n  "version": 1,\n  "runtime": {\n    "dir": ".custom-krn"\n  }\n}\n',
+      "utf8",
+    );
+
+    const install = await runInCwd(cwd, ["install"]);
+
+    expect(install.code).toBe(0);
+    expect(install.stdout).toContain("- skipped AGENTS.md: existing file preserved");
+    expect(install.stdout).toContain("- skipped krn.config.json: existing file preserved");
+    await expect(readFile(path.join(cwd, "AGENTS.md"), "utf8")).resolves.toBe(
+      "# Existing Instructions\n",
+    );
+    await expect(readJson(cwd, "krn.config.json")).resolves.toEqual({
+      version: 1,
+      runtime: {
+        dir: ".custom-krn",
+      },
+    });
+  });
+
+  it("handles Codex hook events with deterministic trace output", async () => {
+    const result = await runInTemp(["hook", "codex", "SessionStart"]);
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      provider: "codex",
+      event: "SessionStart",
+      supported: true,
+      status: "ok",
+      payloadSource: "placeholder",
+    });
+
+    const unknown = await runInCwd(result.cwd, ["hook", "codex", "UnknownEvent"]);
+    expect(unknown.code).toBe(0);
+    expect(JSON.parse(unknown.stdout)).toMatchObject({
+      provider: "codex",
+      event: "UnknownEvent",
+      supported: false,
+      status: "ignored",
+      payloadSource: "placeholder",
+    });
+
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      {
+        name: "hook.received",
+        data: {
+          event: "SessionStart",
+          supported: true,
+          status: "ok",
+        },
+      },
+      {
+        name: "hook.received",
+        data: {
+          event: "UnknownEvent",
+          supported: false,
+          status: "ignored",
+        },
+      },
+    ]);
   });
 
   it("runs start and context with task trace behavior", async () => {
@@ -348,6 +508,9 @@ describe("krn CLI", () => {
       "context-stop",
       "current-verify-result",
       "current-handoff",
+      "downstream-agents",
+      "downstream-runtime-skill",
+      "downstream-hooks-template",
       "adapter-templates",
       "build-time-skills",
       "trace",
@@ -374,7 +537,7 @@ describe("krn CLI", () => {
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 9 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 12 } },
       {
         name: "eval.ran",
         data: { status: "pass", fixtures: 3, passCount: 10, failCount: 0 },
