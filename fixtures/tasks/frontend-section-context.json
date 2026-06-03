@@ -2,6 +2,13 @@
   "id": "frontend-section-context",
   "task": "Update a frontend section using only relevant context",
   "expected": {
-    "stop": false
+    "stop": false,
+    "mustRead": [
+      "AGENTS.md",
+      "fixtures/repos/frontend-section-context/theme/templates/section.php",
+      "fixtures/repos/frontend-section-context/theme/assets/section.css",
+      "fixtures/repos/frontend-section-context/acf-json/section.json"
+    ],
+    "referenceOnly": ["fixtures/repos/frontend-section-context/README.md"]
   }
 }

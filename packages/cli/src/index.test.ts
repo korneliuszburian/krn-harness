@@ -22,13 +22,22 @@ async function runInTemp(args: string[]) {
   return { cwd, stdout, stderr, code };
 }
 
-async function readTraceNames(cwd: string): Promise<string[]> {
+interface TraceEventFixture {
+  name: string;
+  taskId?: string;
+  data?: Record<string, unknown>;
+}
+
+async function readTraceEvents(cwd: string): Promise<TraceEventFixture[]> {
   const raw = await readFile(path.join(cwd, ".krn", "traces", "trace.jsonl"), "utf8");
   return raw
     .trim()
     .split("\n")
-    .map((line) => JSON.parse(line) as { name: string })
-    .map((event) => event.name);
+    .map((line) => JSON.parse(line) as TraceEventFixture);
+}
+
+async function readJson<T>(cwd: string, relativePath: string): Promise<T> {
+  return JSON.parse(await readFile(path.join(cwd, relativePath), "utf8")) as T;
 }
 
 describe("krn CLI", () => {
@@ -44,7 +53,7 @@ describe("krn CLI", () => {
 
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("KRN status: ready");
-    await expect(readTraceNames(result.cwd)).resolves.toEqual(["cli.status"]);
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([{ name: "cli.status" }]);
   });
 
   it("runs start and context with task trace behavior", async () => {
@@ -65,6 +74,116 @@ describe("krn CLI", () => {
 
     expect(context).toBe(0);
     expect(result.stdout).toContain("KRN context: package written");
-    await expect(readTraceNames(result.cwd)).resolves.toEqual(["task.started", "context.built"]);
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      { name: "task.started" },
+      { name: "context.built" },
+    ]);
+  });
+
+  it("writes deterministic task-contract current artifacts", async () => {
+    const result = await runInTemp(["start", "goal", "2", "smoke", "task"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("task_id: task-1354ea37dd50");
+
+    const contract = await readJson<Record<string, unknown>>(
+      result.cwd,
+      ".krn/current/task-contract.json",
+    );
+    const markdown = await readFile(path.join(result.cwd, ".krn/current/task-contract.md"), "utf8");
+
+    expect(contract).toMatchObject({
+      id: "task-1354ea37dd50",
+      rawUserIntent: "goal 2 smoke task",
+      task: "goal 2 smoke task",
+      classification: "implementation",
+      mode: "edit",
+      nonTrivial: true,
+      stop: false,
+    });
+    expect(contract.evidenceRequirements).toEqual([
+      "current task contract",
+      "current context package",
+      "trace event for task start",
+      "validation command output or explicit reason it could not run",
+    ]);
+    expect(markdown).toContain("## Raw User Intent");
+    expect(markdown).toContain("## Evidence Requirements");
+    expect(markdown).toContain("## Stop Conditions");
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      {
+        name: "task.started",
+        taskId: "task-1354ea37dd50",
+        data: {
+          classification: "implementation",
+        },
+      },
+    ]);
+  });
+
+  it("writes STOP context-package current artifacts", async () => {
+    const result = await runInTemp([
+      "start",
+      "Stop",
+      "when",
+      "required",
+      "context",
+      "is",
+      "missing",
+    ]);
+    expect(result.code).toBe(0);
+
+    const contextCode = await runCli(["context"], {
+      cwd: result.cwd,
+      stdout: (text) => {
+        result.stdout += text;
+      },
+      stderr: (text) => {
+        result.stderr += text;
+      },
+      now: () => new Date("2026-06-03T00:00:00.000Z"),
+    });
+
+    expect(contextCode).toBe(0);
+    expect(result.stdout).toContain("stop: true");
+
+    const pkg = await readJson<{
+      stop: boolean;
+      stopReason: string;
+      buckets: {
+        missingContext: Array<{ path: string }>;
+        doNotUse: Array<{ path: string }>;
+      };
+    }>(result.cwd, ".krn/current/context-package.json");
+    const markdown = await readFile(
+      path.join(result.cwd, ".krn/current/context-package.md"),
+      "utf8",
+    );
+
+    expect(pkg.stop).toBe(true);
+    expect(pkg.stopReason).toBe(
+      "Required context is missing: fixtures/repos/missing-context-stop/docs/required-context.md",
+    );
+    expect(pkg.buckets.missingContext).toEqual([
+      {
+        path: "fixtures/repos/missing-context-stop/docs/required-context.md",
+        reason: "Required fixture context is absent",
+        priority: 100,
+        bucket: "missing-context",
+        status: "missing",
+      },
+    ]);
+    expect(markdown).toContain("## Missing Context");
+    expect(markdown).toContain("STOP: true");
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      { name: "task.started" },
+      {
+        name: "context.built",
+        taskId: "task-739518f3ddd0",
+        data: {
+          stop: true,
+        },
+      },
+    ]);
   });
 });

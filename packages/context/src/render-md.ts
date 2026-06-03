@@ -1,21 +1,49 @@
 import type { ContextPackage } from "./schema.js";
 
+function titleFor(bucketName: keyof ContextPackage["buckets"]): string {
+  return {
+    mustRead: "Must Read",
+    shouldRead: "Should Read",
+    referenceOnly: "Reference Only",
+    doNotUse: "Do Not Use",
+    missingContext: "Missing Context",
+  }[bucketName];
+}
+
 export function renderContextPackageMarkdown(pkg: ContextPackage): string {
   const lines = [
     "# KRN Context Package",
     "",
     `Task ID: ${pkg.taskId ?? "none"}`,
     `STOP: ${pkg.stop ? "true" : "false"}`,
+    `Confidence: ${pkg.coverage.confidence}`,
+    `Coverage: ${pkg.coverage.present}/${pkg.coverage.required} required present`,
+    `Missing: ${pkg.coverage.missing}`,
+    `Over-inclusion risk: ${pkg.coverage.overInclusionRisk}`,
   ];
 
   if (pkg.stopReason) {
     lines.push(`Reason: ${pkg.stopReason}`);
   }
 
-  lines.push("", "## Context Items", "");
+  for (const bucketName of [
+    "mustRead",
+    "shouldRead",
+    "referenceOnly",
+    "doNotUse",
+    "missingContext",
+  ] as const) {
+    lines.push("", `## ${titleFor(bucketName)}`, "");
 
-  for (const item of pkg.items) {
-    lines.push(`- ${item.path} (${item.priority}): ${item.reason}`);
+    const items = pkg.buckets[bucketName];
+    if (items.length === 0) {
+      lines.push("- none");
+      continue;
+    }
+
+    for (const item of items) {
+      lines.push(`- ${item.path} (${item.status}, ${item.priority}): ${item.reason}`);
+    }
   }
 
   lines.push("");

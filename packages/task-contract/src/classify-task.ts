@@ -1,4 +1,4 @@
-import type { TaskClassification } from "./schema.js";
+import type { TaskClassification, TaskMode } from "./schema.js";
 
 export function classifyTask(task: string): TaskClassification {
   const normalized = task.toLowerCase();
@@ -20,4 +20,25 @@ export function classifyTask(task: string): TaskClassification {
   }
 
   return "unknown";
+}
+
+export function modeForClassification(classification: TaskClassification): TaskMode {
+  if (classification === "review") {
+    return "review";
+  }
+
+  if (classification === "research") {
+    return "read-only";
+  }
+
+  if (classification === "implementation" || classification === "docs") {
+    return "edit";
+  }
+
+  return "unknown";
+}
+
+export function isNonTrivialTask(task: string): boolean {
+  const words = task.trim().split(/\s+/).filter(Boolean);
+  return words.length >= 3;
 }

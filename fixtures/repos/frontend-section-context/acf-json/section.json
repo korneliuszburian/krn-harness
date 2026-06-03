@@ -1,0 +1,12 @@
+{
+  "key": "group_fixture_section",
+  "title": "Fixture Section",
+  "fields": [
+    {
+      "key": "field_fixture_heading",
+      "label": "Heading",
+      "name": "heading",
+      "type": "text"
+    }
+  ]
+}

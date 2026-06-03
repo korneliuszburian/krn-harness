@@ -2,6 +2,7 @@
   "id": "missing-context-stop",
   "task": "Stop when required context is missing",
   "expected": {
-    "stop": true
+    "stop": true,
+    "missingContext": ["fixtures/repos/missing-context-stop/docs/required-context.md"]
   }
 }

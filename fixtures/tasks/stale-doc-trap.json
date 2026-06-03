@@ -2,6 +2,7 @@
   "id": "stale-doc-trap",
   "task": "Avoid treating stale docs as active truth",
   "expected": {
-    "stop": false
+    "stop": false,
+    "doNotUse": ["fixtures/repos/docs-heavy-stale/docs/old-plan.md"]
   }
 }
