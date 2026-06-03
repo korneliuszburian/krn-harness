@@ -1,7 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { buildTaskContract } from "../../../task-contract/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
+import { ensureCurrentStateDir, writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
 import type { CliRuntime } from "../runtime.js";
 
 function renderContractMarkdown(contract: ReturnType<typeof buildTaskContract>): string {
@@ -63,18 +62,9 @@ export async function startCommand(taskParts: string[], runtime: CliRuntime): Pr
   }
 
   const contract = buildTaskContract(task);
-  const currentDir = path.join(runtime.cwd, ".krn", "current");
-  await mkdir(currentDir, { recursive: true });
-  await writeFile(
-    path.join(currentDir, "task-contract.md"),
-    renderContractMarkdown(contract),
-    "utf8",
-  );
-  await writeFile(
-    path.join(currentDir, "task-contract.json"),
-    `${JSON.stringify(contract, null, 2)}\n`,
-    "utf8",
-  );
+  await ensureCurrentStateDir(runtime.cwd);
+  await writeCurrentMarkdown(runtime.cwd, "task-contract.md", renderContractMarkdown(contract));
+  await writeCurrentJson(runtime.cwd, "task-contract.json", contract);
 
   await writeTraceEvent(
     createTraceEvent("task.started", {

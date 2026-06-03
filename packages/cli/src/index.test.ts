@@ -2,10 +2,17 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { parseGitStatusPath } from "./commands/handoff.js";
 import { runCli } from "./index.js";
 
 async function runInTemp(args: string[]) {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+  const result = await runInCwd(cwd, args);
+
+  return { cwd, ...result };
+}
+
+async function runInCwd(cwd: string, args: string[]) {
   let stdout = "";
   let stderr = "";
   const code = await runCli(args, {
@@ -19,7 +26,7 @@ async function runInTemp(args: string[]) {
     now: () => new Date("2026-06-03T00:00:00.000Z"),
   });
 
-  return { cwd, stdout, stderr, code };
+  return { stdout, stderr, code };
 }
 
 interface TraceEventFixture {
@@ -41,6 +48,14 @@ async function readJson<T>(cwd: string, relativePath: string): Promise<T> {
 }
 
 describe("krn CLI", () => {
+  it("parses git status paths for handoff changed files", () => {
+    expect(parseGitStatusPath(" M packages/cli/src/commands/handoff.ts")).toBe(
+      "packages/cli/src/commands/handoff.ts",
+    );
+    expect(parseGitStatusPath("?? docs/specs/handoff.md")).toBe("docs/specs/handoff.md");
+    expect(parseGitStatusPath("R  old/path.ts -> new/path.ts")).toBe("new/path.ts");
+  });
+
   it("prints help", async () => {
     const result = await runInTemp(["--help"]);
 
@@ -185,5 +200,107 @@ describe("krn CLI", () => {
         },
       },
     ]);
+  });
+
+  it("writes verify and handoff artifacts with full trace order", async () => {
+    const start = await runInTemp(["start", "goal", "3", "smoke", "task"]);
+    expect(start.code).toBe(0);
+
+    await expect(runInCwd(start.cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+    const verify = await runInCwd(start.cwd, ["verify"]);
+    expect(verify).toMatchObject({ code: 0 });
+    expect(verify.stdout).toContain("KRN verify: not-runnable");
+
+    const handoff = await runInCwd(start.cwd, ["handoff"]);
+    expect(handoff).toMatchObject({ code: 0 });
+    expect(handoff.stdout).toContain("KRN handoff: ready");
+
+    const verifyResult = await readJson<{
+      status: string;
+      taskId: string;
+      contextStop: boolean;
+      configuredCommands: string[];
+      executedCommands: string[];
+      notRunnableReason: string;
+    }>(start.cwd, ".krn/current/verify-result.json");
+    const verifyMarkdown = await readFile(
+      path.join(start.cwd, ".krn/current/verify-result.md"),
+      "utf8",
+    );
+    const handoffMarkdown = await readFile(path.join(start.cwd, ".krn/current/handoff.md"), "utf8");
+
+    expect(verifyResult).toEqual({
+      profile: "generic",
+      status: "not-runnable",
+      taskId: "task-d62ea4fbc009",
+      contextStop: false,
+      configuredCommands: [],
+      executedCommands: [],
+      notRunnableReason: "No verify commands are configured",
+      checks: [
+        {
+          name: "configured-commands",
+          status: "warn",
+          detail: "No verify commands are configured",
+        },
+      ],
+    });
+    expect(verifyMarkdown).toContain("Status: not-runnable");
+    expect(handoffMarkdown).toContain("Task ID: task-d62ea4fbc009");
+    expect(handoffMarkdown).toContain("Context STOP: false");
+    expect(handoffMarkdown).toContain("Status: not-runnable");
+
+    await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
+      { name: "task.started", taskId: "task-d62ea4fbc009" },
+      { name: "context.built", taskId: "task-d62ea4fbc009", data: { stop: false } },
+      {
+        name: "verify.ran",
+        taskId: "task-d62ea4fbc009",
+        data: { status: "not-runnable", contextStop: false, configuredCommands: 0 },
+      },
+      {
+        name: "handoff.created",
+        taskId: "task-d62ea4fbc009",
+        data: { contextStop: false, verifyStatus: "not-runnable" },
+      },
+    ]);
+  });
+
+  it("writes STOP-aware verify and handoff artifacts", async () => {
+    const start = await runInTemp([
+      "start",
+      "Stop",
+      "when",
+      "required",
+      "context",
+      "is",
+      "missing",
+    ]);
+    expect(start.code).toBe(0);
+
+    await expect(runInCwd(start.cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["verify"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
+
+    const verifyResult = await readJson<{
+      status: string;
+      taskId: string;
+      contextStop: boolean;
+      notRunnableReason: string;
+    }>(start.cwd, ".krn/current/verify-result.json");
+    const handoffMarkdown = await readFile(path.join(start.cwd, ".krn/current/handoff.md"), "utf8");
+
+    expect(verifyResult).toMatchObject({
+      status: "blocked",
+      taskId: "task-739518f3ddd0",
+      contextStop: true,
+      notRunnableReason:
+        "Required context is missing: fixtures/repos/missing-context-stop/docs/required-context.md",
+    });
+    expect(handoffMarkdown).toContain("Context STOP: true");
+    expect(handoffMarkdown).toContain(
+      "STOP reason: Required context is missing: fixtures/repos/missing-context-stop/docs/required-context.md",
+    );
+    expect(handoffMarkdown).toContain("Status: blocked");
   });
 });
