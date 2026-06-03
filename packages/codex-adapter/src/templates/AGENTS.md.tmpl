@@ -4,13 +4,14 @@ This repository uses KRN Harness.
 
 ## KRN Workflow
 
-- Run `krn status` before non-trivial work.
-- Run `krn start "<task>"` and `krn context` before edits.
-- Read `.krn/current/task-contract.md`.
-- Read `.krn/current/context-package.md`.
+- Before non-trivial work, run `krn status`.
+- Start the task with `krn start "<task>"`, then run `krn context`.
+- Read `.krn/current/task-contract.md` and `.krn/current/context-package.md`.
 - Use `.agents/skills/krn-harness/SKILL.md` for the KRN workflow if available.
 - Do not edit if KRN reports STOP.
 - After edits, run `krn verify` or record why it is not runnable.
 - Run `krn handoff`.
+
+For visual or layout work, include concrete sizes before starting the task, for example mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or the actual element size/tolerance the user gave.
 
 `.krn/` may be gitignored, but it is active local runtime state.

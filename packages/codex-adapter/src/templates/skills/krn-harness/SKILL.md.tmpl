@@ -6,12 +6,13 @@ description: Downstream KRN Harness runtime workflow. Use in repositories where 
 # KRN Harness
 
 1. Run `krn status`.
-2. Run `krn start "<task>"`.
-3. Run `krn context`.
-4. Read `.krn/current/task-contract.md`.
-5. Read `.krn/current/context-package.md`.
-6. Stop without edits if KRN reports STOP.
-7. After edits, run `krn verify` or record why it cannot run.
-8. Run `krn handoff`.
+2. If the task is visual or layout-related, include concrete sizes or pixel ranges in the task, such as mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or a specific element tolerance.
+3. Run `krn start "<task>"`.
+4. Run `krn context`.
+5. Read `.krn/current/task-contract.md`.
+6. Read `.krn/current/context-package.md`.
+7. Stop without edits if KRN reports STOP.
+8. After edits, run `krn verify` or record why it cannot run.
+9. Run `krn handoff`.
 
 Do not include raw research or full KRN architecture in downstream active context.

@@ -11,13 +11,14 @@ The runtime skill template gives downstream Codex sessions a short KRN workflow.
 ## Required Flow
 
 1. `krn status`
-2. `krn start "<task>"`
-3. `krn context`
-4. Read `.krn/current/task-contract.md`
-5. Read `.krn/current/context-package.md`
-6. Respect STOP
-7. `krn verify`
-8. `krn handoff`
+2. Add concrete pixel ranges or element sizes when the task is visual/layout-related.
+3. `krn start "<task>"`
+4. `krn context`
+5. Read `.krn/current/task-contract.md`
+6. Read `.krn/current/context-package.md`
+7. Respect STOP
+8. `krn verify`
+9. `krn handoff`
 
 ## Non-Goal
 

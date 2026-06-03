@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "project": {
+    "name": "valid-fixture"
+  },
+  "runtime": {
+    "dir": ".krn-fixture"
+  },
+  "verify": {
+    "commands": ["pnpm test"]
+  }
+}
