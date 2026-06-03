@@ -1,0 +1,7 @@
+{
+  "id": "missing-context-stop",
+  "task": "Stop when required context is missing",
+  "expected": {
+    "stop": true
+  }
+}

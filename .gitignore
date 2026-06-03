@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.krn/
+.turbo/
+.DS_Store
+*.log
+GOAL.md

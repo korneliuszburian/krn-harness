@@ -1,0 +1,7 @@
+{
+  "id": "runtime-skill-adapter-required",
+  "task": "Use the downstream KRN runtime skill adapter",
+  "expected": {
+    "stop": false
+  }
+}

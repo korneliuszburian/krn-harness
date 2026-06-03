@@ -1,0 +1,86 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex SessionStart",
+            "statusMessage": "KRN session start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex UserPromptSubmit",
+            "statusMessage": "KRN prompt guardrail"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex PreToolUse",
+            "statusMessage": "KRN pre-tool guardrail"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex PostToolUse",
+            "statusMessage": "KRN post-tool trace"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex PreCompact",
+            "statusMessage": "KRN pre-compact trace"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex PostCompact",
+            "statusMessage": "KRN post-compact trace"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "krn hook codex Stop",
+            "statusMessage": "KRN stop trace"
+          }
+        ]
+      }
+    ]
+  }
+}

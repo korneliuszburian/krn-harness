@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kanon"
+  short_description: "Distill research into project canon"
+  default_prompt: "Use $kanon to turn this research into concise KRN canon."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wycinek"
+  short_description: "Ship small verified implementation slices"
+  default_prompt: "Use $wycinek to implement one small verified KRN Harness slice."

@@ -1,0 +1,82 @@
+import { contextCommand } from "./commands/context.js";
+import { doctorCommand } from "./commands/doctor.js";
+import { evalCommand } from "./commands/eval.js";
+import { handoffCommand } from "./commands/handoff.js";
+import { hookCommand } from "./commands/hook.js";
+import { installCommand } from "./commands/install.js";
+import { startCommand } from "./commands/start.js";
+import { statusCommand } from "./commands/status.js";
+import { verifyCommand } from "./commands/verify.js";
+import { type CliRuntime, defaultRuntime } from "./runtime.js";
+
+export const helpText = `KRN Harness CLI
+
+Usage:
+  krn --help
+  krn status
+  krn start "<task>"
+  krn context
+  krn verify
+  krn handoff
+  krn doctor
+  krn eval
+`;
+
+export async function runCli(
+  argv: string[],
+  runtime: CliRuntime = defaultRuntime(),
+): Promise<number> {
+  const [command, ...rest] = argv;
+
+  if (!command || command === "--help" || command === "-h" || command === "help") {
+    runtime.stdout(helpText);
+    return 0;
+  }
+
+  if (command === "status") {
+    return statusCommand(runtime);
+  }
+
+  if (command === "start") {
+    return startCommand(rest, runtime);
+  }
+
+  if (command === "context") {
+    return contextCommand(runtime);
+  }
+
+  if (command === "verify") {
+    return verifyCommand(runtime);
+  }
+
+  if (command === "handoff") {
+    return handoffCommand(runtime);
+  }
+
+  if (command === "doctor") {
+    return doctorCommand(runtime);
+  }
+
+  if (command === "eval") {
+    return evalCommand(runtime);
+  }
+
+  if (command === "install") {
+    return installCommand(runtime);
+  }
+
+  if (command === "hook") {
+    return hookCommand(rest, runtime);
+  }
+
+  runtime.stderr(`Unknown command: ${command}\n`);
+  runtime.stdout(helpText);
+  return 1;
+}
+
+const isEntrypoint = process.argv[1]?.endsWith("packages/cli/src/index.ts");
+
+if (isEntrypoint) {
+  const code = await runCli(process.argv.slice(2));
+  process.exitCode = code;
+}

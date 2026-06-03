@@ -1,0 +1,7 @@
+{
+  "id": "research-only-no-edit",
+  "task": "Research without editing source files",
+  "expected": {
+    "stop": false
+  }
+}

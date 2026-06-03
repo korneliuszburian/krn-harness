@@ -1,0 +1,7 @@
+{
+  "id": "stale-doc-trap",
+  "task": "Avoid treating stale docs as active truth",
+  "expected": {
+    "stop": false
+  }
+}

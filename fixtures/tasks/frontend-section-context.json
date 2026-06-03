@@ -1,0 +1,7 @@
+{
+  "id": "frontend-section-context",
+  "task": "Update a frontend section using only relevant context",
+  "expected": {
+    "stop": false
+  }
+}

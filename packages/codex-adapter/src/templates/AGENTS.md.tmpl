@@ -1,0 +1,16 @@
+# AGENTS.md
+
+This repository uses KRN Harness.
+
+## KRN Workflow
+
+- Run `krn status` before non-trivial work.
+- Run `krn start "<task>"` and `krn context` before edits.
+- Read `.krn/current/task-contract.md`.
+- Read `.krn/current/context-package.md`.
+- Use `.agents/skills/krn-harness/SKILL.md` for the KRN workflow if available.
+- Do not edit if KRN reports STOP.
+- After edits, run `krn verify` or record why it is not runnable.
+- Run `krn handoff`.
+
+`.krn/` may be gitignored, but it is active local runtime state.

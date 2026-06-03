@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "project": {
+    "name": "wordpress-bedrock-acf"
+  },
+  "runtime": {
+    "dir": ".krn"
+  }
+}

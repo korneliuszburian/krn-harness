@@ -1,0 +1,4 @@
+interface:
+  display_name: "Buduj"
+  short_description: "Top-level KRN build workflow"
+  default_prompt: "Use $buduj to deliver this KRN Harness slice with proof."

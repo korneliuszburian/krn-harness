@@ -1,0 +1,17 @@
+---
+name: krn-harness
+description: Downstream KRN Harness runtime workflow. Use in repositories where KRN Harness is installed to route Codex through status, start, context, STOP policy, verify, and handoff for non-trivial edits.
+---
+
+# KRN Harness
+
+1. Run `krn status`.
+2. Run `krn start "<task>"`.
+3. Run `krn context`.
+4. Read `.krn/current/task-contract.md`.
+5. Read `.krn/current/context-package.md`.
+6. Stop without edits if KRN reports STOP.
+7. After edits, run `krn verify` or record why it cannot run.
+8. Run `krn handoff`.
+
+Do not include raw research or full KRN architecture in downstream active context.

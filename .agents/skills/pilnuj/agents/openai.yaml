@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pilnuj"
+  short_description: "Guard P0 architecture scope"
+  default_prompt: "Use $pilnuj to check this KRN Harness change for scope drift."

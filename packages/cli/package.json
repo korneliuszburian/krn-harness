@@ -1,0 +1,10 @@
+{
+  "name": "@krn-harness/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "krn": "./src/index.ts"
+  },
+  "exports": "./src/index.ts"
+}
