@@ -1,4 +1,7 @@
 {
   "name": "fixture/wordpress-acf-basic",
-  "type": "project"
+  "type": "project",
+  "scripts": {
+    "test": "phpunit"
+  }
 }

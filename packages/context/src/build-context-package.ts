@@ -1,3 +1,4 @@
+import type { GraphLite } from "../../graph/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import { rankContext } from "./rank-context.js";
 import type {
@@ -108,6 +109,95 @@ function fixtureItemsForTask(task: string): ContextItem[] {
   return [];
 }
 
+function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
+  if (!graph) {
+    return [];
+  }
+
+  const normalized = task.toLowerCase();
+  const items: ContextItem[] = [];
+
+  if (normalized.includes("frontend section")) {
+    const frontendPrefix = "fixtures/repos/frontend-section-context/";
+    const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+
+    for (const edge of graph.edges) {
+      if (edge.kind !== "style-related-to" || !edge.evidencePath.startsWith(frontendPrefix)) {
+        continue;
+      }
+
+      items.push(
+        item(
+          "must-read",
+          edge.evidencePath,
+          "Graph-lite CSS class relation for requested section",
+          98,
+        ),
+      );
+
+      const stylesheet = nodeById.get(edge.to);
+      if (stylesheet?.evidencePath.startsWith(frontendPrefix)) {
+        items.push(
+          item(
+            "must-read",
+            stylesheet.evidencePath,
+            "Graph-lite stylesheet relation for requested section",
+            97,
+          ),
+        );
+      }
+    }
+
+    for (const node of graph.nodes) {
+      if (node.kind === "acf-group" && node.evidencePath.startsWith(`${frontendPrefix}acf-json/`)) {
+        items.push(
+          item(
+            "must-read",
+            node.evidencePath,
+            "Graph-lite ACF field contract for requested section",
+            96,
+          ),
+        );
+      }
+
+      if (node.kind === "doc" && node.evidencePath === `${frontendPrefix}README.md`) {
+        items.push(item("reference-only", node.evidencePath, "Graph-lite fixture repo note", 30));
+      }
+    }
+  }
+
+  for (const node of graph.nodes) {
+    if (node.kind === "doc" && node.status === "deprecated") {
+      items.push(
+        item(
+          "do-not-use",
+          node.evidencePath,
+          "Graph-lite marked this document deprecated",
+          100,
+          "deprecated",
+        ),
+      );
+    }
+  }
+
+  return items;
+}
+
+function dedupeItems(items: ContextItem[]): ContextItem[] {
+  const byPathAndBucket = new Map<string, ContextItem>();
+
+  for (const contextItem of items) {
+    const key = `${contextItem.bucket}::${contextItem.path}`;
+    const existing = byPathAndBucket.get(key);
+
+    if (!existing || contextItem.priority > existing.priority) {
+      byPathAndBucket.set(key, contextItem);
+    }
+  }
+
+  return [...byPathAndBucket.values()];
+}
+
 function bucketItems(items: ContextItem[]): ContextBuckets {
   return {
     mustRead: rankContext(items.filter((contextItem) => contextItem.bucket === "must-read")),
@@ -138,8 +228,11 @@ function coverageFor(buckets: ContextBuckets): ContextCoverage {
   };
 }
 
-export function buildContextPackage(contract?: TaskContract): ContextPackage {
-  const items = rankContext([...baseItems(), ...fixtureItemsForTask(contract?.task ?? "")]);
+export function buildContextPackage(contract?: TaskContract, graph?: GraphLite): ContextPackage {
+  const task = contract?.task ?? "";
+  const items = rankContext(
+    dedupeItems([...baseItems(), ...fixtureItemsForTask(task), ...graphItemsForTask(task, graph)]),
+  );
   const buckets = bucketItems(items);
   const stop = shouldStop(contract, buckets);
   const pkg: ContextPackage = {
