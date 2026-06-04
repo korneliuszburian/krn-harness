@@ -159,6 +159,11 @@ export async function installCommand(runtime: CliRuntime): Promise<number> {
         created: result.created,
         skipped: result.skipped,
         reason: result.reason ?? null,
+        actions: result.actions.map((action) => ({
+          path: action.path,
+          kind: action.kind,
+          status: action.status,
+        })),
       },
     }),
     runtime.tracePath ?? defaultTracePath(runtime.cwd),

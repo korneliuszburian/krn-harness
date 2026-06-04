@@ -35,6 +35,16 @@ interface TraceEventFixture {
   data?: Record<string, unknown>;
 }
 
+const supportedP0CodexHookEvents = [
+  "SessionStart",
+  "UserPromptSubmit",
+  "PreToolUse",
+  "PostToolUse",
+  "PreCompact",
+  "PostCompact",
+  "Stop",
+];
+
 async function readTraceEvents(cwd: string): Promise<TraceEventFixture[]> {
   const raw = await readFile(path.join(cwd, ".krn", "traces", "trace.jsonl"), "utf8");
   return raw
@@ -123,6 +133,19 @@ describe("krn CLI", () => {
           status: "installed",
           created: 7,
           skipped: 0,
+          actions: [
+            { path: ".krn/current", kind: "directory", status: "created" },
+            { path: ".krn/graph", kind: "directory", status: "created" },
+            { path: ".krn/traces", kind: "directory", status: "created" },
+            { path: "krn.config.json", kind: "file", status: "created" },
+            { path: "AGENTS.md", kind: "file", status: "created" },
+            { path: ".codex/hooks.json", kind: "file", status: "created" },
+            {
+              path: ".agents/skills/krn-harness/SKILL.md",
+              kind: "file",
+              status: "created",
+            },
+          ],
         },
       },
     ]);
@@ -199,7 +222,20 @@ describe("krn CLI", () => {
       supported: true,
       status: "ok",
       payloadSource: "placeholder",
+      detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
     });
+
+    for (const event of supportedP0CodexHookEvents) {
+      const supported = await runInCwd(result.cwd, ["hook", "codex", event]);
+      expect(supported.code).toBe(0);
+      expect(JSON.parse(supported.stdout)).toMatchObject({
+        provider: "codex",
+        event,
+        supported: true,
+        status: "ok",
+        payloadSource: "placeholder",
+      });
+    }
 
     const unknown = await runInCwd(result.cwd, ["hook", "codex", "UnknownEvent"]);
     expect(unknown.code).toBe(0);
@@ -220,12 +256,22 @@ describe("krn CLI", () => {
           status: "ok",
         },
       },
+      ...supportedP0CodexHookEvents.map((event) => ({
+        name: "hook.received",
+        data: {
+          event,
+          supported: true,
+          status: "ok",
+          detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
+        },
+      })),
       {
         name: "hook.received",
         data: {
           event: "UnknownEvent",
           supported: false,
           status: "ignored",
+          detail: "Unsupported Codex hook event ignored by P0 hook skeleton",
         },
       },
     ]);

@@ -20,6 +20,7 @@ export async function hookCommand(args: string[], runtime: CliRuntime): Promise<
         supported: result.supported,
         status: result.status,
         payloadSource: result.payloadSource,
+        detail: result.detail,
       },
     }),
     runtime.tracePath ?? defaultTracePath(runtime.cwd),
