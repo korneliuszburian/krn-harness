@@ -3,6 +3,7 @@ export interface GraphNode {
   kind: string;
   label: string;
   evidencePath: string;
+  status?: "available" | "deprecated" | "missing" | undefined;
 }
 
 export interface GraphEdge {

@@ -1,6 +1,7 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import type { GraphDetector } from "../graph-types.js";
+import { toGraphPath } from "../path-utils.js";
 
 export const filesystemDetector: GraphDetector = {
   name: "filesystem",
@@ -10,12 +11,18 @@ export const filesystemDetector: GraphDetector = {
     return {
       nodes: entries
         .filter((entry) => entry.isDirectory() || entry.isFile())
-        .map((entry) => ({
-          id: `fs:${entry.name}`,
-          kind: entry.isDirectory() ? "directory" : "file",
-          label: entry.name,
-          evidencePath: path.join(cwd, entry.name),
-        })),
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((entry) => {
+          const absolutePath = path.join(cwd, entry.name);
+          const graphPath = toGraphPath(cwd, absolutePath);
+
+          return {
+            id: `fs:${graphPath}`,
+            kind: entry.isDirectory() ? "directory" : "file",
+            label: entry.name,
+            evidencePath: graphPath,
+          };
+        }),
       edges: [],
     };
   },

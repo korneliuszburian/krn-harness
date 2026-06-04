@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { buildGraph } from "../../graph/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { buildContextPackage } from "./build-context-package.js";
 import { renderContextPackageMarkdown } from "./render-md.js";
@@ -44,6 +45,33 @@ describe("context package", () => {
       confidence: "high",
       overInclusionRisk: "low",
     });
+  });
+
+  it("can rank frontend fixture context from graph-lite output", async () => {
+    const fixture = readTaskFixture("frontend-section-context");
+    const contract = buildTaskContract(fixture.task);
+    const graph = await buildGraph(repoRoot);
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(fixture.expected.mustRead);
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/theme/templates/section.php",
+        reason: "Graph-lite CSS class relation for requested section",
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/theme/assets/section.css",
+        reason: "Graph-lite stylesheet relation for requested section",
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/acf-json/section.json",
+        reason: "Graph-lite ACF field contract for requested section",
+      }),
+    );
   });
 
   it("keeps deprecated stale docs out of must-read context", () => {
