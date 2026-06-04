@@ -18,7 +18,7 @@ The Codex hooks template connects lifecycle events to `krn hook codex <event>`.
 
 Hooks are guardrails and trace points. They are not a complete security boundary or sandbox.
 
-P0 hook handling returns a deterministic response and writes `hook.received`. Unsupported events are ignored without crashing. P0 does not parse or enforce full hook payload policy.
+P0 hook handling returns a deterministic response and writes `hook.received` with provider, event, support status, payload source, and skeleton detail. Unsupported events are ignored without crashing. P0 does not parse or enforce full hook payload policy.
 
 ## Downstream Template
 

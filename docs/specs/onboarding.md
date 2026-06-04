@@ -18,3 +18,5 @@
 If KRN reports STOP, do not edit until the missing context or unsafe condition is resolved.
 
 `krn install` preserves existing downstream files. It reports skipped files instead of overwriting project-owned instructions.
+
+Each install run writes an `install.ran` JSONL trace event with deterministic created/skipped counts and action summaries so onboarding can be checked without reading generated file bodies.
