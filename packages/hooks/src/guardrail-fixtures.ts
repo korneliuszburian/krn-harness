@@ -10,6 +10,8 @@ export type HookGuardrailFixtureStateName =
   | "empty"
   | "task-only"
   | "ready"
+  | "hook-task-owned"
+  | "hook-context-owned"
   | "stop-active"
   | "final-missing";
 
@@ -22,6 +24,7 @@ export interface HookGuardrailMatrixCase {
     status: HookResult["status"];
     decision: HookDecision;
     findingCodes: string[];
+    ownedProofPathHints?: string[] | undefined;
   };
 }
 
@@ -37,6 +40,7 @@ const readyState: HookCurrentState = {
   verifyPresent: true,
   handoffPresent: true,
   taskId: "task-hook-fixture",
+  taskText: "Edit scoped file",
   writablePaths: ["src/in-scope.ts"],
   doNotUsePaths: ["docs/stale.md"],
   missingContextPaths: [],
@@ -62,6 +66,22 @@ export function hookGuardrailFixtureState(name: HookGuardrailFixtureStateName): 
       verifyPresent: false,
       handoffPresent: false,
       taskId: "task-hook-fixture",
+      taskText: "Edit scoped file",
+    };
+  }
+
+  if (name === "hook-task-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden hook guardrail ownership hints with eval doctor trace regressions",
+    };
+  }
+
+  if (name === "hook-context-owned") {
+    return {
+      ...readyState,
+      taskText: "Update current package proof tests",
+      writablePaths: ["src/in-scope.ts", "packages/hooks/src/codex-hook-entry.ts"],
     };
   }
 
@@ -87,6 +107,12 @@ export function hookGuardrailFixtureState(name: HookGuardrailFixtureStateName): 
 
 export function hookFindingCodes(result: HookResult): string[] {
   return result.findings.map((finding) => finding.code);
+}
+
+export function hookProofPathOwnershipHints(result: HookResult): string[] {
+  return result.findings
+    .map((finding) => finding.ownershipHint)
+    .filter((hint): hint is string => typeof hint === "string");
 }
 
 export function runHookGuardrailFixtureCase(testCase: HookGuardrailMatrixCase): HookResult {

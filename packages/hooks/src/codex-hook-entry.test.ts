@@ -10,6 +10,7 @@ import {
 import {
   type HookGuardrailMatrix,
   hookFindingCodes,
+  hookProofPathOwnershipHints,
   runHookGuardrailFixtureCase,
 } from "./guardrail-fixtures.js";
 
@@ -28,6 +29,7 @@ const readyState: HookCurrentState = {
   verifyPresent: true,
   handoffPresent: true,
   taskId: "task-hook",
+  taskText: "Edit scoped file",
   writablePaths: ["src/in-scope.ts"],
   doNotUsePaths: ["docs/stale.md"],
   missingContextPaths: [],
@@ -58,8 +60,16 @@ describe("Codex hook entry guardrails", () => {
           findingCodes: hookFindingCodes(result),
         },
         testCase.name,
-      ).toEqual(testCase.expected);
+      ).toEqual({
+        status: testCase.expected.status,
+        decision: testCase.expected.decision,
+        findingCodes: testCase.expected.findingCodes,
+      });
+      expect(hookProofPathOwnershipHints(result), testCase.name).toEqual(
+        testCase.expected.ownedProofPathHints ?? [],
+      );
       expect(result.enforced, testCase.name).toBe(false);
+      expect(result.ownershipModel, testCase.name).toBe("task-context-owned-proof-paths-v1");
     }
   });
 
@@ -158,7 +168,7 @@ describe("Codex hook entry guardrails", () => {
     });
   });
 
-  it("warns for test/docs proof paths outside active context", () => {
+  it("blocks unowned test/docs proof paths outside active context", () => {
     const payload = parseCodexHookPayload(
       JSON.stringify({
         toolName: "Write",
@@ -171,6 +181,70 @@ describe("Codex hook entry guardrails", () => {
     });
 
     expect(result).toMatchObject({
+      status: "blocked",
+      decision: "block",
+      enforced: false,
+    });
+    expect(result.findings).toContainEqual({
+      code: "out-of-scope-edit",
+      severity: "block",
+      detail: "Tool payload edits a path outside must-read/should-read current context",
+      path: "docs/proof.md",
+    });
+  });
+
+  it("warns for task-owned hook proof paths outside active context", () => {
+    const payload = parseCodexHookPayload(
+      JSON.stringify({
+        toolName: "Write",
+        filePath: "docs/specs/hooks-pack.md",
+      }),
+    );
+    const result = handleCodexHook("PreToolUse", {
+      payload,
+      state: {
+        ...readyState,
+        taskText: "Harden hook guardrail ownership hints",
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "warn",
+      decision: "warn",
+      enforced: false,
+      ownershipModel: "task-context-owned-proof-paths-v1",
+    });
+    expect(result.ownedProofPathHints).toEqual([
+      "docs/specs/hooks-pack.md",
+      "fixtures/hooks",
+      "packages/hooks",
+    ]);
+    expect(result.findings).toContainEqual({
+      code: "proof-path-exception",
+      severity: "warn",
+      detail: "Tool payload edits a task/context-owned proof path outside active context",
+      path: "docs/specs/hooks-pack.md",
+      ownershipHint: "docs/specs/hooks-pack.md",
+    });
+  });
+
+  it("warns for context-owned package test proof paths outside active context", () => {
+    const payload = parseCodexHookPayload(
+      JSON.stringify({
+        toolName: "Write",
+        filePath: "packages/hooks/src/codex-hook-entry.test.ts",
+      }),
+    );
+    const result = handleCodexHook("PreToolUse", {
+      payload,
+      state: {
+        ...readyState,
+        taskText: "Update current package tests",
+        writablePaths: ["src/in-scope.ts", "packages/hooks/src/codex-hook-entry.ts"],
+      },
+    });
+
+    expect(result).toMatchObject({
       status: "warn",
       decision: "warn",
       enforced: false,
@@ -178,8 +252,9 @@ describe("Codex hook entry guardrails", () => {
     expect(result.findings).toContainEqual({
       code: "proof-path-exception",
       severity: "warn",
-      detail: "Tool payload edits a test/docs/fixture proof path outside active context",
-      path: "docs/proof.md",
+      detail: "Tool payload edits a task/context-owned proof path outside active context",
+      path: "packages/hooks/src/codex-hook-entry.test.ts",
+      ownershipHint: "packages/hooks",
     });
   });
 

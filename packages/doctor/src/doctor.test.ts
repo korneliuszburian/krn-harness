@@ -583,6 +583,8 @@ describe("doctor result", () => {
           status: "warn",
           decision: "warn",
           enforced: false,
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHints: ["docs/specs/hooks-pack.md"],
           payloadSource: "stdin-json",
           detail: "P0 hook guardrail warn: proof-path-exception",
           findingCodes: ["proof-path-exception"],
@@ -611,7 +613,41 @@ describe("doctor result", () => {
     expect(result.checks).toContainEqual({
       name: "hook-guardrail-trace",
       status: "pass",
-      detail: "3 hook guardrail trace event(s) valid: allow 1, warn 1, block 1",
+      detail:
+        "3 hook guardrail trace event(s) valid: allow 1, warn 1, block 1, owned proof paths 1",
+    });
+  });
+
+  it("fails current hook proof-path trace events without ownership hints", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-proof-path",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail warn: proof-path-exception",
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail:
+        "hook.received trace-hook-proof-path has proof-path-exception without ownership hints",
     });
   });
 

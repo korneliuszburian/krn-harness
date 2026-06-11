@@ -37,6 +37,7 @@ async function currentHookState(cwd: string): Promise<HookCurrentState> {
     verifyPresent: Boolean(verifyResult),
     handoffPresent,
     taskId: taskContract?.id ?? contextPackage?.taskId ?? verifyResult?.taskId,
+    taskText: taskContract?.task,
     contextStopReason: contextPackage?.stopReason,
     writablePaths: [
       ...(contextPackage?.buckets.mustRead.map((item) => item.path) ?? []),
@@ -71,6 +72,8 @@ export async function hookCommand(args: string[], runtime: CliRuntime): Promise<
         status: result.status,
         decision: result.decision,
         enforced: result.enforced,
+        ownershipModel: result.ownershipModel,
+        ownedProofPathHints: result.ownedProofPathHints,
         payloadSource: result.payloadSource,
         detail: result.detail,
         findingCodes: result.findings.map((finding) => finding.code),

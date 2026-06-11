@@ -88,20 +88,55 @@
       }
     },
     {
-      "name": "pretool-edit-doc-proof-path-warns",
+      "name": "pretool-edit-unowned-doc-proof-path-blocks",
       "event": "PreToolUse",
       "state": "ready",
       "payload": { "toolName": "Write", "filePath": "docs/proof.md" },
       "expected": {
-        "status": "warn",
-        "decision": "warn",
-        "findingCodes": ["proof-path-exception"]
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
       }
     },
     {
-      "name": "pretool-edit-test-proof-path-warns",
+      "name": "pretool-edit-unowned-test-proof-path-blocks",
       "event": "PreToolUse",
       "state": "ready",
+      "payload": { "toolName": "Write", "filePath": "packages/other/src/example.test.ts" },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-owned-hooks-doc-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "hook-task-owned",
+      "payload": { "toolName": "Write", "filePath": "docs/specs/hooks-pack.md" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["docs/specs/hooks-pack.md"]
+      }
+    },
+    {
+      "name": "pretool-edit-owned-hooks-fixture-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "hook-task-owned",
+      "payload": { "toolName": "Write", "filePath": "fixtures/hooks/guardrail-matrix.json" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["fixtures/hooks"]
+      }
+    },
+    {
+      "name": "pretool-edit-context-owned-hooks-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "hook-context-owned",
       "payload": {
         "tool": "apply_patch",
         "arguments": {
@@ -111,7 +146,8 @@
       "expected": {
         "status": "warn",
         "decision": "warn",
-        "findingCodes": ["proof-path-exception"]
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/hooks"]
       }
     },
     {

@@ -679,6 +679,8 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
 
   const counts = { allow: 0, warn: 0, block: 0 };
   let legacyEvents = 0;
+  let legacyProofPathEvents = 0;
+  let ownedProofPathEvents = 0;
 
   for (const event of hookEvents) {
     const data = event.data;
@@ -716,6 +718,42 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
         detail: `hook.received ${event.id} has ${data.decision} without finding codes`,
       };
     }
+
+    if (
+      data.ownershipModel !== undefined &&
+      data.ownershipModel !== "task-context-owned-proof-paths-v1"
+    ) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} has an unknown proof-path ownership model`,
+      };
+    }
+
+    if (data.ownedProofPathHints !== undefined && !isStringArray(data.ownedProofPathHints)) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} has malformed proof-path ownership hints`,
+      };
+    }
+
+    if (data.findingCodes.includes("proof-path-exception")) {
+      if (data.ownershipModel !== "task-context-owned-proof-paths-v1") {
+        legacyProofPathEvents += 1;
+        continue;
+      }
+
+      if (!isStringArray(data.ownedProofPathHints) || data.ownedProofPathHints.length === 0) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has proof-path-exception without ownership hints`,
+        };
+      }
+
+      ownedProofPathEvents += 1;
+    }
   }
 
   const checkedEvents = hookEvents.length - legacyEvents;
@@ -731,7 +769,7 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
   return {
     name: "hook-guardrail-trace",
     status: "pass",
-    detail: `${checkedEvents} hook guardrail trace event(s) valid: allow ${counts.allow}, warn ${counts.warn}, block ${counts.block}${legacyEvents > 0 ? `; ignored ${legacyEvents} legacy event(s)` : ""}`,
+    detail: `${checkedEvents} hook guardrail trace event(s) valid: allow ${counts.allow}, warn ${counts.warn}, block ${counts.block}, owned proof paths ${ownedProofPathEvents}${legacyEvents > 0 ? `; ignored ${legacyEvents} legacy event(s)` : ""}${legacyProofPathEvents > 0 ? `; ignored ${legacyProofPathEvents} legacy proof-path event(s)` : ""}`,
   };
 }
 

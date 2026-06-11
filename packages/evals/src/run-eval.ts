@@ -6,6 +6,7 @@ import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
   type HookGuardrailMatrix,
   hookFindingCodes,
+  hookProofPathOwnershipHints,
   runHookGuardrailFixtureCase,
 } from "../../hooks/src/index.js";
 import {
@@ -424,6 +425,17 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
       failures.push(`${testCase.name} trace finding-code regression`);
     }
 
+    if (
+      JSON.stringify(hookProofPathOwnershipHints(result)) !==
+      JSON.stringify(testCase.expected.ownedProofPathHints ?? [])
+    ) {
+      failures.push(`${testCase.name} proof-path ownership hint regression`);
+    }
+
+    if (result.ownershipModel !== "task-context-owned-proof-paths-v1") {
+      failures.push(`${testCase.name} used an unknown proof-path ownership model`);
+    }
+
     if (result.enforced !== false) {
       failures.push(`${testCase.name} claimed enforcement instead of guardrail evidence`);
     }
@@ -434,7 +446,7 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, proof-path exceptions, and trace finding codes`
+        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, owned proof-path exceptions, unowned proof-path blocks, and trace finding codes`
         : failures.join("; "),
   };
 }

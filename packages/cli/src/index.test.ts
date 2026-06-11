@@ -643,6 +643,108 @@ markdown: .krn/graph/repo-graph.md
     ]);
   });
 
+  it("records task-owned proof path hints for hook guardrail decisions", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "task-contract.json"),
+      '{"id":"task-hook","task":"Harden hook guardrail ownership hints"}\n',
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          taskId: "task-hook",
+          items: [],
+          buckets: {
+            mustRead: [
+              {
+                path: "src/in-scope.ts",
+                reason: "In scope",
+                priority: 10,
+                bucket: "must-read",
+                status: "available",
+              },
+            ],
+            shouldRead: [],
+            referenceOnly: [],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 1, present: 1, missing: 0, confidence: "high" },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const owned = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({
+        toolName: "Write",
+        filePath: "docs/specs/hooks-pack.md",
+      }),
+    });
+    const unowned = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({
+        toolName: "Write",
+        filePath: "docs/unowned-proof.md",
+      }),
+    });
+
+    expect(owned.code).toBe(0);
+    expect(JSON.parse(owned.stdout)).toMatchObject({
+      status: "warn",
+      decision: "warn",
+      ownershipModel: "task-context-owned-proof-paths-v1",
+      ownedProofPathHints: ["docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks"],
+      findings: [
+        expect.objectContaining({
+          code: "proof-path-exception",
+          path: "docs/specs/hooks-pack.md",
+          ownershipHint: "docs/specs/hooks-pack.md",
+        }),
+      ],
+    });
+    expect(unowned.code).toBe(0);
+    expect(JSON.parse(unowned.stdout)).toMatchObject({
+      status: "blocked",
+      decision: "block",
+      findings: [
+        expect.objectContaining({
+          code: "out-of-scope-edit",
+          path: "docs/unowned-proof.md",
+        }),
+      ],
+    });
+    await expect(readTraceEvents(cwd)).resolves.toMatchObject([
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
+          status: "warn",
+          decision: "warn",
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHints: ["docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks"],
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
+          status: "blocked",
+          decision: "block",
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHints: ["docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks"],
+          findingCodes: ["out-of-scope-edit"],
+        },
+      },
+    ]);
+  });
+
   it("runs the manual governed memory workflow without auto-approval", async () => {
     const proposed = await runInTemp([
       "memory",

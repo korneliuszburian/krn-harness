@@ -26,6 +26,7 @@
 - Current context STOP state when available.
 - Source checkout adapter template and build-time skill presence when applicable.
 - Run trace, run metadata, global trace, hook guardrail trace payloads, and current-run pointer presence/shape.
+- Hook guardrail trace payloads with `proof-path-exception` under `task-context-owned-proof-paths-v1` must include non-empty owned proof-path hints.
 
 ## P0 Rule
 

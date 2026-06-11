@@ -20,6 +20,7 @@ export const supportedCodexHookEvents: CodexHookEvent[] = [
 export type HookPayloadSource = "placeholder" | "stdin-json" | "stdin-invalid-json";
 export type HookDecision = "allow" | "warn" | "block";
 export type HookFindingSeverity = "info" | "warn" | "block";
+export type HookOwnershipModel = "task-context-owned-proof-paths-v1";
 
 export interface HookPayload {
   source: HookPayloadSource;
@@ -34,10 +35,12 @@ export interface HookCurrentState {
   verifyPresent: boolean;
   handoffPresent: boolean;
   taskId?: string | undefined;
+  taskText?: string | undefined;
   contextStopReason?: string | undefined;
   writablePaths?: string[] | undefined;
   doNotUsePaths?: string[] | undefined;
   missingContextPaths?: string[] | undefined;
+  ownedProofPaths?: string[] | undefined;
   verifyStatus?: string | undefined;
 }
 
@@ -56,6 +59,7 @@ export interface HookGuardrailFinding {
   severity: HookFindingSeverity;
   detail: string;
   path?: string | undefined;
+  ownershipHint?: string | undefined;
 }
 
 export interface HookResult {
@@ -65,10 +69,14 @@ export interface HookResult {
   status: "ok" | "warn" | "blocked" | "ignored";
   decision: HookDecision;
   enforced: false;
+  ownershipModel: HookOwnershipModel;
+  ownedProofPathHints: string[];
   payloadSource: HookPayloadSource;
   detail: string;
   findings: HookGuardrailFinding[];
 }
+
+export const hookOwnershipModel: HookOwnershipModel = "task-context-owned-proof-paths-v1";
 
 export function isSupportedCodexHookEvent(event: string): event is CodexHookEvent {
   return supportedCodexHookEvents.includes(event as CodexHookEvent);
@@ -108,6 +116,52 @@ function pathMatches(candidate: string, scopedPath: string): boolean {
     normalizedCandidate === normalizedScopedPath ||
     normalizedCandidate.startsWith(`${normalizedScopedPath}/`)
   );
+}
+
+function uniqueSortedPaths(paths: string[]): string[] {
+  return [...new Set(paths.map(normalizeHookPath).filter(Boolean))].sort((left, right) =>
+    left.localeCompare(right),
+  );
+}
+
+function ownershipSignalText(state: HookCurrentState): string {
+  return [
+    state.taskText,
+    ...(state.writablePaths ?? []),
+    ...(state.doNotUsePaths ?? []),
+    ...(state.missingContextPaths ?? []),
+    ...(state.ownedProofPaths ?? []),
+  ]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ")
+    .toLowerCase();
+}
+
+function signalMatches(text: string, terms: string[]): boolean {
+  return terms.some((term) => new RegExp(`(^|[^a-z0-9])${term}([^a-z0-9]|$)`, "u").test(text));
+}
+
+export function ownedProofPathHintsForState(state: HookCurrentState): string[] {
+  const signalText = ownershipSignalText(state);
+  const hints = [...(state.ownedProofPaths ?? [])];
+
+  if (signalMatches(signalText, ["hook", "hooks", "guardrail", "guardrails", "codex"])) {
+    hints.push("docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks");
+  }
+
+  if (signalMatches(signalText, ["eval", "evals", "grader", "graders", "matrix"])) {
+    hints.push("docs/specs/eval-result.schema.md", "fixtures/hooks", "packages/evals");
+  }
+
+  if (signalMatches(signalText, ["doctor", "health"])) {
+    hints.push("docs/specs/doctor-result.schema.md", "packages/doctor");
+  }
+
+  if (signalMatches(signalText, ["trace", "traces", "finding", "findings"])) {
+    hints.push("docs/specs/trace.schema.md", "packages/trace");
+  }
+
+  return uniqueSortedPaths(hints);
 }
 
 function collectPathsFromPatch(text: string): string[] {
@@ -310,7 +364,15 @@ function addCurrentStateFindings(
   }
 }
 
-function addScopeFindings(payload: HookPayload, state: HookCurrentState): HookGuardrailFinding[] {
+function ownedProofPathHintFor(editedPath: string, hints: string[]): string | undefined {
+  return hints.find((hint) => pathMatches(editedPath, hint));
+}
+
+function addScopeFindings(
+  payload: HookPayload,
+  state: HookCurrentState,
+  ownedProofPathHints: string[],
+): HookGuardrailFinding[] {
   if (!isEditTool(hookToolName(payload)) || !state.contextPresent) {
     return [];
   }
@@ -331,12 +393,15 @@ function addScopeFindings(payload: HookPayload, state: HookCurrentState): HookGu
     }
 
     if (!writablePaths.some((scopedPath) => pathMatches(editedPath, scopedPath))) {
-      if (state.taskPresent && state.contextPresent && isProofPath(editedPath)) {
+      const ownershipHint = ownedProofPathHintFor(editedPath, ownedProofPathHints);
+
+      if (state.taskPresent && state.contextPresent && isProofPath(editedPath) && ownershipHint) {
         findings.push({
           code: "proof-path-exception",
           severity: "warn",
-          detail: "Tool payload edits a test/docs/fixture proof path outside active context",
+          detail: "Tool payload edits a task/context-owned proof path outside active context",
           path: editedPath,
+          ownershipHint,
         });
         continue;
       }
@@ -408,6 +473,8 @@ export function handleCodexHook(
       status: "ignored",
       decision: "allow",
       enforced: false,
+      ownershipModel: hookOwnershipModel,
+      ownedProofPathHints: [],
       payloadSource: payload.source,
       detail: "Unsupported Codex hook event ignored by P0 hook guardrail",
       findings: [],
@@ -415,6 +482,7 @@ export function handleCodexHook(
   }
 
   const findings: HookGuardrailFinding[] = [];
+  const ownedProofPathHints = ownedProofPathHintsForState(state);
 
   if (payload.source === "stdin-invalid-json") {
     findings.push({
@@ -427,7 +495,7 @@ export function handleCodexHook(
   const hookEvent = event as CodexHookEvent;
 
   addCurrentStateFindings(hookEvent, payload, state, findings);
-  findings.push(...addScopeFindings(payload, state));
+  findings.push(...addScopeFindings(payload, state, ownedProofPathHints));
 
   if (hookEvent === "Stop") {
     findings.push(...addFinalFindings(state));
@@ -446,6 +514,8 @@ export function handleCodexHook(
     status: hookStatus(decision),
     decision,
     enforced: false,
+    ownershipModel: hookOwnershipModel,
+    ownedProofPathHints,
     payloadSource: payload.source,
     detail,
     findings,
