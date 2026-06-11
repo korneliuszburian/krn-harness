@@ -244,6 +244,16 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
 }
 
 export function renderEvalResultMarkdown(result: EvalResult): string {
+  const failures = [
+    ...result.fixtures.flatMap((fixture) =>
+      fixture.grades
+        .filter((grade) => grade.status === "fail")
+        .map((grade) => `${fixture.name}/${grade.name}: ${grade.detail}`),
+    ),
+    ...[result.graph, result.graphArtifact, result.trace]
+      .filter((grade) => grade.status === "fail")
+      .map((grade) => `${grade.name}: ${grade.detail}`),
+  ];
   const lines = [
     "# KRN Eval Result",
     "",
@@ -254,12 +264,12 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     `Fail count: ${result.failCount}`,
     `Run trace mode: ${result.runTraceMode}`,
     "",
-    "## Graph",
+    "## Graph Coverage",
     "",
     `- ${result.graph.name}: ${result.graph.status} - ${result.graph.detail}`,
     `- ${result.graphArtifact.name}: ${result.graphArtifact.status} - ${result.graphArtifact.detail}`,
     "",
-    "## Fixtures",
+    "## Fixture Results",
     "",
   ];
 
@@ -272,11 +282,15 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
   }
 
   lines.push(
-    "## Trace",
+    "## Trace Coverage",
     "",
     `- ${result.trace.name}: ${result.trace.status} - ${result.trace.detail}`,
     "",
-    "## Known P0 Limits",
+    "## Failures",
+    "",
+    ...(failures.length > 0 ? failures.map((failure) => `- ${failure}`) : ["- none"]),
+    "",
+    "## P0 Limits",
     "",
     "- Eval uses harness-only fixtures and local traces.",
     "- Eval does not invoke Codex, external services, or project commands.",

@@ -9,7 +9,7 @@
 - `.krn/current/eval-result.json`
 - `.krn/current/eval-result.md`
 
-The Markdown artifact contains Summary, Fixtures, Graph, Trace, and Known P0 Limits sections.
+The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Trace Coverage, Failures, and P0 Limits sections.
 
 ## Fields
 

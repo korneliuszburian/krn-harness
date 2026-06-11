@@ -884,7 +884,9 @@ markdown: .krn/graph/repo-graph.md
     ]);
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
-    expect(evalMarkdown).toContain("## Trace");
+    expect(evalMarkdown).toContain("## Graph Coverage");
+    expect(evalMarkdown).toContain("## Trace Coverage");
+    expect(evalMarkdown).toContain("## P0 Limits");
     expect(handoffMarkdown).toContain("## Graph");
     expect(handoffMarkdown).toContain("Status: present");
     expect(handoffMarkdown).toContain("Nodes:");

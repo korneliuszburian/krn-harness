@@ -123,10 +123,12 @@ describe("harness-only eval", () => {
 
     const markdown = renderEvalResultMarkdown(result);
     expect(markdown).toContain("## Summary");
-    expect(markdown).toContain("## Fixtures");
-    expect(markdown).toContain("## Graph");
-    expect(markdown).toContain("## Trace");
-    expect(markdown).toContain("## Known P0 Limits");
+    expect(markdown).toContain("## Fixture Results");
+    expect(markdown).toContain("## Graph Coverage");
+    expect(markdown).toContain("## Trace Coverage");
+    expect(markdown).toContain("## Failures");
+    expect(markdown).toContain("- none");
+    expect(markdown).toContain("## P0 Limits");
   });
 
   it("reports missing trace events deterministically", async () => {
