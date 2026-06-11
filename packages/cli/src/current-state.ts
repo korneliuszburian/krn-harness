@@ -48,6 +48,10 @@ export function readCurrentTaskContract(cwd: string): Promise<TaskContract | und
   return readCurrentJson<TaskContract>(cwd, "task-contract.json");
 }
 
+export async function readCurrentTaskId(cwd: string): Promise<string | undefined> {
+  return (await readCurrentTaskContract(cwd))?.id;
+}
+
 export function readCurrentContextPackage(cwd: string): Promise<ContextPackage | undefined> {
   return readCurrentJson<ContextPackage>(cwd, "context-package.json");
 }

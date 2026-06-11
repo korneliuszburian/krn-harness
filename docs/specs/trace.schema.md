@@ -20,4 +20,18 @@ The P0 current-state loop records `task.started -> graph.built -> context.built 
 
 ## P0 Trace Location
 
-P0 writes a single local trace stream at `.krn/traces/trace.jsonl`. Run-scoped traces under `.krn/runs/<task_id>/trace.jsonl` are the intended next shape once run lifecycle semantics exist; they are deferred to P1 to avoid inventing a broader run model before current-state artifacts are proven.
+P0 always writes the local global trace stream at `.krn/traces/trace.jsonl`.
+
+When a current task exists, P0 loop commands also append the same event to `.krn/runs/<task_id>/trace.jsonl` and update `.krn/runs/<task_id>/run.json`.
+
+Minimal run metadata:
+
+- `schemaVersion`
+- `taskId`
+- `startedAt`
+- `lastEventAt`
+- `events`
+- `artifactPaths`
+- `current`
+
+`krn hook codex <event>` and `krn install` remain global-only P0 events. Run traces are local evidence only and do not claim production observability.

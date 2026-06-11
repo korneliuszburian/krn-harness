@@ -1,11 +1,11 @@
 import { buildContextPackage, renderContextPackageMarkdown } from "../../../context/src/index.js";
 import { buildGraph } from "../../../graph/src/index.js";
-import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import {
   readCurrentTaskContract,
   writeCurrentJson,
   writeCurrentMarkdown,
 } from "../current-state.js";
+import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 export async function contextCommand(runtime: CliRuntime): Promise<number> {
@@ -15,16 +15,13 @@ export async function contextCommand(runtime: CliRuntime): Promise<number> {
   await writeCurrentMarkdown(runtime.cwd, "context-package.md", renderContextPackageMarkdown(pkg));
   await writeCurrentJson(runtime.cwd, "context-package.json", pkg);
 
-  await writeTraceEvent(
-    createTraceEvent("context.built", {
-      taskId: pkg.taskId,
-      now: runtime.now?.(),
-      data: {
-        stop: pkg.stop,
-      },
-    }),
-    runtime.tracePath ?? defaultTracePath(runtime.cwd),
-  );
+  await emitCliTrace(runtime, "context.built", {
+    taskId: pkg.taskId,
+    runScoped: true,
+    data: {
+      stop: pkg.stop,
+    },
+  });
 
   runtime.stdout(`KRN context: package written
 context: .krn/current/context-package.md

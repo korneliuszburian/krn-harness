@@ -53,6 +53,14 @@ async function readTraceEvents(cwd: string): Promise<TraceEventFixture[]> {
     .map((line) => JSON.parse(line) as TraceEventFixture);
 }
 
+async function readRunTraceEvents(cwd: string, taskId: string): Promise<TraceEventFixture[]> {
+  const raw = await readFile(path.join(cwd, ".krn", "runs", taskId, "trace.jsonl"), "utf8");
+  return raw
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line) as TraceEventFixture);
+}
+
 async function readJson<T>(cwd: string, relativePath: string): Promise<T> {
   return JSON.parse(await readFile(path.join(cwd, relativePath), "utf8")) as T;
 }
@@ -138,6 +146,7 @@ describe("krn CLI", () => {
     expect(graphMarkdown).toContain("## Detectors");
     expect(graphMarkdown).toContain("## Relation Kind Counts");
     expect(graphMarkdown).toContain("Graph-lite is shallow P0 evidence");
+    await expect(stat(path.join(result.cwd, ".krn", "runs"))).rejects.toThrow();
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
       {
         name: "graph.built",
@@ -361,6 +370,58 @@ describe("krn CLI", () => {
       { name: "task.started" },
       { name: "context.built" },
     ]);
+  });
+
+  it("writes run-scoped trace and run metadata for the current loop", async () => {
+    const start = await runInTemp(["start", "goal", "run", "trace", "task"]);
+    expect(start.code).toBe(0);
+
+    const contract = await readJson<{ id: string }>(start.cwd, ".krn/current/task-contract.json");
+    await expect(runInCwd(start.cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["verify"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["doctor"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(start.cwd, ["eval"])).resolves.toMatchObject({ code: 0 });
+
+    const expectedNames = [
+      "task.started",
+      "graph.built",
+      "context.built",
+      "verify.ran",
+      "handoff.created",
+      "doctor.ran",
+      "eval.ran",
+    ];
+    const globalEvents = await readTraceEvents(start.cwd);
+    const runEvents = await readRunTraceEvents(start.cwd, contract.id);
+    const runMetadata = await readJson<{
+      schemaVersion: number;
+      taskId: string;
+      startedAt: string;
+      lastEventAt: string;
+      current: boolean;
+      events: Array<{ name: string; timestamp: string }>;
+      artifactPaths: Record<string, string>;
+    }>(start.cwd, `.krn/runs/${contract.id}/run.json`);
+
+    expect(globalEvents.map((event) => event.name)).toEqual(expectedNames);
+    expect(runEvents.map((event) => event.name)).toEqual(expectedNames);
+    expect(runEvents.every((event) => event.taskId === contract.id)).toBe(true);
+    expect(runMetadata).toMatchObject({
+      schemaVersion: 1,
+      taskId: contract.id,
+      startedAt: "2026-06-03T00:00:00.000Z",
+      lastEventAt: "2026-06-03T00:00:00.000Z",
+      current: true,
+      artifactPaths: {
+        globalTrace: ".krn/traces/trace.jsonl",
+        graphJson: ".krn/graph/repo-graph.json",
+        runTrace: `.krn/runs/${contract.id}/trace.jsonl`,
+        taskContractJson: ".krn/current/task-contract.json",
+      },
+    });
+    expect(runMetadata.events.map((event) => event.name)).toEqual(expectedNames);
   });
 
   it("writes deterministic task-contract current artifacts", async () => {

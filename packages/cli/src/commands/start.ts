@@ -1,6 +1,6 @@
 import { buildTaskContract } from "../../../task-contract/src/index.js";
-import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import { ensureCurrentStateDir, writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
+import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 function renderContractMarkdown(contract: ReturnType<typeof buildTaskContract>): string {
@@ -66,16 +66,13 @@ export async function startCommand(taskParts: string[], runtime: CliRuntime): Pr
   await writeCurrentMarkdown(runtime.cwd, "task-contract.md", renderContractMarkdown(contract));
   await writeCurrentJson(runtime.cwd, "task-contract.json", contract);
 
-  await writeTraceEvent(
-    createTraceEvent("task.started", {
-      taskId: contract.id,
-      now: runtime.now?.(),
-      data: {
-        classification: contract.classification,
-      },
-    }),
-    runtime.tracePath ?? defaultTracePath(runtime.cwd),
-  );
+  await emitCliTrace(runtime, "task.started", {
+    taskId: contract.id,
+    runScoped: true,
+    data: {
+      classification: contract.classification,
+    },
+  });
 
   runtime.stdout(`KRN start: task accepted
 task_id: ${contract.id}

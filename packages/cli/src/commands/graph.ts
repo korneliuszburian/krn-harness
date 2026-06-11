@@ -6,7 +6,7 @@ import {
   defaultDetectors,
   renderGraphArtifactMarkdown,
 } from "../../../graph/src/index.js";
-import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
+import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 const graphJsonPath = ".krn/graph/repo-graph.json";
@@ -31,19 +31,16 @@ export async function graphCommand(runtime: CliRuntime): Promise<number> {
     renderGraphArtifactMarkdown(artifact),
     "utf8",
   );
-  await writeTraceEvent(
-    createTraceEvent("graph.built", {
-      now: runtime.now?.(),
-      data: {
-        nodeCount: artifact.nodeCount,
-        edgeCount: artifact.edgeCount,
-        detectors: artifact.detectors,
-        relationKindCounts: artifact.relationKindCounts,
-        nodeKindCounts: artifact.nodeKindCounts,
-      },
-    }),
-    runtime.tracePath ?? defaultTracePath(runtime.cwd),
-  );
+  await emitCliTrace(runtime, "graph.built", {
+    runScoped: true,
+    data: {
+      nodeCount: artifact.nodeCount,
+      edgeCount: artifact.edgeCount,
+      detectors: artifact.detectors,
+      relationKindCounts: artifact.relationKindCounts,
+      nodeKindCounts: artifact.nodeKindCounts,
+    },
+  });
 
   runtime.stdout(`KRN graph: ready
 nodes: ${artifact.nodeCount}

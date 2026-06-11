@@ -1,5 +1,4 @@
 import { loadConfig } from "../../../config/src/index.js";
-import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import { buildVerifyResult, renderVerifyResultMarkdown } from "../../../verify/src/index.js";
 import {
   readCurrentContextPackage,
@@ -7,6 +6,7 @@ import {
   writeCurrentJson,
   writeCurrentMarkdown,
 } from "../current-state.js";
+import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 export async function verifyCommand(runtime: CliRuntime): Promise<number> {
@@ -24,19 +24,16 @@ export async function verifyCommand(runtime: CliRuntime): Promise<number> {
   await writeCurrentJson(runtime.cwd, "verify-result.json", result);
   await writeCurrentMarkdown(runtime.cwd, "verify-result.md", renderVerifyResultMarkdown(result));
 
-  await writeTraceEvent(
-    createTraceEvent("verify.ran", {
-      taskId: result.taskId,
-      now: runtime.now?.(),
-      data: {
-        profile: result.profile,
-        status: result.status,
-        contextStop: result.contextStop,
-        configuredCommands: result.configuredCommands.length,
-      },
-    }),
-    runtime.tracePath ?? defaultTracePath(runtime.cwd),
-  );
+  await emitCliTrace(runtime, "verify.ran", {
+    taskId: result.taskId,
+    runScoped: true,
+    data: {
+      profile: result.profile,
+      status: result.status,
+      contextStop: result.contextStop,
+      configuredCommands: result.configuredCommands.length,
+    },
+  });
 
   runtime.stdout(`KRN verify: ${result.status}
 profile: ${result.profile}

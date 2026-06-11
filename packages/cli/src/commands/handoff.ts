@@ -1,12 +1,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
   readCurrentVerifyResult,
   writeCurrentMarkdown,
 } from "../current-state.js";
+import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 const execFileAsync = promisify(execFile);
@@ -106,17 +106,14 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
 
   await writeCurrentMarkdown(runtime.cwd, "handoff.md", markdown);
 
-  await writeTraceEvent(
-    createTraceEvent("handoff.created", {
-      taskId,
-      now: runtime.now?.(),
-      data: {
-        contextStop,
-        verifyStatus: verifyResult?.status ?? "missing",
-      },
-    }),
-    runtime.tracePath ?? defaultTracePath(runtime.cwd),
-  );
+  await emitCliTrace(runtime, "handoff.created", {
+    taskId,
+    runScoped: true,
+    data: {
+      contextStop,
+      verifyStatus: verifyResult?.status ?? "missing",
+    },
+  });
 
   runtime.stdout(`KRN handoff: ready
 handoff: .krn/current/handoff.md
