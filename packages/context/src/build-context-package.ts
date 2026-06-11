@@ -20,6 +20,7 @@ const taskStopWords = new Set([
   "only",
   "relevant",
   "required",
+  "section",
   "stop",
   "task",
   "treating",

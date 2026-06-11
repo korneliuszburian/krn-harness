@@ -28,3 +28,5 @@ The context package identifies the smallest high-value context Codex should read
 ## P0 Behavior
 
 P0 writes `.krn/current/context-package.md` and `.krn/current/context-package.json`.
+
+Graph selector matching is shallow and deterministic. Generic terms such as `section` are treated as too broad for graph promotion. P0 does not normalize Polish morphology or perform semantic search.

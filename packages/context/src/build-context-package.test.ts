@@ -77,7 +77,7 @@ describe("context package", () => {
         path: "fixtures/repos/frontend-section-context/theme/templates/section.php",
         source: "graph",
         selector: "style-related-to",
-        matchedTerms: ["frontend", "section"],
+        matchedTerms: ["frontend"],
         relationKind: "style-related-to",
         sourceNode: "file:fixtures/repos/frontend-section-context/theme/templates/section.php",
         targetNode: "file:fixtures/repos/frontend-section-context/theme/assets/section.css",
@@ -88,7 +88,7 @@ describe("context package", () => {
         path: "fixtures/repos/frontend-section-context/theme/assets/section.css",
         source: "graph",
         selector: "style-related-to-target",
-        matchedTerms: ["frontend", "section"],
+        matchedTerms: ["frontend"],
       }),
     );
     expect(pkg.buckets.mustRead).toContainEqual(
@@ -96,7 +96,7 @@ describe("context package", () => {
         path: "fixtures/repos/frontend-section-context/acf-json/section.json",
         source: "graph",
         selector: "acf-group",
-        matchedTerms: ["frontend", "section"],
+        matchedTerms: ["frontend"],
         sourceNode: "acf-group:group_fixture_section",
       }),
     );
@@ -108,7 +108,7 @@ describe("context package", () => {
         path: "fixtures/repos/frontend-section-context/README.md",
         source: "graph",
         selector: "doc-match",
-        matchedTerms: ["frontend", "section"],
+        matchedTerms: ["frontend"],
       }),
     );
     expect(pkg.coverage).toEqual({
@@ -171,7 +171,7 @@ describe("context package", () => {
         path: "apps/site/theme/templates/hero-section.php",
         source: "graph",
         selector: "style-related-to",
-        matchedTerms: ["hero", "section"],
+        matchedTerms: ["hero"],
       }),
     );
     expect(pkg.buckets.mustRead).toContainEqual(
@@ -179,7 +179,7 @@ describe("context package", () => {
         path: "apps/site/theme/assets/hero-section.css",
         source: "graph",
         selector: "style-related-to-target",
-        matchedTerms: ["hero", "section"],
+        matchedTerms: ["hero"],
       }),
     );
     expect(pkg.buckets.mustRead).toContainEqual(
@@ -187,7 +187,61 @@ describe("context package", () => {
         path: "apps/site/acf-json/hero-section.json",
         source: "graph",
         selector: "acf-group",
-        matchedTerms: ["hero", "section"],
+        matchedTerms: ["hero"],
+      }),
+    );
+  });
+
+  it("does not over-include unrelated section files for docs tasks", () => {
+    const contract = buildTaskContract("Update billing section docs");
+    const graph = {
+      nodes: [
+        {
+          id: "file:apps/site/theme/assets/hero-section.css",
+          kind: "stylesheet",
+          label: "apps/site/theme/assets/hero-section.css",
+          evidencePath: "apps/site/theme/assets/hero-section.css",
+        },
+        {
+          id: "acf-group:group_hero_section",
+          kind: "acf-group",
+          label: "Hero Section",
+          evidencePath: "apps/site/acf-json/hero-section.json",
+        },
+        {
+          id: "doc:docs/billing.md",
+          kind: "doc",
+          label: "Billing docs",
+          evidencePath: "docs/billing.md",
+          status: "available",
+        },
+      ],
+      edges: [
+        {
+          from: "file:apps/site/theme/templates/hero-section.php",
+          to: "file:apps/site/theme/assets/hero-section.css",
+          kind: "style-related-to",
+          evidencePath: "apps/site/theme/templates/hero-section.php",
+        },
+      ],
+    } satisfies GraphLite;
+
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(["AGENTS.md"]);
+    expect(pkg.buckets.mustRead.map((item) => item.path)).not.toEqual(
+      expect.arrayContaining([
+        "apps/site/theme/templates/hero-section.php",
+        "apps/site/theme/assets/hero-section.css",
+        "apps/site/acf-json/hero-section.json",
+      ]),
+    );
+    expect(pkg.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: "docs/billing.md",
+        source: "graph",
+        selector: "doc-match",
+        matchedTerms: ["billing"],
       }),
     );
   });
