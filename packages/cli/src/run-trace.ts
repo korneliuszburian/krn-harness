@@ -60,6 +60,10 @@ export function runMetadataPath(cwd: string, taskId: string): string {
   return path.join(runDirPath(cwd, taskId), "run.json");
 }
 
+export function runSummaryPath(cwd: string, taskId: string): string {
+  return path.join(runDirPath(cwd, taskId), "summary.md");
+}
+
 function currentRunPath(cwd: string): string {
   return path.join(cwd, ".krn", "current", "run.json");
 }
@@ -77,12 +81,36 @@ function runArtifactPaths(taskId: string): Record<string, string> {
     graphMarkdown: ".krn/graph/repo-graph.md",
     handoffMarkdown: ".krn/current/handoff.md",
     runMetadata: `.krn/runs/${taskId}/run.json`,
+    runSummary: `.krn/runs/${taskId}/summary.md`,
     runTrace: `.krn/runs/${taskId}/trace.jsonl`,
     taskContractJson: ".krn/current/task-contract.json",
     taskContractMarkdown: ".krn/current/task-contract.md",
     verifyResultJson: ".krn/current/verify-result.json",
     verifyResultMarkdown: ".krn/current/verify-result.md",
   };
+}
+
+function renderRunSummaryMarkdown(metadata: RunMetadata): string {
+  const lastEvent = metadata.events.at(-1);
+  const artifactLines = Object.entries(metadata.artifactPaths)
+    .map(([name, artifactPath]) => `- ${name}: ${artifactPath}`)
+    .join("\n");
+
+  return `# KRN Run Summary
+
+Task ID: ${metadata.taskId}
+Event count: ${metadata.events.length}
+Last event: ${lastEvent?.name ?? "none"}
+Last event at: ${metadata.lastEventAt}
+
+## Artifact Paths
+
+${artifactLines}
+
+## P0 Limits
+
+This is local evidence only. It is not telemetry, monitoring, CI, or production audit infrastructure.
+`;
 }
 
 function currentRunPointer(taskId: string): CurrentRunPointer {
@@ -148,6 +176,7 @@ async function updateRunMetadata(cwd: string, event: TraceEvent): Promise<void> 
     `${JSON.stringify(metadata, null, 2)}\n`,
     "utf8",
   );
+  await writeFile(runSummaryPath(cwd, event.taskId), renderRunSummaryMarkdown(metadata), "utf8");
 }
 
 export async function emitCliTrace(

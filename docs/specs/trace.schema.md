@@ -22,7 +22,7 @@ The P0 current-state loop records `task.started -> graph.built -> context.built 
 
 P0 always writes the local global trace stream at `.krn/traces/trace.jsonl`.
 
-When a current task exists, P0 loop commands also append the same event to `.krn/runs/<task_id>/trace.jsonl` and update `.krn/runs/<task_id>/run.json`.
+When a current task exists, P0 loop commands also append the same event to `.krn/runs/<task_id>/trace.jsonl` and update `.krn/runs/<task_id>/run.json` plus `.krn/runs/<task_id>/summary.md`.
 
 The active run pointer is `.krn/current/run.json`. It records `taskId`, `runDir`, `tracePath`, `runMetadataPath`, and the current artifact paths for task contract, graph artifact, context package, verify result, handoff, doctor result, and eval result.
 
@@ -35,6 +35,8 @@ Minimal run metadata:
 - `events`
 - `artifactPaths`
 - `current`
+
+The run summary Markdown records task id, event count, last event, artifact paths, and a local-evidence-only warning.
 
 `krn hook codex <event>` and `krn install` remain global-only P0 events. Run traces are local evidence only and do not claim production observability.
 

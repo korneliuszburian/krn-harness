@@ -160,6 +160,7 @@ describe("krn CLI", () => {
       ".krn/traces/trace.jsonl",
       `.krn/runs/${contract.id}/trace.jsonl`,
       `.krn/runs/${contract.id}/run.json`,
+      `.krn/runs/${contract.id}/summary.md`,
     ];
 
     for (const file of expectedFiles) {
@@ -528,6 +529,10 @@ markdown: .krn/graph/repo-graph.md
       events: Array<{ name: string; timestamp: string }>;
       artifactPaths: Record<string, string>;
     }>(start.cwd, `.krn/runs/${contract.id}/run.json`);
+    const runSummary = await readFile(
+      path.join(start.cwd, ".krn", "runs", contract.id, "summary.md"),
+      "utf8",
+    );
     const currentRun = await readJson<{
       schemaVersion: number;
       taskId: string;
@@ -548,11 +553,17 @@ markdown: .krn/graph/repo-graph.md
       artifactPaths: {
         globalTrace: ".krn/traces/trace.jsonl",
         graphJson: ".krn/graph/repo-graph.json",
+        runSummary: `.krn/runs/${contract.id}/summary.md`,
         runTrace: `.krn/runs/${contract.id}/trace.jsonl`,
         taskContractJson: ".krn/current/task-contract.json",
       },
     });
     expect(runMetadata.events.map((event) => event.name)).toEqual(expectedNames);
+    expect(runSummary).toContain("# KRN Run Summary");
+    expect(runSummary).toContain(`Task ID: ${contract.id}`);
+    expect(runSummary).toContain("Event count: 7");
+    expect(runSummary).toContain("Last event: eval.ran");
+    expect(runSummary).toContain("This is local evidence only.");
     expect(currentRun).toMatchObject({
       schemaVersion: 1,
       taskId: contract.id,
