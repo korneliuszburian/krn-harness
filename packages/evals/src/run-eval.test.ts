@@ -98,7 +98,7 @@ describe("harness-only eval", () => {
 
     expect(result).toMatchObject({
       status: "pass",
-      passCount: 12,
+      passCount: 13,
       failCount: 0,
       graph: {
         name: "graph-behavior",
@@ -110,6 +110,10 @@ describe("harness-only eval", () => {
       },
       trace: {
         name: "trace-completeness",
+        status: "pass",
+      },
+      memory: {
+        name: "memory-governance",
         status: "pass",
       },
       runTraceMode: "global",
@@ -125,6 +129,7 @@ describe("harness-only eval", () => {
     expect(markdown).toContain("## Summary");
     expect(markdown).toContain("## Fixture Results");
     expect(markdown).toContain("## Graph Coverage");
+    expect(markdown).toContain("## Memory Governance");
     expect(markdown).toContain("## Trace Coverage");
     expect(markdown).toContain("## Failures");
     expect(markdown).toContain("- none");

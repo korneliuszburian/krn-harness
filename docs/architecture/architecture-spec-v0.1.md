@@ -18,7 +18,7 @@ The P0 monorepo uses `packages/*` for TypeScript packages, `docs/*` for canon/sp
 
 ## CLI Commands
 
-`krn --help`, `krn status`, `krn start "<task>"`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, and `krn eval` are deterministic skeleton commands. Hook entrypoints accept `krn hook codex <event>`.
+`krn --help`, `krn status`, `krn start "<task>"`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, `krn eval`, `krn install`, and `krn memory <command>` are deterministic skeleton commands. Hook entrypoints accept `krn hook codex <event>`.
 
 ## Codex Adapter Model
 
@@ -58,7 +58,7 @@ Verify is a skeleton profile runner. P0 evidence is local validation only and mu
 
 ## Memory
 
-Memory records are pending, approved, or rejected. P0 does not approve memory autonomously.
+Memory records are pending, approved, or deprecated. P0 does not approve memory autonomously.
 
 ## Doctor
 

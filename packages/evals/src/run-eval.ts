@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
+import {
+  approveMemory,
+  compactMemory,
+  createPendingMemory,
+  deprecateMemory,
+} from "../../memory/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { defaultTracePath, readTraceLines } from "../../trace/src/index.js";
 import { harnessFixtures, loadEvalTaskFixture } from "./fixtures.js";
@@ -26,6 +32,7 @@ export interface EvalResult {
   fixtures: EvalFixtureResult[];
   graph: EvalGrade;
   graphArtifact: EvalGrade;
+  memory: EvalGrade;
   trace: EvalGrade;
   runTraceMode: "run-scoped" | "global" | "missing";
 }
@@ -179,6 +186,60 @@ async function gradeGraphArtifact(cwd: string): Promise<EvalGrade> {
   }
 }
 
+function gradeMemoryGovernance(): EvalGrade {
+  const pending = createPendingMemory({
+    summary: "Pending memory must not be active.",
+    evidencePath: "docs/specs/memory.schema.md",
+    now: new Date("2026-06-03T00:00:00.000Z"),
+  });
+  const approved = approveMemory(
+    createPendingMemory({
+      summary: "Approved memory may be active.",
+      evidencePath: "docs/specs/memory.schema.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    }),
+    new Date("2026-06-03T00:01:00.000Z"),
+  );
+  const deprecated = deprecateMemory(
+    createPendingMemory({
+      summary: "Deprecated memory must not be active.",
+      evidencePath: "docs/specs/memory.schema.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    }),
+    {
+      reason: "Superseded by current canon.",
+      now: new Date("2026-06-03T00:02:00.000Z"),
+    },
+  );
+  const active = compactMemory([pending, approved, deprecated]);
+  const failures = [];
+
+  if (pending.status !== "pending") {
+    failures.push("pending record did not stay pending");
+  }
+
+  if (active.some((record) => record.id === pending.id)) {
+    failures.push("pending record leaked into active memory");
+  }
+
+  if (!active.some((record) => record.id === approved.id && record.status === "approved")) {
+    failures.push("approved record was not active");
+  }
+
+  if (active.some((record) => record.id === deprecated.id)) {
+    failures.push("deprecated record leaked into active memory");
+  }
+
+  return {
+    name: "memory-governance",
+    status: failures.length === 0 ? "pass" : "fail",
+    detail:
+      failures.length === 0
+        ? "Pending memory is inactive, approved memory is active, deprecated memory is excluded"
+        : failures.join("; "),
+  };
+}
+
 export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const cwd = input.cwd ?? process.cwd();
   const fixtureRoot = input.fixtureRoot ?? repoRootFromModule();
@@ -222,10 +283,12 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     expectedMustRead: frontendExpectedMustRead,
   });
   const graphArtifact = await gradeGraphArtifact(cwd);
+  const memory = gradeMemoryGovernance();
   const allGrades = [
     ...fixtures.flatMap((fixture) => fixture.grades),
     graphGrade,
     graphArtifact,
+    memory,
     trace,
   ];
   const passCount = allGrades.filter((grade) => grade.status === "pass").length;
@@ -238,6 +301,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     fixtures,
     graph: graphGrade,
     graphArtifact,
+    memory,
     trace,
     runTraceMode: traceRead.mode,
   };
@@ -250,7 +314,7 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
         .filter((grade) => grade.status === "fail")
         .map((grade) => `${fixture.name}/${grade.name}: ${grade.detail}`),
     ),
-    ...[result.graph, result.graphArtifact, result.trace]
+    ...[result.graph, result.graphArtifact, result.memory, result.trace]
       .filter((grade) => grade.status === "fail")
       .map((grade) => `${grade.name}: ${grade.detail}`),
   ];
@@ -268,6 +332,10 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     "",
     `- ${result.graph.name}: ${result.graph.status} - ${result.graph.detail}`,
     `- ${result.graphArtifact.name}: ${result.graphArtifact.status} - ${result.graphArtifact.detail}`,
+    "",
+    "## Memory Governance",
+    "",
+    `- ${result.memory.name}: ${result.memory.status} - ${result.memory.detail}`,
     "",
     "## Fixture Results",
     "",

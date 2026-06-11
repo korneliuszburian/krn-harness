@@ -9,7 +9,7 @@
 - `.krn/current/eval-result.json`
 - `.krn/current/eval-result.md`
 
-The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Trace Coverage, Failures, and P0 Limits sections.
+The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Memory Governance, Trace Coverage, Failures, and P0 Limits sections.
 
 ## Fields
 
@@ -19,6 +19,7 @@ The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Trace C
 - `fixtures`: per-fixture task, status, and grader results.
 - `graph`: graph behavior grader result.
 - `graphArtifact`: generated graph artifact shape grader result.
+- `memory`: governed memory grader result.
 - `trace`: local trace completeness grader result.
 - `runTraceMode`: `run-scoped`, `global`, or `missing`.
 
@@ -31,3 +32,5 @@ The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Trace C
 ## P0 Rule
 
 Eval uses fixture-built task contracts and context packages only. It is not a real non-interactive agent runner.
+
+The memory grader is harness-only. It verifies that pending memory is inactive, approved memory is active, and deprecated memory is excluded.

@@ -10,11 +10,17 @@ Memory can help future sessions, but stale or unapproved memory can become false
 
 ## Decision
 
-Model memory as pending, approved, or rejected. P0 does not auto-approve memory.
+Model memory as pending, approved, or deprecated. P0 does not auto-approve memory.
+
+Memory transitions are manual:
+
+- proposed memory starts in the pending local store;
+- approved memory becomes active only after an explicit approval command;
+- deprecated memory is excluded from active memory.
 
 ## Consequences
 
-Memory has a schema and store skeleton but no autonomous approval path.
+Memory has a schema, local store files, deterministic trace events, and doctor/eval coverage, but no autonomous approval path.
 
 ## Alternatives Considered
 

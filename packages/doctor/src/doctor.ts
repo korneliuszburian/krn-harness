@@ -1,6 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "../../config/src/index.js";
+import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
 
 export interface DoctorCheck {
   name: string;
@@ -199,6 +200,107 @@ async function graphSummaryCheck(cwd: string): Promise<DoctorCheck> {
       parsed.value.detectors.length > 0
         ? `${parsed.value.detectors.length} detector(s), ${Object.keys(parsed.value.relationKindCounts).length} relation kind(s)`
         : "No graph detectors are recorded",
+  };
+}
+
+function isMemoryRecordForStatus(value: unknown, status: MemoryStatus): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (
+    value.schemaVersion !== 1 ||
+    value.status !== status ||
+    value.source !== "manual" ||
+    typeof value.id !== "string" ||
+    typeof value.summary !== "string" ||
+    typeof value.createdAt !== "string" ||
+    typeof value.updatedAt !== "string"
+  ) {
+    return false;
+  }
+
+  if (status === "pending" && typeof value.approvedAt === "string") {
+    return false;
+  }
+
+  if (status === "approved" && typeof value.approvedAt !== "string") {
+    return false;
+  }
+
+  if (status === "deprecated" && typeof value.deprecatedAt !== "string") {
+    return false;
+  }
+
+  return true;
+}
+
+function isMemoryStore(value: unknown, status: MemoryStatus): value is { records: unknown[] } {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 1 &&
+    value.status === status &&
+    Array.isArray(value.records) &&
+    value.records.every((record) => isMemoryRecordForStatus(record, status))
+  );
+}
+
+async function memoryStoresCheck(cwd: string): Promise<DoctorCheck> {
+  const counts: Record<MemoryStatus, number> = {
+    pending: 0,
+    approved: 0,
+    deprecated: 0,
+  };
+  const missing: string[] = [];
+
+  for (const status of memoryStatuses) {
+    const relativePath = `.krn/memory/${status}.json`;
+    const parsed = await parseJsonFile(path.join(cwd, relativePath));
+
+    if (parsed.status === "missing") {
+      missing.push(relativePath);
+      continue;
+    }
+
+    if (parsed.status === "malformed") {
+      return {
+        name: "memory-stores",
+        status: "fail",
+        detail: `${relativePath} is malformed`,
+      };
+    }
+
+    if (!isMemoryStore(parsed.value, status)) {
+      return {
+        name: "memory-stores",
+        status: "fail",
+        detail: `${relativePath} is incomplete or contains records with the wrong status`,
+      };
+    }
+
+    counts[status] = parsed.value.records.length;
+  }
+
+  if (missing.length === memoryStatuses.length) {
+    return {
+      name: "memory-stores",
+      status: "warn",
+      detail: ".krn/memory stores are missing; governed memory has not been used",
+    };
+  }
+
+  if (missing.length > 0) {
+    return {
+      name: "memory-stores",
+      status: "warn",
+      detail: `Missing memory store(s): ${missing.join(", ")}`,
+    };
+  }
+
+  return {
+    name: "memory-stores",
+    status: "pass",
+    detail: `Memory stores: pending ${counts.pending}, approved ${counts.approved}, deprecated ${counts.deprecated}`,
   };
 }
 
@@ -447,6 +549,7 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
       await pathExists(path.join(currentDir, "handoff.md")),
       ".krn/current/handoff.md",
     ),
+    await memoryStoresCheck(cwd),
     artifactCheck(
       "graph-json",
       await pathExists(path.join(cwd, ".krn", "graph", "repo-graph.json")),

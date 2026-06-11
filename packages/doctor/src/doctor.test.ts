@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { approveMemoryById, deprecateMemoryById, proposeMemory } from "../../memory/src/index.js";
 import { renderDoctorResultMarkdown, runDoctor } from "./doctor.js";
 
 async function tempRepo(): Promise<string> {
@@ -22,6 +23,7 @@ describe("doctor result", () => {
       "context-stop",
       "current-verify-result",
       "current-handoff",
+      "memory-stores",
       "graph-json",
       "graph-markdown",
       "graph-json-shape",
@@ -38,6 +40,11 @@ describe("doctor result", () => {
       name: "config",
       status: "warn",
       detail: "krn.config.json is missing; default config is active",
+    });
+    expect(result.checks).toContainEqual({
+      name: "memory-stores",
+      status: "warn",
+      detail: ".krn/memory stores are missing; governed memory has not been used",
     });
     expect(result.nextActions).toEqual([
       "Run `krn graph` to generate graph artifacts.",
@@ -178,6 +185,42 @@ describe("doctor result", () => {
       name: "current-run",
       status: "fail",
       detail: ".krn/current/run.json is incomplete",
+    });
+  });
+
+  it("reports valid governed memory stores", async () => {
+    const cwd = await tempRepo();
+    const created = await proposeMemory(cwd, {
+      summary: "Memory stays pending until approval.",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    });
+    await approveMemoryById(cwd, created.record?.id ?? "", new Date("2026-06-03T00:01:00.000Z"));
+    await deprecateMemoryById(cwd, created.record?.id ?? "", {
+      reason: "Superseded by current spec.",
+      now: new Date("2026-06-03T00:02:00.000Z"),
+    });
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "memory-stores",
+      status: "pass",
+      detail: "Memory stores: pending 0, approved 0, deprecated 1",
+    });
+  });
+
+  it("reports malformed governed memory stores as failures", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".krn", "memory"), { recursive: true });
+    await writeFile(path.join(cwd, ".krn", "memory", "pending.json"), "not json\n", "utf8");
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "memory-stores",
+      status: "fail",
+      detail: ".krn/memory/pending.json is malformed",
     });
   });
 });

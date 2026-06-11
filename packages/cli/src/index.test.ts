@@ -102,6 +102,7 @@ describe("krn CLI", () => {
       "krn doctor",
       "krn eval",
       "krn install",
+      "krn memory <command>",
       "krn hook codex <event>",
     ]) {
       expect(result.stdout).toContain(command);
@@ -114,6 +115,7 @@ describe("krn CLI", () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("Unknown command: unknown-command");
     expect(result.stdout).toContain("KRN Harness CLI");
+    expect(result.stdout).toContain("krn memory <command>");
     expect(result.stdout).toContain("krn hook codex <event>");
   });
 
@@ -471,6 +473,153 @@ markdown: .krn/graph/repo-graph.md
         },
       },
     ]);
+  });
+
+  it("runs the manual governed memory workflow without auto-approval", async () => {
+    const proposed = await runInTemp([
+      "memory",
+      "propose",
+      "Prefer",
+      "manual",
+      "memory",
+      "--evidence",
+      "docs/specs/memory.schema.md",
+    ]);
+
+    expect(proposed.code).toBe(0);
+    expect(proposed.stdout).toContain("KRN memory: proposed");
+    expect(proposed.stdout).toContain("status: pending");
+    expect(proposed.stdout).toContain("store: .krn/memory/pending.json");
+
+    const pendingStore = await readJson<{
+      status: string;
+      records: Array<{ id: string; status: string; summary: string; evidencePath?: string }>;
+    }>(proposed.cwd, ".krn/memory/pending.json");
+    const approvedStoreAfterPropose = await readJson<{
+      status: string;
+      records: Array<{ id: string }>;
+    }>(proposed.cwd, ".krn/memory/approved.json");
+    const memoryId = pendingStore.records[0]?.id ?? "";
+
+    expect(pendingStore).toMatchObject({
+      status: "pending",
+      records: [
+        {
+          id: memoryId,
+          status: "pending",
+          summary: "Prefer manual memory",
+          evidencePath: "docs/specs/memory.schema.md",
+        },
+      ],
+    });
+    expect(approvedStoreAfterPropose).toMatchObject({
+      status: "approved",
+      records: [],
+    });
+
+    const approved = await runInCwd(proposed.cwd, ["memory", "approve", memoryId]);
+
+    expect(approved.code).toBe(0);
+    expect(approved.stdout).toContain("KRN memory: approved");
+    expect(approved.stdout).toContain("store: .krn/memory/approved.json");
+    await expect(readJson(proposed.cwd, ".krn/memory/pending.json")).resolves.toMatchObject({
+      records: [],
+    });
+    await expect(readJson(proposed.cwd, ".krn/memory/approved.json")).resolves.toMatchObject({
+      records: [
+        {
+          id: memoryId,
+          status: "approved",
+          approvedAt: "2026-06-03T00:00:00.000Z",
+        },
+      ],
+    });
+
+    const deprecated = await runInCwd(proposed.cwd, [
+      "memory",
+      "deprecate",
+      memoryId,
+      "superseded",
+      "by",
+      "canon",
+    ]);
+
+    expect(deprecated.code).toBe(0);
+    expect(deprecated.stdout).toContain("KRN memory: deprecated");
+    expect(deprecated.stdout).toContain("reason: superseded by canon");
+    await expect(readJson(proposed.cwd, ".krn/memory/approved.json")).resolves.toMatchObject({
+      records: [],
+    });
+    await expect(readJson(proposed.cwd, ".krn/memory/deprecated.json")).resolves.toMatchObject({
+      records: [
+        {
+          id: memoryId,
+          status: "deprecated",
+          deprecationReason: "superseded by canon",
+        },
+      ],
+    });
+
+    const listed = await runInCwd(proposed.cwd, ["memory", "list"]);
+
+    expect(listed.code).toBe(0);
+    expect(listed.stdout).toContain("pending: 0");
+    expect(listed.stdout).toContain("approved: 0");
+    expect(listed.stdout).toContain("deprecated: 1");
+    expect(listed.stdout).toContain(`- deprecated ${memoryId}: Prefer manual memory`);
+
+    await expect(readTraceEvents(proposed.cwd)).resolves.toMatchObject([
+      {
+        name: "memory.proposed",
+        data: {
+          id: memoryId,
+          status: "pending",
+          evidencePath: "docs/specs/memory.schema.md",
+          pending: 1,
+          approved: 0,
+          deprecated: 0,
+        },
+      },
+      {
+        name: "memory.approved",
+        data: {
+          id: memoryId,
+          status: "approved",
+          pending: 0,
+          approved: 1,
+          deprecated: 0,
+        },
+      },
+      {
+        name: "memory.deprecated",
+        data: {
+          id: memoryId,
+          status: "deprecated",
+          reason: "superseded by canon",
+          pending: 0,
+          approved: 0,
+          deprecated: 1,
+        },
+      },
+      {
+        name: "memory.listed",
+        data: {
+          pending: 0,
+          approved: 0,
+          deprecated: 1,
+        },
+      },
+    ]);
+  });
+
+  it("reports missing memory records without crashing", async () => {
+    const approved = await runInTemp(["memory", "approve", "memory-missing"]);
+    const deprecated = await runInCwd(approved.cwd, ["memory", "deprecate", "memory-missing"]);
+
+    expect(approved.code).toBe(1);
+    expect(approved.stderr).toContain("KRN memory approve: memory not found: memory-missing");
+    expect(deprecated.code).toBe(1);
+    expect(deprecated.stderr).toContain("KRN memory deprecate: memory not found: memory-missing");
   });
 
   it("runs start and context with task trace behavior", async () => {
@@ -846,6 +995,7 @@ markdown: .krn/graph/repo-graph.md
       fixtures: Array<{ name: string; status: string }>;
       graph: { status: string };
       graphArtifact: { status: string };
+      memory: { status: string };
       trace: { status: string };
       runTraceMode: string;
     }>(start.cwd, ".krn/current/eval-result.json");
@@ -864,6 +1014,7 @@ markdown: .krn/graph/repo-graph.md
       "context-stop",
       "current-verify-result",
       "current-handoff",
+      "memory-stores",
       "graph-json",
       "graph-markdown",
       "graph-json-shape",
@@ -885,10 +1036,11 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 12,
+      passCount: 13,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
+      memory: { status: "pass" },
       trace: { status: "pass" },
       runTraceMode: "run-scoped",
     });
@@ -900,6 +1052,7 @@ markdown: .krn/graph/repo-graph.md
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
     expect(evalMarkdown).toContain("## Graph Coverage");
+    expect(evalMarkdown).toContain("## Memory Governance");
     expect(evalMarkdown).toContain("## Trace Coverage");
     expect(evalMarkdown).toContain("## P0 Limits");
     expect(handoffMarkdown).toContain("## Graph");
@@ -920,10 +1073,16 @@ markdown: .krn/graph/repo-graph.md
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 18 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 19 } },
       {
         name: "eval.ran",
-        data: { status: "pass", fixtures: 3, passCount: 12, failCount: 0 },
+        data: {
+          status: "pass",
+          fixtures: 3,
+          passCount: 13,
+          failCount: 0,
+          memoryStatus: "pass",
+        },
       },
       {
         name: "handoff.created",

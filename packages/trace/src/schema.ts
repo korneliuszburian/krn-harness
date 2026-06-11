@@ -11,6 +11,10 @@ export const traceEventNames = [
   "install.ran",
   "doctor.ran",
   "eval.ran",
+  "memory.proposed",
+  "memory.approved",
+  "memory.deprecated",
+  "memory.listed",
   "hook.received",
 ] as const;
 

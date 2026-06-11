@@ -19,6 +19,7 @@
 
 - Config validity or missing default-config state.
 - Current task, current run, context, verify, and handoff artifact presence.
+- Governed memory store presence, shape, status separation, and manual approval/deprecation timestamps.
 - Graph JSON/Markdown artifact presence, graph JSON shape, and graph summary fields.
 - Downstream `AGENTS.md`, runtime skill, and hooks template presence.
 - Current context STOP state when available.

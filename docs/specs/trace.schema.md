@@ -14,7 +14,7 @@ Trace JSONL records auditable KRN runtime events.
 
 ## P0 Events
 
-`cli.status`, `task.started`, `graph.built`, `context.built`, `verify.ran`, `handoff.created`, `install.ran`, `doctor.ran`, `eval.ran`, and `hook.received`.
+`cli.status`, `task.started`, `graph.built`, `context.built`, `verify.ran`, `handoff.created`, `install.ran`, `doctor.ran`, `eval.ran`, `memory.proposed`, `memory.approved`, `memory.deprecated`, `memory.listed`, and `hook.received`.
 
 The P0 current-state loop records `task.started -> graph.built -> context.built -> verify.ran -> handoff.created -> doctor.ran -> eval.ran` when the operator runs `krn start`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, and `krn eval` in order.
 
@@ -38,6 +38,13 @@ Minimal run metadata:
 
 The run summary Markdown records task id, event count, last event, artifact paths, and a local-evidence-only warning.
 
-`krn hook codex <event>` and `krn install` remain global-only P0 events. Run traces are local evidence only and do not claim production observability.
+`krn hook codex <event>` and `krn install` remain global-only P0 events. `krn memory ...` writes global memory trace events and also appends them to the current run trace when a current task exists. Run traces are local evidence only and do not claim production observability.
 
 `install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, payload source, and skeleton detail.
+
+Memory trace payloads are compact:
+
+- `memory.proposed`: id, pending status, evidence path, and memory store counts.
+- `memory.approved`: id, approved status, and memory store counts.
+- `memory.deprecated`: id, deprecated status, optional reason, and memory store counts.
+- `memory.listed`: memory store counts.
