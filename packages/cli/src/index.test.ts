@@ -427,6 +427,13 @@ markdown: .krn/graph/repo-graph.md
       payloadSource: "placeholder",
       findings: [],
       detail: "P0 hook guardrails passed; hooks remain guardrails and trace points, not a sandbox",
+      operatorMessageVersion: "hook-operator-message-v1",
+      userFacingMessage: {
+        en: "Hook guardrails passed. Continue.",
+        pl: "Guardrails hooka przeszły. Możesz kontynuować.",
+      },
+      remediationCodes: [],
+      remediationHints: [],
     });
 
     for (const event of supportedP0CodexHookEvents) {
@@ -440,6 +447,13 @@ markdown: .krn/graph/repo-graph.md
         enforced: false,
         payloadSource: "placeholder",
         findings: expect.any(Array),
+        operatorMessageVersion: "hook-operator-message-v1",
+        userFacingMessage: expect.objectContaining({
+          en: expect.any(String),
+          pl: expect.any(String),
+        }),
+        remediationCodes: expect.any(Array),
+        remediationHints: expect.any(Array),
       });
     }
 
@@ -454,6 +468,8 @@ markdown: .krn/graph/repo-graph.md
       enforced: false,
       payloadSource: "placeholder",
       findings: [],
+      operatorMessageVersion: "hook-operator-message-v1",
+      remediationCodes: [],
     });
 
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
@@ -470,6 +486,8 @@ markdown: .krn/graph/repo-graph.md
           detail:
             "P0 hook guardrails passed; hooks remain guardrails and trace points, not a sandbox",
           findingCodes: [],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: [],
         },
       },
       ...supportedP0CodexHookEvents.map((event) => ({
@@ -483,6 +501,8 @@ markdown: .krn/graph/repo-graph.md
           enforced: false,
           payloadSource: "placeholder",
           findingCodes: expect.any(Array),
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: expect.any(Array),
         },
       })),
       {
@@ -497,6 +517,8 @@ markdown: .krn/graph/repo-graph.md
           payloadSource: "placeholder",
           detail: "Unsupported Codex hook event ignored by P0 hook guardrail",
           findingCodes: [],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: [],
         },
       },
     ]);
@@ -517,6 +539,11 @@ markdown: .krn/graph/repo-graph.md
         expect.objectContaining({ code: "missing-task-contract", severity: "warn" }),
         expect.objectContaining({ code: "missing-context-package", severity: "warn" }),
       ],
+      userFacingMessage: {
+        en: 'Current task and context are missing. Run `krn start "<task>"`, then run `krn context`.',
+        pl: 'Brakuje aktualnego zadania i kontekstu. Uruchom `krn start "<zadanie>"`, potem `krn context`.',
+      },
+      remediationCodes: ["run-krn-start", "run-krn-context"],
     });
 
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
@@ -528,6 +555,8 @@ markdown: .krn/graph/repo-graph.md
           decision: "warn",
           enforced: false,
           findingCodes: ["missing-task-contract", "missing-context-package"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-start", "run-krn-context"],
         },
       },
     ]);
@@ -553,6 +582,7 @@ markdown: .krn/graph/repo-graph.md
         expect.objectContaining({ code: "missing-task-contract", severity: "block" }),
         expect.objectContaining({ code: "missing-context-package", severity: "block" }),
       ],
+      remediationCodes: ["run-krn-start", "run-krn-context"],
     });
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
       { name: "hook.received" },
@@ -564,6 +594,8 @@ markdown: .krn/graph/repo-graph.md
           decision: "block",
           payloadSource: "stdin-json",
           findingCodes: ["missing-task-contract", "missing-context-package"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-start", "run-krn-context"],
         },
       },
     ]);
@@ -628,8 +660,14 @@ markdown: .krn/graph/repo-graph.md
           path: "src/out-of-scope.ts",
         }),
       ],
+      userFacingMessage: {
+        en: "Blocked: this edit is outside the current context. Run `krn context` or add this path to the task scope.",
+        pl: "Zablokowano: ta zmiana jest poza aktualnym kontekstem. Uruchom `krn context` albo dodaj tę ścieżkę do zakresu zadania.",
+      },
+      remediationCodes: ["run-krn-context", "scope-path"],
     });
-    await expect(readTraceEvents(cwd)).resolves.toMatchObject([
+    const traceEvents = await readTraceEvents(cwd);
+    expect(traceEvents).toMatchObject([
       {
         name: "hook.received",
         data: {
@@ -638,9 +676,13 @@ markdown: .krn/graph/repo-graph.md
           decision: "block",
           payloadSource: "stdin-json",
           findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
         },
       },
     ]);
+    expect(traceEvents[0]?.data).not.toHaveProperty("userFacingMessage");
+    expect(traceEvents[0]?.data).not.toHaveProperty("remediationHints");
   });
 
   it("records task-owned proof path hints for hook guardrail decisions", async () => {
@@ -709,6 +751,11 @@ markdown: .krn/graph/repo-graph.md
           ownershipHint: "docs/specs/hooks-pack.md",
         }),
       ],
+      userFacingMessage: {
+        en: "Warning: allowed as an owned proof path. Review it before handoff.",
+        pl: "Ostrzeżenie: dozwolone jako owned proof path. Sprawdź to przed handoffem.",
+      },
+      remediationCodes: ["review-owned-proof-path"],
     });
     expect(unowned.code).toBe(0);
     expect(JSON.parse(unowned.stdout)).toMatchObject({
@@ -733,6 +780,8 @@ markdown: .krn/graph/repo-graph.md
           tracePayloadByteLimit: 1024,
           ownedProofPathHints: ["docs/specs/hooks-pack.md"],
           findingCodes: ["proof-path-exception"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["review-owned-proof-path"],
         },
       },
       {
@@ -746,6 +795,8 @@ markdown: .krn/graph/repo-graph.md
           tracePayloadByteLimit: 1024,
           ownedProofPathHints: [],
           findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
         },
       },
     ]);
@@ -817,6 +868,7 @@ markdown: .krn/graph/repo-graph.md
           ownershipHint: "packages/config",
         }),
       ],
+      remediationCodes: ["review-owned-proof-path"],
     });
     expect(crossPackage.code).toBe(0);
     expect(JSON.parse(crossPackage.stdout)).toMatchObject({
@@ -841,6 +893,8 @@ markdown: .krn/graph/repo-graph.md
           tracePayloadByteLimit: 1024,
           ownedProofPathHints: ["packages/config"],
           findingCodes: ["proof-path-exception"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["review-owned-proof-path"],
         },
       },
       {
@@ -854,6 +908,8 @@ markdown: .krn/graph/repo-graph.md
           tracePayloadByteLimit: 1024,
           ownedProofPathHints: [],
           findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
         },
       },
     ]);

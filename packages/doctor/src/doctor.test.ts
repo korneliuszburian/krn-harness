@@ -570,6 +570,8 @@ describe("doctor result", () => {
           payloadSource: "placeholder",
           detail: "P0 hook guardrails passed",
           findingCodes: [],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: [],
         },
       },
       {
@@ -590,6 +592,8 @@ describe("doctor result", () => {
           payloadSource: "stdin-json",
           detail: "P0 hook guardrail warn: proof-path-exception",
           findingCodes: ["proof-path-exception"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["review-owned-proof-path"],
         },
       },
       {
@@ -606,6 +610,8 @@ describe("doctor result", () => {
           payloadSource: "stdin-json",
           detail: "P0 hook guardrail block: out-of-scope-edit",
           findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
         },
       },
     ]);
@@ -650,6 +656,76 @@ describe("doctor result", () => {
       status: "fail",
       detail:
         "hook.received trace-hook-proof-path has proof-path-exception without ownership hints",
+    });
+  });
+
+  it("fails current hook trace events that include long operator text", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-long-text",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail block: out-of-scope-edit",
+          findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
+          userFacingMessage: {
+            en: "Blocked: this edit is outside the current context.",
+            pl: "Zablokowano: ta zmiana jest poza aktualnym kontekstem.",
+          },
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail: "hook.received trace-hook-long-text includes long operator text in trace payload",
+    });
+  });
+
+  it("fails current hook trace events with operator version but no remediation codes", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-no-remediation",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail block: out-of-scope-edit",
+          findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail:
+        "hook.received trace-hook-no-remediation has operator message version without remediation codes",
     });
   });
 

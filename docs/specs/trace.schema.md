@@ -40,7 +40,9 @@ The run summary Markdown records task id, event count, last event, artifact path
 
 `krn hook codex <event>` and `krn install` remain global-only P0 events. `krn memory ...` writes global memory trace events and also appends them to the current run trace when a current task exists. Run traces are local evidence only and do not claim production observability.
 
-`install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, guardrail decision, `enforced: false`, proof-path ownership model, owned proof-path hint limit, trace payload byte limit, compact owned proof-path hints, payload source, detail, and finding codes. Warned or blocked hook decisions must include finding codes. Current-model `proof-path-exception` events must include at least one owned proof-path hint, must not use broad hints such as `docs`, `fixtures`, `tests`, or `packages`, must not exceed 4 compact hints, and must stay within the declared 1024-byte trace payload limit.
+`install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, guardrail decision, `enforced: false`, proof-path ownership model, owned proof-path hint limit, trace payload byte limit, compact owned proof-path hints, payload source, detail, finding codes, `operatorMessageVersion`, and compact `remediationCodes`. Warned or blocked hook decisions must include finding codes and, for `hook-operator-message-v1` events, remediation codes. Current-model `proof-path-exception` events must include at least one owned proof-path hint, must not use broad hints such as `docs`, `fixtures`, `tests`, or `packages`, must not exceed 4 compact hints, and must stay within the declared 1024-byte trace payload limit.
+
+`hook.received` trace payloads must not include long operator text such as `userFacingMessage` or full `remediationHints`. Those belong in hook command output only.
 
 Memory trace payloads are compact:
 

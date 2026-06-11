@@ -74,11 +74,80 @@ describe("Codex hook entry guardrails", () => {
       expect(result.ownedProofPathHints, testCase.name).toEqual(
         testCase.expected.ownedProofPathHints ?? [],
       );
+      if (testCase.expected.userFacingMessage !== undefined) {
+        expect(result.userFacingMessage, testCase.name).toEqual(
+          testCase.expected.userFacingMessage,
+        );
+      }
+      if (testCase.expected.remediationCodes !== undefined) {
+        expect(result.remediationCodes, testCase.name).toEqual(testCase.expected.remediationCodes);
+        expect(
+          result.remediationHints.map((hint) => hint.code),
+          testCase.name,
+        ).toEqual(testCase.expected.remediationCodes);
+      }
       expect(result.enforced, testCase.name).toBe(false);
       expect(result.ownershipModel, testCase.name).toBe("task-context-owned-proof-paths-v1");
       expect(result.ownedProofPathHintLimit, testCase.name).toBe(maxOwnedProofPathHints);
       expect(result.tracePayloadByteLimit, testCase.name).toBe(maxHookTracePayloadBytes);
+      expect(result.operatorMessageVersion, testCase.name).toBe("hook-operator-message-v1");
     }
+  });
+
+  it("returns deterministic bilingual operator guidance for allow, warn, and block decisions", () => {
+    const allow = handleCodexHook("SessionStart", { state: readyState });
+    const proofPath = handleCodexHook("PreToolUse", {
+      payload: parseCodexHookPayload(
+        JSON.stringify({ toolName: "Write", filePath: "docs/specs/hooks-pack.md" }),
+      ),
+      state: {
+        ...readyState,
+        taskText: "Harden hook guardrail operator ergonomics",
+      },
+    });
+    const outOfScope = handleCodexHook("PreToolUse", {
+      payload: parseCodexHookPayload(
+        JSON.stringify({ toolName: "Write", filePath: "src/out-of-scope.ts" }),
+      ),
+      state: readyState,
+    });
+    const finalStop = handleCodexHook("Stop", {
+      state: {
+        ...readyState,
+        verifyPresent: false,
+        handoffPresent: false,
+      },
+    });
+
+    expect(allow).toMatchObject({
+      userFacingMessage: {
+        en: "Hook guardrails passed. Continue.",
+        pl: "Guardrails hooka przeszły. Możesz kontynuować.",
+      },
+      remediationCodes: [],
+      remediationHints: [],
+    });
+    expect(proofPath).toMatchObject({
+      userFacingMessage: {
+        en: "Warning: allowed as an owned proof path. Review it before handoff.",
+        pl: "Ostrzeżenie: dozwolone jako owned proof path. Sprawdź to przed handoffem.",
+      },
+      remediationCodes: ["review-owned-proof-path"],
+    });
+    expect(outOfScope).toMatchObject({
+      userFacingMessage: {
+        en: "Blocked: this edit is outside the current context. Run `krn context` or add this path to the task scope.",
+        pl: "Zablokowano: ta zmiana jest poza aktualnym kontekstem. Uruchom `krn context` albo dodaj tę ścieżkę do zakresu zadania.",
+      },
+      remediationCodes: ["run-krn-context", "scope-path"],
+    });
+    expect(finalStop).toMatchObject({
+      userFacingMessage: {
+        en: "Blocked: final Stop needs verification and handoff. Run `krn verify` and run `krn handoff`.",
+        pl: "Zablokowano: końcowy Stop wymaga verify i handoff. Uruchom `krn verify` i uruchom `krn handoff`.",
+      },
+      remediationCodes: ["run-krn-verify", "run-krn-handoff"],
+    });
   });
 
   it("blocks edit tool use when task or context artifacts are missing", () => {

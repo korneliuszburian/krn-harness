@@ -33,7 +33,15 @@ The P0 response shape includes:
 - `ownedProofPathHintLimit`: `4`.
 - `tracePayloadByteLimit`: `1024`.
 - `ownedProofPathHints`: compact exact paths or prefixes that were actually used by `proof-path-exception` findings.
+- `operatorMessageVersion`: `hook-operator-message-v1`.
+- `userFacingMessage`: deterministic English and Polish operator wording for stdout/API consumers.
+- `remediationCodes`: compact machine-readable next-action codes.
+- `remediationHints`: deterministic English and Polish remediation hints for stdout/API consumers.
 - `findings`: deterministic codes with severity and optional path.
+
+The machine decision is the contract for guardrail behavior. `decision`, `status`, `enforced`, `findings`, and finding severities decide whether the hook allows, warns, or blocks. Operator messages explain that decision for a human and must not change allow/warn/block semantics.
+
+Trace payloads stay compact. `hook.received` records `operatorMessageVersion` and `remediationCodes`, but it must not record `userFacingMessage` or full `remediationHints` text. Long wording belongs in the hook command JSON result, not in trace JSONL.
 
 P0 records `block` decisions for:
 
@@ -58,6 +66,8 @@ P0 proof paths are recognized as docs, fixture, README, test, or spec files. Rec
 The P0 ownership model is deliberately shallow. It maps current context paths under `packages/<name>/...` to the exact `packages/<name>` proof hint. Task signals such as `config`, `context`, `task contract`, `graph`, `memory`, `verify`, `handoff`, `doctor`, `eval`, `hook`, `trace`, and `adapter` map only to narrow spec or fixture hints. Task words alone do not unlock package proof paths. Broad hints such as `docs`, `fixtures`, `tests`, or `packages` are not valid ownership hints. This is not semantic retrieval, repo intelligence, or a full policy engine.
 
 To keep trace payloads small, `ownedProofPathHints` contains only the compact hints used by proof-path findings, sorted and de-duplicated, capped at 4 entries. Allow/block events without proof-path exceptions should normally emit an empty owned hint list.
+
+P0 remediation codes are intentionally small and action-oriented. Examples include `run-krn-start`, `run-krn-context`, `scope-path`, `review-owned-proof-path`, `avoid-do-not-use-path`, `resolve-context-stop`, `run-krn-verify`, and `run-krn-handoff`.
 
 P0 payload parsing is shallow and deterministic. It recognizes JSON stdin, common tool name fields, path fields, and simple patch file headers. It is not a full Codex policy engine.
 

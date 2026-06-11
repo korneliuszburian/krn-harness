@@ -6,7 +6,9 @@ import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
   type HookGuardrailMatrix,
   hookFindingCodes,
+  hookOperatorMessageVersion,
   hookProofPathOwnershipHints,
+  maxHookRemediationCodes,
   maxHookTracePayloadBytes,
   maxOwnedProofPathHints,
   runHookGuardrailFixtureCase,
@@ -399,11 +401,14 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
   }
 
   const failures: string[] = [];
+  let wordingFixtureCount = 0;
+  let remediationFixtureCount = 0;
 
   for (const testCase of matrix.cases) {
     const result = runHookGuardrailFixtureCase(testCase);
     const findingCodes = hookFindingCodes(result);
     const traceFindingCodes = [...findingCodes];
+    const traceRemediationCodes = [...result.remediationCodes];
 
     if (result.status !== testCase.expected.status) {
       failures.push(
@@ -446,6 +451,42 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
       failures.push(`${testCase.name} used an unexpected trace payload byte limit`);
     }
 
+    if (result.operatorMessageVersion !== hookOperatorMessageVersion) {
+      failures.push(`${testCase.name} used an unexpected operator message version`);
+    }
+
+    if (result.remediationCodes.length > maxHookRemediationCodes) {
+      failures.push(`${testCase.name} emitted too many remediation codes`);
+    }
+
+    if (JSON.stringify(result.remediationCodes) !== JSON.stringify(traceRemediationCodes)) {
+      failures.push(`${testCase.name} trace remediation-code regression`);
+    }
+
+    if (testCase.expected.remediationCodes !== undefined) {
+      remediationFixtureCount += 1;
+
+      if (
+        JSON.stringify(result.remediationCodes) !==
+        JSON.stringify(testCase.expected.remediationCodes)
+      ) {
+        failures.push(
+          `${testCase.name} expected remediation codes ${testCase.expected.remediationCodes.join(",")} got ${result.remediationCodes.join(",")}`,
+        );
+      }
+    }
+
+    if (testCase.expected.userFacingMessage !== undefined) {
+      wordingFixtureCount += 1;
+
+      if (
+        result.userFacingMessage.en !== testCase.expected.userFacingMessage.en ||
+        result.userFacingMessage.pl !== testCase.expected.userFacingMessage.pl
+      ) {
+        failures.push(`${testCase.name} operator wording regression`);
+      }
+    }
+
     if (result.ownedProofPathHints.length > maxOwnedProofPathHints) {
       failures.push(`${testCase.name} emitted too many compact ownership hints`);
     }
@@ -462,12 +503,20 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     }
   }
 
+  if (wordingFixtureCount < 4) {
+    failures.push("hook operator wording fixtures are missing or too sparse");
+  }
+
+  if (remediationFixtureCount < 4) {
+    failures.push("hook remediation-code fixtures are missing or too sparse");
+  }
+
   return {
     name: "hook-guardrails",
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, false-positive collisions, compact ownership hints, trace payload limits, and finding codes`
+        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, false-positive collisions, compact ownership hints, operator wording, remediation codes, trace payload limits, and finding codes`
         : failures.join("; "),
   };
 }

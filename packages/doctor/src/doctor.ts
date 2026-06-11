@@ -646,6 +646,8 @@ function isStringArray(value: unknown): value is string[] {
 
 const maxOwnedProofPathHints = 4;
 const maxHookTracePayloadBytes = 1024;
+const hookOperatorMessageVersion = "hook-operator-message-v1";
+const maxHookRemediationCodes = 6;
 
 function normalizeTracePathHint(filePath: string): string {
   return filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/+$/, "");
@@ -737,6 +739,64 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
         status: "fail",
         detail: `hook.received ${event.id} has ${data.decision} without finding codes`,
       };
+    }
+
+    if (data.userFacingMessage !== undefined || data.remediationHints !== undefined) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} includes long operator text in trace payload`,
+      };
+    }
+
+    if (data.remediationCodes !== undefined && data.operatorMessageVersion === undefined) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} has remediation codes without operator message version`,
+      };
+    }
+
+    if (data.operatorMessageVersion !== undefined) {
+      if (data.operatorMessageVersion !== hookOperatorMessageVersion) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has an unknown operator message version`,
+        };
+      }
+
+      if (data.remediationCodes === undefined) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has operator message version without remediation codes`,
+        };
+      }
+
+      if (!isStringArray(data.remediationCodes)) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has malformed remediation codes`,
+        };
+      }
+
+      if (data.remediationCodes.length > maxHookRemediationCodes) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} exceeds remediation code limit`,
+        };
+      }
+
+      if (data.decision !== "allow" && data.remediationCodes.length === 0) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has ${data.decision} without remediation codes`,
+        };
+      }
     }
 
     if (

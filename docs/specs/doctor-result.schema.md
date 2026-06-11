@@ -28,6 +28,7 @@
 - Run trace, run metadata, global trace, hook guardrail trace payloads, and current-run pointer presence/shape.
 - Hook guardrail trace payloads with `proof-path-exception` under `task-context-owned-proof-paths-v1` must include non-empty owned proof-path hints.
 - Hook guardrail trace payloads must reject unknown ownership models, malformed ownership hints, over-broad hints such as `docs`, `fixtures`, `tests`, or `packages`, hint lists longer than the declared limit, and payloads larger than the declared byte limit.
+- Hook guardrail trace payloads using `hook-operator-message-v1` must include compact remediation codes for warned or blocked decisions and must not include long operator text such as `userFacingMessage` or full `remediationHints`.
 
 ## P0 Rule
 

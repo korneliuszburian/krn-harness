@@ -29,7 +29,7 @@ The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Hook Gu
 - `frontend-section-context`: expected must-read context coverage.
 - `stale-doc-trap`: deprecated docs must stay in `do-not-use`.
 - `missing-context-stop`: missing required context must produce STOP.
-- `fixtures/hooks/guardrail-matrix.json`: expected hook `allow`/`warn`/`block` decisions and trace finding codes.
+- `fixtures/hooks/guardrail-matrix.json`: expected hook `allow`/`warn`/`block` decisions, trace finding codes, compact remediation codes, and selected English/Polish operator wording.
 
 ## P0 Rule
 
@@ -37,4 +37,4 @@ Eval uses fixture-built task contracts and context packages only. It is not a re
 
 The memory grader is harness-only. It verifies that pending memory is inactive, approved memory is active only through the context gate, deprecated memory is excluded, unrelated approved memory does not leak, broad single-term matches do not surface memory, English and Polish explicit opt-out suppress memory, Polish explicit approved-memory requests work only through the reference-only gate, and surfaced approved memory carries provenance.
 
-The hook grader is harness-only. It loads the deterministic guardrail matrix and checks blocked, warned, and allowed decisions, false-positive ownership collisions, compact owned hint lists, package-owned proof fixtures, cross-package proof-path blocks, unowned proof-path blocks, `enforced: false`, the P0 proof-path ownership model, expected ownership hints, declared hint and byte limits, and expected trace finding-code payloads without invoking Codex or relying on a live hook run.
+The hook grader is harness-only. It loads the deterministic guardrail matrix and checks blocked, warned, and allowed decisions, false-positive ownership collisions, compact owned hint lists, package-owned proof fixtures, cross-package proof-path blocks, unowned proof-path blocks, `enforced: false`, the P0 proof-path ownership model, expected ownership hints, declared hint and byte limits, selected English/Polish operator wording, compact remediation codes, and expected trace finding-code payloads without invoking Codex or relying on a live hook run.

@@ -21,6 +21,27 @@ export type HookPayloadSource = "placeholder" | "stdin-json" | "stdin-invalid-js
 export type HookDecision = "allow" | "warn" | "block";
 export type HookFindingSeverity = "info" | "warn" | "block";
 export type HookOwnershipModel = "task-context-owned-proof-paths-v1";
+export type HookOperatorMessageVersion = "hook-operator-message-v1";
+export type HookRemediationCode =
+  | "run-krn-start"
+  | "run-krn-context"
+  | "scope-path"
+  | "review-owned-proof-path"
+  | "avoid-do-not-use-path"
+  | "resolve-context-stop"
+  | "send-valid-hook-json"
+  | "run-krn-verify"
+  | "run-krn-handoff"
+  | "resolve-verify-block";
+
+export interface HookLocalizedText {
+  en: string;
+  pl: string;
+}
+
+export interface HookRemediationHint extends HookLocalizedText {
+  code: HookRemediationCode;
+}
 
 export interface HookPayload {
   source: HookPayloadSource;
@@ -75,12 +96,61 @@ export interface HookResult {
   ownedProofPathHints: string[];
   payloadSource: HookPayloadSource;
   detail: string;
+  operatorMessageVersion: HookOperatorMessageVersion;
+  userFacingMessage: HookLocalizedText;
+  remediationCodes: HookRemediationCode[];
+  remediationHints: HookRemediationHint[];
   findings: HookGuardrailFinding[];
 }
 
 export const hookOwnershipModel: HookOwnershipModel = "task-context-owned-proof-paths-v1";
+export const hookOperatorMessageVersion: HookOperatorMessageVersion = "hook-operator-message-v1";
 export const maxOwnedProofPathHints = 4;
 export const maxHookTracePayloadBytes = 1024;
+export const maxHookRemediationCodes = 6;
+
+const remediationHintCatalog: Record<HookRemediationCode, HookLocalizedText> = {
+  "run-krn-start": {
+    en: 'Run `krn start "<task>"` to create current task artifacts.',
+    pl: 'Uruchom `krn start "<zadanie>"`, żeby utworzyć aktualny kontrakt zadania.',
+  },
+  "run-krn-context": {
+    en: "Run `krn context` to rebuild current context before editing.",
+    pl: "Uruchom `krn context`, żeby odświeżyć aktualny kontekst przed edycją.",
+  },
+  "scope-path": {
+    en: "Add the path to the task scope before editing it.",
+    pl: "Dodaj tę ścieżkę do zakresu zadania przed edycją.",
+  },
+  "review-owned-proof-path": {
+    en: "Review the owned proof path before handoff.",
+    pl: "Sprawdź owned proof path przed handoffem.",
+  },
+  "avoid-do-not-use-path": {
+    en: "Choose a path outside the current do-not-use bucket.",
+    pl: "Wybierz ścieżkę spoza aktualnego bucketu do-not-use.",
+  },
+  "resolve-context-stop": {
+    en: "Resolve the active context STOP before editing.",
+    pl: "Rozwiąż aktywny STOP kontekstu przed edycją.",
+  },
+  "send-valid-hook-json": {
+    en: "Send valid hook JSON or omit stdin for placeholder mode.",
+    pl: "Przekaż poprawny JSON hooka albo pomiń stdin dla trybu placeholder.",
+  },
+  "run-krn-verify": {
+    en: "Run `krn verify` before final Stop.",
+    pl: "Uruchom `krn verify` przed końcowym Stop.",
+  },
+  "run-krn-handoff": {
+    en: "Run `krn handoff` before final Stop.",
+    pl: "Uruchom `krn handoff` przed końcowym Stop.",
+  },
+  "resolve-verify-block": {
+    en: "Fix the blocked verify result or preserve an active context STOP.",
+    pl: "Napraw zablokowany wynik verify albo zachowaj aktywny STOP kontekstu.",
+  },
+};
 
 interface ProofPathOwnershipRule {
   anyTerms?: string[] | undefined;
@@ -372,6 +442,187 @@ function findingDecision(findings: HookGuardrailFinding[]): HookDecision {
   return "allow";
 }
 
+function remediationCodesForFinding(code: HookGuardrailFinding["code"]): HookRemediationCode[] {
+  if (code === "invalid-hook-payload") {
+    return ["send-valid-hook-json"];
+  }
+
+  if (code === "missing-task-contract") {
+    return ["run-krn-start"];
+  }
+
+  if (code === "missing-context-package") {
+    return ["run-krn-context"];
+  }
+
+  if (code === "context-stop-active") {
+    return ["resolve-context-stop"];
+  }
+
+  if (code === "do-not-use-edit") {
+    return ["avoid-do-not-use-path"];
+  }
+
+  if (code === "out-of-scope-edit") {
+    return ["run-krn-context", "scope-path"];
+  }
+
+  if (code === "proof-path-exception") {
+    return ["review-owned-proof-path"];
+  }
+
+  if (code === "final-verify-missing") {
+    return ["run-krn-verify"];
+  }
+
+  if (code === "final-verify-blocked") {
+    return ["resolve-verify-block"];
+  }
+
+  return ["run-krn-handoff"];
+}
+
+function remediationCodesForFindings(findings: HookGuardrailFinding[]): HookRemediationCode[] {
+  const codes: HookRemediationCode[] = [];
+
+  for (const finding of findings) {
+    for (const code of remediationCodesForFinding(finding.code)) {
+      if (!codes.includes(code)) {
+        codes.push(code);
+      }
+    }
+  }
+
+  return codes.slice(0, maxHookRemediationCodes);
+}
+
+function remediationHintsForCodes(codes: HookRemediationCode[]): HookRemediationHint[] {
+  return codes.map((code) => ({
+    code,
+    ...remediationHintCatalog[code],
+  }));
+}
+
+function findingCodesSet(findings: HookGuardrailFinding[]): Set<HookGuardrailFinding["code"]> {
+  return new Set(findings.map((finding) => finding.code));
+}
+
+function operatorMessageFor(
+  decision: HookDecision,
+  supported: boolean,
+  findings: HookGuardrailFinding[],
+): HookLocalizedText {
+  if (!supported) {
+    return {
+      en: "Hook event is not supported in P0. Ignored without action.",
+      pl: "To zdarzenie hooka nie jest wspierane w P0. Pominięto bez akcji.",
+    };
+  }
+
+  if (findings.length === 0) {
+    return {
+      en: "Hook guardrails passed. Continue.",
+      pl: "Guardrails hooka przeszły. Możesz kontynuować.",
+    };
+  }
+
+  const codes = findingCodesSet(findings);
+
+  if (codes.has("final-verify-missing") || codes.has("final-handoff-missing")) {
+    return {
+      en: "Blocked: final Stop needs verification and handoff. Run `krn verify` and run `krn handoff`.",
+      pl: "Zablokowano: końcowy Stop wymaga verify i handoff. Uruchom `krn verify` i uruchom `krn handoff`.",
+    };
+  }
+
+  if (codes.has("final-verify-blocked")) {
+    return {
+      en: "Blocked: verify is blocked. Fix verification or keep the context STOP active before final Stop.",
+      pl: "Zablokowano: verify jest zablokowane. Napraw weryfikację albo zachowaj aktywny STOP kontekstu przed końcowym Stop.",
+    };
+  }
+
+  if (codes.has("do-not-use-edit")) {
+    return {
+      en: "Blocked: this path is marked do-not-use by the current context. Pick another path or rebuild context.",
+      pl: "Zablokowano: ta ścieżka jest oznaczona jako do-not-use w aktualnym kontekście. Wybierz inną ścieżkę albo przebuduj kontekst.",
+    };
+  }
+
+  if (codes.has("out-of-scope-edit")) {
+    return {
+      en: "Blocked: this edit is outside the current context. Run `krn context` or add this path to the task scope.",
+      pl: "Zablokowano: ta zmiana jest poza aktualnym kontekstem. Uruchom `krn context` albo dodaj tę ścieżkę do zakresu zadania.",
+    };
+  }
+
+  if (codes.has("context-stop-active")) {
+    return {
+      en: "STOP is active in the current context. Resolve the missing context before editing.",
+      pl: "STOP jest aktywny w aktualnym kontekście. Uzupełnij brakujący kontekst przed edycją.",
+    };
+  }
+
+  if (codes.has("missing-task-contract") && codes.has("missing-context-package")) {
+    return {
+      en: 'Current task and context are missing. Run `krn start "<task>"`, then run `krn context`.',
+      pl: 'Brakuje aktualnego zadania i kontekstu. Uruchom `krn start "<zadanie>"`, potem `krn context`.',
+    };
+  }
+
+  if (codes.has("missing-task-contract")) {
+    return {
+      en: 'Current task is missing. Run `krn start "<task>"` first.',
+      pl: 'Brakuje aktualnego zadania. Najpierw uruchom `krn start "<zadanie>"`.',
+    };
+  }
+
+  if (codes.has("missing-context-package")) {
+    return {
+      en: "Current context is missing. Run `krn context` before editing or stopping.",
+      pl: "Brakuje aktualnego kontekstu. Uruchom `krn context` przed edycją albo końcowym Stop.",
+    };
+  }
+
+  if (codes.has("proof-path-exception")) {
+    return {
+      en: "Warning: allowed as an owned proof path. Review it before handoff.",
+      pl: "Ostrzeżenie: dozwolone jako owned proof path. Sprawdź to przed handoffem.",
+    };
+  }
+
+  if (codes.has("invalid-hook-payload")) {
+    return {
+      en: "Warning: hook input was not valid JSON. Send valid JSON or omit stdin.",
+      pl: "Ostrzeżenie: wejście hooka nie było poprawnym JSON. Przekaż poprawny JSON albo pomiń stdin.",
+    };
+  }
+
+  return decision === "block"
+    ? {
+        en: "Blocked by P0 hook guardrails. Check findings and current KRN artifacts.",
+        pl: "Zablokowano przez guardrails P0. Sprawdź findings i aktualne artefakty KRN.",
+      }
+    : {
+        en: "Warning from P0 hook guardrails. Check findings before continuing.",
+        pl: "Ostrzeżenie z guardrails P0. Sprawdź findings przed kontynuacją.",
+      };
+}
+
+function operatorGuidanceFor(
+  decision: HookDecision,
+  supported: boolean,
+  findings: HookGuardrailFinding[],
+): Pick<HookResult, "userFacingMessage" | "remediationCodes" | "remediationHints"> {
+  const remediationCodes = remediationCodesForFindings(findings);
+
+  return {
+    userFacingMessage: operatorMessageFor(decision, supported, findings),
+    remediationCodes,
+    remediationHints: remediationHintsForCodes(remediationCodes),
+  };
+}
+
 function addCurrentStateFindings(
   event: CodexHookEvent,
   payload: HookPayload,
@@ -555,12 +806,16 @@ export function handleCodexHook(
     } satisfies HookCurrentState);
 
   if (!supported) {
+    const decision: HookDecision = "allow";
+    const findings: HookGuardrailFinding[] = [];
+    const guidance = operatorGuidanceFor(decision, supported, findings);
+
     return {
       provider: "codex",
       event,
       supported,
       status: "ignored",
-      decision: "allow",
+      decision,
       enforced: false,
       ownershipModel: hookOwnershipModel,
       ownedProofPathHintLimit: maxOwnedProofPathHints,
@@ -568,6 +823,8 @@ export function handleCodexHook(
       ownedProofPathHints: [],
       payloadSource: payload.source,
       detail: "Unsupported Codex hook event ignored by P0 hook guardrail",
+      operatorMessageVersion: hookOperatorMessageVersion,
+      ...guidance,
       findings: [],
     };
   }
@@ -597,6 +854,7 @@ export function handleCodexHook(
     findings.length === 0
       ? "P0 hook guardrails passed; hooks remain guardrails and trace points, not a sandbox"
       : `P0 hook guardrail ${decision}: ${findings.map((finding) => finding.code).join(", ")}`;
+  const guidance = operatorGuidanceFor(decision, supported, findings);
 
   return {
     provider: "codex",
@@ -611,6 +869,8 @@ export function handleCodexHook(
     ownedProofPathHints: compactOwnedProofPathHints(findings),
     payloadSource: payload.source,
     detail,
+    operatorMessageVersion: hookOperatorMessageVersion,
+    ...guidance,
     findings,
   };
 }

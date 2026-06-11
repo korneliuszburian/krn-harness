@@ -9,7 +9,12 @@
       "expected": {
         "status": "warn",
         "decision": "warn",
-        "findingCodes": ["missing-task-contract", "missing-context-package"]
+        "findingCodes": ["missing-task-contract", "missing-context-package"],
+        "remediationCodes": ["run-krn-start", "run-krn-context"],
+        "userFacingMessage": {
+          "en": "Current task and context are missing. Run `krn start \"<task>\"`, then run `krn context`.",
+          "pl": "Brakuje aktualnego zadania i kontekstu. Uruchom `krn start \"<zadanie>\"`, potem `krn context`."
+        }
       }
     },
     {
@@ -25,7 +30,12 @@
       "expected": {
         "status": "blocked",
         "decision": "block",
-        "findingCodes": ["missing-task-contract", "missing-context-package"]
+        "findingCodes": ["missing-task-contract", "missing-context-package"],
+        "remediationCodes": ["run-krn-start", "run-krn-context"],
+        "userFacingMessage": {
+          "en": "Current task and context are missing. Run `krn start \"<task>\"`, then run `krn context`.",
+          "pl": "Brakuje aktualnego zadania i kontekstu. Uruchom `krn start \"<zadanie>\"`, potem `krn context`."
+        }
       }
     },
     {
@@ -57,7 +67,12 @@
       "expected": {
         "status": "blocked",
         "decision": "block",
-        "findingCodes": ["context-stop-active"]
+        "findingCodes": ["context-stop-active"],
+        "remediationCodes": ["resolve-context-stop"],
+        "userFacingMessage": {
+          "en": "STOP is active in the current context. Resolve the missing context before editing.",
+          "pl": "STOP jest aktywny w aktualnym kontekście. Uzupełnij brakujący kontekst przed edycją."
+        }
       }
     },
     {
@@ -68,7 +83,12 @@
       "expected": {
         "status": "blocked",
         "decision": "block",
-        "findingCodes": ["do-not-use-edit"]
+        "findingCodes": ["do-not-use-edit"],
+        "remediationCodes": ["avoid-do-not-use-path"],
+        "userFacingMessage": {
+          "en": "Blocked: this path is marked do-not-use by the current context. Pick another path or rebuild context.",
+          "pl": "Zablokowano: ta ścieżka jest oznaczona jako do-not-use w aktualnym kontekście. Wybierz inną ścieżkę albo przebuduj kontekst."
+        }
       }
     },
     {
@@ -84,7 +104,12 @@
       "expected": {
         "status": "blocked",
         "decision": "block",
-        "findingCodes": ["out-of-scope-edit"]
+        "findingCodes": ["out-of-scope-edit"],
+        "remediationCodes": ["run-krn-context", "scope-path"],
+        "userFacingMessage": {
+          "en": "Blocked: this edit is outside the current context. Run `krn context` or add this path to the task scope.",
+          "pl": "Zablokowano: ta zmiana jest poza aktualnym kontekstem. Uruchom `krn context` albo dodaj tę ścieżkę do zakresu zadania."
+        }
       }
     },
     {
@@ -118,7 +143,12 @@
         "status": "warn",
         "decision": "warn",
         "findingCodes": ["proof-path-exception"],
-        "ownedProofPathHints": ["docs/specs/hooks-pack.md"]
+        "ownedProofPathHints": ["docs/specs/hooks-pack.md"],
+        "remediationCodes": ["review-owned-proof-path"],
+        "userFacingMessage": {
+          "en": "Warning: allowed as an owned proof path. Review it before handoff.",
+          "pl": "Ostrzeżenie: dozwolone jako owned proof path. Sprawdź to przed handoffem."
+        }
       }
     },
     {
@@ -384,7 +414,12 @@
       "expected": {
         "status": "blocked",
         "decision": "block",
-        "findingCodes": ["final-verify-missing", "final-handoff-missing"]
+        "findingCodes": ["final-verify-missing", "final-handoff-missing"],
+        "remediationCodes": ["run-krn-verify", "run-krn-handoff"],
+        "userFacingMessage": {
+          "en": "Blocked: final Stop needs verification and handoff. Run `krn verify` and run `krn handoff`.",
+          "pl": "Zablokowano: końcowy Stop wymaga verify i handoff. Uruchom `krn verify` i uruchom `krn handoff`."
+        }
       }
     },
     {
@@ -394,7 +429,12 @@
       "expected": {
         "status": "ok",
         "decision": "allow",
-        "findingCodes": []
+        "findingCodes": [],
+        "remediationCodes": [],
+        "userFacingMessage": {
+          "en": "Hook guardrails passed. Continue.",
+          "pl": "Guardrails hooka przeszły. Możesz kontynuować."
+        }
       }
     }
   ]

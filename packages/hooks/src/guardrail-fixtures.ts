@@ -1,6 +1,8 @@
 import {
   type HookCurrentState,
   type HookDecision,
+  type HookLocalizedText,
+  type HookRemediationCode,
   type HookResult,
   handleCodexHook,
   parseCodexHookPayload,
@@ -37,6 +39,8 @@ export interface HookGuardrailMatrixCase {
     decision: HookDecision;
     findingCodes: string[];
     ownedProofPathHints?: string[] | undefined;
+    userFacingMessage?: HookLocalizedText | undefined;
+    remediationCodes?: HookRemediationCode[] | undefined;
   };
 }
 

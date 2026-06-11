@@ -79,6 +79,8 @@ export async function hookCommand(args: string[], runtime: CliRuntime): Promise<
         payloadSource: result.payloadSource,
         detail: result.detail,
         findingCodes: result.findings.map((finding) => finding.code),
+        operatorMessageVersion: result.operatorMessageVersion,
+        remediationCodes: result.remediationCodes,
       },
     }),
     runtime.tracePath ?? defaultTracePath(runtime.cwd),
