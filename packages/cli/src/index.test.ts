@@ -733,6 +733,8 @@ markdown: .krn/graph/repo-graph.md
     expect(handoffMarkdown).toContain("## Graph");
     expect(handoffMarkdown).toContain("Nodes: missing");
     expect(handoffMarkdown).toContain("Current run trace: .krn/runs/task-d62ea4fbc009/trace.jsonl");
+    expect(handoffMarkdown).toContain("## Artifact Pointers");
+    expect(handoffMarkdown).toContain("- Task contract: .krn/current/task-contract.json");
 
     await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
       { name: "task.started", taskId: "task-d62ea4fbc009" },
@@ -894,6 +896,10 @@ markdown: .krn/graph/repo-graph.md
     expect(handoffMarkdown).toContain("Current run trace: .krn/runs/task-a39f90427522/trace.jsonl");
     expect(handoffMarkdown).toContain("## Doctor\n\nStatus: warn");
     expect(handoffMarkdown).toContain("## Eval\n\nStatus: pass");
+    expect(handoffMarkdown).toContain("## Artifact Pointers");
+    expect(handoffMarkdown).toContain("- Task contract: .krn/current/task-contract.json");
+    expect(handoffMarkdown).toContain("- Graph JSON: .krn/graph/repo-graph.json");
+    expect(handoffMarkdown).toContain("- Eval result: .krn/current/eval-result.json");
 
     await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
       { name: "task.started", taskId: "task-a39f90427522" },

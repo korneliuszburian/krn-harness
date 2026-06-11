@@ -16,6 +16,7 @@
 - Graph artifact status and node/edge counts when available.
 - Current run trace path when available.
 - Doctor and eval status when available.
+- Artifact pointers for current task, context, graph, verify, doctor, eval, and run trace evidence.
 - Changed files when available from local git status.
 - Known gaps, residual risks, and next safe action placeholders.
 
