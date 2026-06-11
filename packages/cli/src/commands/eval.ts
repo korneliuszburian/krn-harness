@@ -22,6 +22,7 @@ export async function evalCommand(runtime: CliRuntime): Promise<number> {
       failCount: result.failCount,
       graphStatus: result.graph.status,
       graphArtifactStatus: result.graphArtifact.status,
+      hookStatus: result.hooks.status,
       memoryStatus: result.memory.status,
       runTraceMode: result.runTraceMode,
     },

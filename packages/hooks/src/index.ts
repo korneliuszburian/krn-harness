@@ -6,3 +6,4 @@ export * from "./events/pre-tool-use.js";
 export * from "./events/session-start.js";
 export * from "./events/stop.js";
 export * from "./events/user-prompt-submit.js";
+export * from "./guardrail-fixtures.js";

@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
+  type HookGuardrailMatrix,
+  hookFindingCodes,
+  runHookGuardrailFixtureCase,
+} from "../../hooks/src/index.js";
+import {
   approveMemory,
   compactMemory,
   createPendingMemory,
@@ -32,6 +37,7 @@ export interface EvalResult {
   fixtures: EvalFixtureResult[];
   graph: EvalGrade;
   graphArtifact: EvalGrade;
+  hooks: EvalGrade;
   memory: EvalGrade;
   trace: EvalGrade;
   runTraceMode: "run-scoped" | "global" | "missing";
@@ -366,6 +372,73 @@ function gradeMemoryGovernance(): EvalGrade {
   };
 }
 
+async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
+  let matrix: HookGuardrailMatrix;
+
+  try {
+    matrix = JSON.parse(
+      await readFile(path.join(fixtureRoot, "fixtures", "hooks", "guardrail-matrix.json"), "utf8"),
+    ) as HookGuardrailMatrix;
+  } catch {
+    return {
+      name: "hook-guardrails",
+      status: "fail",
+      detail: "fixtures/hooks/guardrail-matrix.json is missing or malformed",
+    };
+  }
+
+  if (matrix.schemaVersion !== 1 || !Array.isArray(matrix.cases)) {
+    return {
+      name: "hook-guardrails",
+      status: "fail",
+      detail: "fixtures/hooks/guardrail-matrix.json has an invalid schema",
+    };
+  }
+
+  const failures: string[] = [];
+
+  for (const testCase of matrix.cases) {
+    const result = runHookGuardrailFixtureCase(testCase);
+    const findingCodes = hookFindingCodes(result);
+    const traceFindingCodes = [...findingCodes];
+
+    if (result.status !== testCase.expected.status) {
+      failures.push(
+        `${testCase.name} expected status ${testCase.expected.status} got ${result.status}`,
+      );
+    }
+
+    if (result.decision !== testCase.expected.decision) {
+      failures.push(
+        `${testCase.name} expected decision ${testCase.expected.decision} got ${result.decision}`,
+      );
+    }
+
+    if (JSON.stringify(findingCodes) !== JSON.stringify(testCase.expected.findingCodes)) {
+      failures.push(
+        `${testCase.name} expected finding codes ${testCase.expected.findingCodes.join(",")} got ${findingCodes.join(",")}`,
+      );
+    }
+
+    if (JSON.stringify(traceFindingCodes) !== JSON.stringify(testCase.expected.findingCodes)) {
+      failures.push(`${testCase.name} trace finding-code regression`);
+    }
+
+    if (result.enforced !== false) {
+      failures.push(`${testCase.name} claimed enforcement instead of guardrail evidence`);
+    }
+  }
+
+  return {
+    name: "hook-guardrails",
+    status: failures.length === 0 ? "pass" : "fail",
+    detail:
+      failures.length === 0
+        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, proof-path exceptions, and trace finding codes`
+        : failures.join("; "),
+  };
+}
+
 export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const cwd = input.cwd ?? process.cwd();
   const fixtureRoot = input.fixtureRoot ?? repoRootFromModule();
@@ -410,10 +483,12 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   });
   const graphArtifact = await gradeGraphArtifact(cwd);
   const memory = gradeMemoryGovernance();
+  const hooks = await gradeHookGuardrails(fixtureRoot);
   const allGrades = [
     ...fixtures.flatMap((fixture) => fixture.grades),
     graphGrade,
     graphArtifact,
+    hooks,
     memory,
     trace,
   ];
@@ -427,6 +502,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     fixtures,
     graph: graphGrade,
     graphArtifact,
+    hooks,
     memory,
     trace,
     runTraceMode: traceRead.mode,
@@ -440,7 +516,7 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
         .filter((grade) => grade.status === "fail")
         .map((grade) => `${fixture.name}/${grade.name}: ${grade.detail}`),
     ),
-    ...[result.graph, result.graphArtifact, result.memory, result.trace]
+    ...[result.graph, result.graphArtifact, result.hooks, result.memory, result.trace]
       .filter((grade) => grade.status === "fail")
       .map((grade) => `${grade.name}: ${grade.detail}`),
   ];
@@ -458,6 +534,10 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     "",
     `- ${result.graph.name}: ${result.graph.status} - ${result.graph.detail}`,
     `- ${result.graphArtifact.name}: ${result.graphArtifact.status} - ${result.graphArtifact.detail}`,
+    "",
+    "## Hook Guardrails",
+    "",
+    `- ${result.hooks.name}: ${result.hooks.status} - ${result.hooks.detail}`,
     "",
     "## Memory Governance",
     "",

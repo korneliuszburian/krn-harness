@@ -25,7 +25,7 @@
 - Downstream `AGENTS.md`, runtime skill, and hooks template presence.
 - Current context STOP state when available.
 - Source checkout adapter template and build-time skill presence when applicable.
-- Run trace, run metadata, global trace, and current-run pointer presence/shape.
+- Run trace, run metadata, global trace, hook guardrail trace payloads, and current-run pointer presence/shape.
 
 ## P0 Rule
 

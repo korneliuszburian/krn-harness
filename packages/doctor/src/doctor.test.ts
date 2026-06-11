@@ -9,6 +9,18 @@ async function tempRepo(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "krn-doctor-"));
 }
 
+async function writeGlobalTrace(cwd: string, events: unknown[]): Promise<void> {
+  await mkdir(path.join(cwd, ".krn", "traces"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".krn", "traces", "trace.jsonl"),
+    events
+      .map((event) => JSON.stringify(event))
+      .join("\n")
+      .concat("\n"),
+    "utf8",
+  );
+}
+
 describe("doctor result", () => {
   it("reports deterministic warnings for missing current-state artifacts", async () => {
     const cwd = await tempRepo();
@@ -35,6 +47,7 @@ describe("doctor result", () => {
       "adapter-templates",
       "build-time-skills",
       "run-trace",
+      "hook-guardrail-trace",
       "global-trace",
     ]);
     expect(result.checks).toContainEqual({
@@ -537,6 +550,98 @@ describe("doctor result", () => {
       name: "memory-context-gate",
       status: "fail",
       detail: `Pending memory ${pending.record?.id} leaked into context`,
+    });
+  });
+
+  it("passes hook guardrail trace events with decision and finding codes", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-allow",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "SessionStart",
+          supported: true,
+          status: "ok",
+          decision: "allow",
+          enforced: false,
+          payloadSource: "placeholder",
+          detail: "P0 hook guardrails passed",
+          findingCodes: [],
+        },
+      },
+      {
+        id: "trace-hook-warn",
+        timestamp: "2026-06-03T00:00:01.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail warn: proof-path-exception",
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+      {
+        id: "trace-hook-block",
+        timestamp: "2026-06-03T00:00:02.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail block: out-of-scope-edit",
+          findingCodes: ["out-of-scope-edit"],
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "pass",
+      detail: "3 hook guardrail trace event(s) valid: allow 1, warn 1, block 1",
+    });
+  });
+
+  it("fails hook guardrail trace events without finding-code payloads", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-block",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail block: out-of-scope-edit",
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail: "hook.received trace-hook-block is missing guardrail decision fields",
     });
   });
 });

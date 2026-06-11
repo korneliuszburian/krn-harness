@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadConfig } from "../../config/src/index.js";
 import { hasExplicitMemoryOptOut, isTaskRelevantMemoryMatch } from "../../context/src/index.js";
 import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
+import { readTraceLines, type TraceEvent } from "../../trace/src/index.js";
 
 export interface DoctorCheck {
   name: string;
@@ -639,6 +640,101 @@ async function runTraceCheck(cwd: string): Promise<DoctorCheck> {
   };
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
+  const relativePath = ".krn/traces/trace.jsonl";
+  const tracePath = path.join(cwd, relativePath);
+
+  if (!(await pathExists(tracePath))) {
+    return {
+      name: "hook-guardrail-trace",
+      status: "pass",
+      detail: "No global trace; hook guardrail trace check skipped",
+    };
+  }
+
+  let events: TraceEvent[];
+  try {
+    events = await readTraceLines(await readFile(tracePath, "utf8"));
+  } catch {
+    return {
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail: `${relativePath} is malformed`,
+    };
+  }
+
+  const hookEvents = events.filter((event) => event.name === "hook.received");
+
+  if (hookEvents.length === 0) {
+    return {
+      name: "hook-guardrail-trace",
+      status: "pass",
+      detail: "No hook.received events; hook guardrail trace check skipped",
+    };
+  }
+
+  const counts = { allow: 0, warn: 0, block: 0 };
+  let legacyEvents = 0;
+
+  for (const event of hookEvents) {
+    const data = event.data;
+
+    if (isRecord(data) && data.decision === undefined) {
+      legacyEvents += 1;
+      continue;
+    }
+
+    if (
+      !isRecord(data) ||
+      data.provider !== "codex" ||
+      typeof data.event !== "string" ||
+      typeof data.supported !== "boolean" ||
+      typeof data.status !== "string" ||
+      (data.decision !== "allow" && data.decision !== "warn" && data.decision !== "block") ||
+      data.enforced !== false ||
+      typeof data.payloadSource !== "string" ||
+      typeof data.detail !== "string" ||
+      !isStringArray(data.findingCodes)
+    ) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} is missing guardrail decision fields`,
+      };
+    }
+
+    counts[data.decision] += 1;
+
+    if (data.decision !== "allow" && data.findingCodes.length === 0) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} has ${data.decision} without finding codes`,
+      };
+    }
+  }
+
+  const checkedEvents = hookEvents.length - legacyEvents;
+
+  if (checkedEvents === 0) {
+    return {
+      name: "hook-guardrail-trace",
+      status: "warn",
+      detail: `${legacyEvents} legacy hook.received event(s) predate guardrail decision fields`,
+    };
+  }
+
+  return {
+    name: "hook-guardrail-trace",
+    status: "pass",
+    detail: `${checkedEvents} hook guardrail trace event(s) valid: allow ${counts.allow}, warn ${counts.warn}, block ${counts.block}${legacyEvents > 0 ? `; ignored ${legacyEvents} legacy event(s)` : ""}`,
+  };
+}
+
 async function configCheck(cwd: string): Promise<DoctorCheck> {
   try {
     const loaded = await loadConfig(cwd);
@@ -772,6 +868,7 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
       ],
     }),
     await runTraceCheck(cwd),
+    await hookGuardrailTraceCheck(cwd),
     artifactCheck("global-trace", await pathExists(tracePath), ".krn/traces/trace.jsonl"),
   ];
 

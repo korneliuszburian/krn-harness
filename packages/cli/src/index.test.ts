@@ -502,7 +502,7 @@ markdown: .krn/graph/repo-graph.md
     ]);
   });
 
-  it("records missing current-state guardrail decisions from hook events", async () => {
+  it("warns on missing current-state guardrails for hook events without edit payloads", async () => {
     const result = await runInTemp(["hook", "codex", "PreToolUse"]);
 
     expect(result.code).toBe(0);
@@ -510,12 +510,12 @@ markdown: .krn/graph/repo-graph.md
       provider: "codex",
       event: "PreToolUse",
       supported: true,
-      status: "blocked",
-      decision: "block",
+      status: "warn",
+      decision: "warn",
       enforced: false,
       findings: [
-        expect.objectContaining({ code: "missing-task-contract", severity: "block" }),
-        expect.objectContaining({ code: "missing-context-package", severity: "block" }),
+        expect.objectContaining({ code: "missing-task-contract", severity: "warn" }),
+        expect.objectContaining({ code: "missing-context-package", severity: "warn" }),
       ],
     });
 
@@ -524,9 +524,45 @@ markdown: .krn/graph/repo-graph.md
         name: "hook.received",
         data: {
           event: "PreToolUse",
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          findingCodes: ["missing-task-contract", "missing-context-package"],
+        },
+      },
+    ]);
+  });
+
+  it("blocks missing current-state guardrails for edit hook payloads", async () => {
+    const result = await runInTemp(["hook", "codex", "PreToolUse"]);
+    const blocked = await runInCwd(result.cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({
+        tool: "apply_patch",
+        arguments: {
+          patch: "*** Begin Patch\n*** Update File: src/in-scope.ts\n@@\n+test\n*** End Patch\n",
+        },
+      }),
+    });
+
+    expect(blocked.code).toBe(0);
+    expect(JSON.parse(blocked.stdout)).toMatchObject({
+      status: "blocked",
+      decision: "block",
+      payloadSource: "stdin-json",
+      findings: [
+        expect.objectContaining({ code: "missing-task-contract", severity: "block" }),
+        expect.objectContaining({ code: "missing-context-package", severity: "block" }),
+      ],
+    });
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      { name: "hook.received" },
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
           status: "blocked",
           decision: "block",
-          enforced: false,
+          payloadSource: "stdin-json",
           findingCodes: ["missing-task-contract", "missing-context-package"],
         },
       },
@@ -1336,6 +1372,7 @@ markdown: .krn/graph/repo-graph.md
       fixtures: Array<{ name: string; status: string }>;
       graph: { status: string };
       graphArtifact: { status: string };
+      hooks: { status: string };
       memory: { status: string };
       trace: { status: string };
       runTraceMode: string;
@@ -1367,6 +1404,7 @@ markdown: .krn/graph/repo-graph.md
       "adapter-templates",
       "build-time-skills",
       "run-trace",
+      "hook-guardrail-trace",
       "global-trace",
     ]);
     expect(doctorMarkdown).toContain("Status: warn");
@@ -1378,10 +1416,11 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 13,
+      passCount: 14,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
+      hooks: { status: "pass" },
       memory: { status: "pass" },
       trace: { status: "pass" },
       runTraceMode: "run-scoped",
@@ -1394,6 +1433,7 @@ markdown: .krn/graph/repo-graph.md
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
     expect(evalMarkdown).toContain("## Graph Coverage");
+    expect(evalMarkdown).toContain("## Hook Guardrails");
     expect(evalMarkdown).toContain("## Memory Governance");
     expect(evalMarkdown).toContain("## Trace Coverage");
     expect(evalMarkdown).toContain("## P0 Limits");
@@ -1415,14 +1455,15 @@ markdown: .krn/graph/repo-graph.md
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 20 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 21 } },
       {
         name: "eval.ran",
         data: {
           status: "pass",
           fixtures: 3,
-          passCount: 13,
+          passCount: 14,
           failCount: 0,
+          hookStatus: "pass",
           memoryStatus: "pass",
         },
       },

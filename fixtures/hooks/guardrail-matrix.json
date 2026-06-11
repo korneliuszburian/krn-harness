@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "pretool-readonly-no-task-warns",
+      "event": "PreToolUse",
+      "state": "empty",
+      "payload": { "tool": "Read", "filePath": "src/in-scope.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["missing-task-contract", "missing-context-package"]
+      }
+    },
+    {
+      "name": "pretool-edit-no-task-blocks",
+      "event": "PreToolUse",
+      "state": "empty",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: src/in-scope.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["missing-task-contract", "missing-context-package"]
+      }
+    },
+    {
+      "name": "pretool-edit-no-context-blocks",
+      "event": "PreToolUse",
+      "state": "task-only",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: src/in-scope.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["missing-context-package"]
+      }
+    },
+    {
+      "name": "pretool-edit-stop-blocks",
+      "event": "PreToolUse",
+      "state": "stop-active",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: src/in-scope.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["context-stop-active"]
+      }
+    },
+    {
+      "name": "pretool-edit-do-not-use-blocks",
+      "event": "PreToolUse",
+      "state": "ready",
+      "payload": { "toolName": "Write", "filePath": "docs/stale.md" },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["do-not-use-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-out-of-scope-blocks",
+      "event": "PreToolUse",
+      "state": "ready",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: src/out-of-scope.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-doc-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "ready",
+      "payload": { "toolName": "Write", "filePath": "docs/proof.md" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"]
+      }
+    },
+    {
+      "name": "pretool-edit-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "ready",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: packages/hooks/src/codex-hook-entry.test.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"]
+      }
+    },
+    {
+      "name": "posttool-missing-context-warns",
+      "event": "PostToolUse",
+      "state": "task-only",
+      "payload": { "tool": "Read", "filePath": "src/in-scope.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["missing-context-package"]
+      }
+    },
+    {
+      "name": "stop-no-verify-handoff-blocks",
+      "event": "Stop",
+      "state": "final-missing",
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["final-verify-missing", "final-handoff-missing"]
+      }
+    },
+    {
+      "name": "stop-full-loop-allows",
+      "event": "Stop",
+      "state": "ready",
+      "expected": {
+        "status": "ok",
+        "decision": "allow",
+        "findingCodes": []
+      }
+    }
+  ]
+}

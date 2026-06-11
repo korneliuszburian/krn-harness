@@ -49,6 +49,7 @@ export interface HookGuardrailFinding {
     | "context-stop-active"
     | "do-not-use-edit"
     | "out-of-scope-edit"
+    | "proof-path-exception"
     | "final-verify-missing"
     | "final-verify-blocked"
     | "final-handoff-missing";
@@ -181,6 +182,21 @@ function isEditTool(toolName: string | undefined): boolean {
   );
 }
 
+function isProofPath(filePath: string): boolean {
+  const normalized = normalizeHookPath(filePath);
+
+  return (
+    normalized === "README.md" ||
+    normalized.startsWith("docs/") ||
+    normalized.startsWith("fixtures/") ||
+    normalized.startsWith("tests/") ||
+    normalized.startsWith("test/") ||
+    normalized.includes("/__tests__/") ||
+    /\.test\.[cm]?[jt]sx?$/.test(normalized) ||
+    /\.spec\.[cm]?[jt]sx?$/.test(normalized)
+  );
+}
+
 function editedPaths(payload: HookPayload): string[] {
   if (!isRecord(payload.parsed)) {
     return [];
@@ -215,6 +231,7 @@ function findingDecision(findings: HookGuardrailFinding[]): HookDecision {
 
 function addCurrentStateFindings(
   event: CodexHookEvent,
+  payload: HookPayload,
   state: HookCurrentState,
   findings: HookGuardrailFinding[],
 ): void {
@@ -233,11 +250,45 @@ function addCurrentStateFindings(
     "PostCompact",
     "Stop",
   ];
+  const editIntent = isEditTool(hookToolName(payload));
+  const missingTaskSeverity = (): HookFindingSeverity => {
+    if (event === "PreToolUse") {
+      return editIntent ? "block" : "warn";
+    }
+
+    if (event === "Stop") {
+      return "block";
+    }
+
+    return "warn";
+  };
+  const missingContextSeverity = (): HookFindingSeverity => {
+    if (event === "PreToolUse") {
+      return editIntent ? "block" : "warn";
+    }
+
+    if (event === "Stop") {
+      return "block";
+    }
+
+    return "warn";
+  };
+  const stopSeverity = (): HookFindingSeverity => {
+    if (event === "PreToolUse") {
+      return editIntent ? "block" : "warn";
+    }
+
+    if (event === "Stop" || event === "UserPromptSubmit") {
+      return "warn";
+    }
+
+    return "warn";
+  };
 
   if (taskRequiredEvents.includes(event) && !state.taskPresent) {
     findings.push({
       code: "missing-task-contract",
-      severity: event === "UserPromptSubmit" ? "warn" : "block",
+      severity: missingTaskSeverity(),
       detail: 'No current task contract; run `krn start "<task>"` first',
     });
   }
@@ -245,7 +296,7 @@ function addCurrentStateFindings(
   if (contextRequiredEvents.includes(event) && !state.contextPresent) {
     findings.push({
       code: "missing-context-package",
-      severity: "block",
+      severity: missingContextSeverity(),
       detail: "No current context package; run `krn context` before tool use or final stop",
     });
   }
@@ -253,7 +304,7 @@ function addCurrentStateFindings(
   if (state.contextStop) {
     findings.push({
       code: "context-stop-active",
-      severity: event === "UserPromptSubmit" || event === "Stop" ? "warn" : "block",
+      severity: stopSeverity(),
       detail: state.contextStopReason ?? "Current context package reports STOP",
     });
   }
@@ -280,6 +331,16 @@ function addScopeFindings(payload: HookPayload, state: HookCurrentState): HookGu
     }
 
     if (!writablePaths.some((scopedPath) => pathMatches(editedPath, scopedPath))) {
+      if (state.taskPresent && state.contextPresent && isProofPath(editedPath)) {
+        findings.push({
+          code: "proof-path-exception",
+          severity: "warn",
+          detail: "Tool payload edits a test/docs/fixture proof path outside active context",
+          path: editedPath,
+        });
+        continue;
+      }
+
       findings.push({
         code: "out-of-scope-edit",
         severity: "block",
@@ -365,7 +426,7 @@ export function handleCodexHook(
 
   const hookEvent = event as CodexHookEvent;
 
-  addCurrentStateFindings(hookEvent, state, findings);
+  addCurrentStateFindings(hookEvent, payload, state, findings);
   findings.push(...addScopeFindings(payload, state));
 
   if (hookEvent === "Stop") {
