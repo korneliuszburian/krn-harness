@@ -9,7 +9,7 @@
 - `.krn/current/eval-result.json`
 - `.krn/current/eval-result.md`
 
-The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Hook Guardrails, Memory Governance, Trace Coverage, Failures, and P0 Limits sections.
+The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, Hook Guardrails, Memory Governance, Fixture Results, Trace Coverage, Failures, and P0 Limits sections.
 
 ## Fields
 
@@ -19,6 +19,7 @@ The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Hook Gu
 - `fixtures`: per-fixture task, status, and grader results.
 - `graph`: graph behavior grader result.
 - `graphArtifact`: generated graph artifact shape grader result.
+- `downstream`: downstream onboarding acceptance grader result.
 - `hooks`: hook guardrail fixture matrix grader result.
 - `memory`: governed memory grader result.
 - `trace`: local trace completeness grader result.
@@ -31,6 +32,7 @@ The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Hook Gu
 - `missing-context-stop`: missing required context must produce STOP.
 - `fixtures/hooks/guardrail-matrix.json`: expected hook `allow`/`warn`/`block` decisions, trace finding codes, compact remediation codes, and selected English/Polish operator wording.
 - `fixtures/hooks/remediation-taxonomy.json`: stable remediation-code list, English/Polish hints, and finding-code mappings.
+- `fixtures/repos/downstream-basic`: tiny downstream repo shape for onboarding acceptance checks.
 
 ## P0 Rule
 
@@ -39,3 +41,5 @@ Eval uses fixture-built task contracts and context packages only. It is not a re
 The memory grader is harness-only. It verifies that pending memory is inactive, approved memory is active only through the context gate, deprecated memory is excluded, unrelated approved memory does not leak, broad single-term matches do not surface memory, English and Polish explicit opt-out suppress memory, Polish explicit approved-memory requests work only through the reference-only gate, and surfaced approved memory carries provenance.
 
 The hook grader is harness-only. It loads the deterministic guardrail matrix and remediation taxonomy fixture, then checks blocked, warned, and allowed decisions, false-positive ownership collisions, compact owned hint lists, package-owned proof fixtures, cross-package proof-path blocks, unowned proof-path blocks, `enforced: false`, the P0 proof-path ownership model, expected ownership hints, declared hint and byte limits, selected English/Polish operator wording, compact remediation codes, writer-side compact trace payload shape, and expected trace finding-code payloads without invoking Codex or relying on a live hook run.
+
+The downstream acceptance grader is harness-only. It checks fixture shape and generated AGENTS/hooks/runtime skill template contracts without installing into the source checkout, invoking Codex, or running downstream project commands.

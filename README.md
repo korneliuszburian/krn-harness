@@ -13,10 +13,11 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 ## Current P0 Surface
 
 - pnpm TypeScript workspace.
-- Skeletal `krn` CLI with deterministic commands.
-- `krn.config.json` schema and `.krn/` runtime layout model.
-- Downstream `AGENTS.md`, hooks, and runtime skill templates.
-- Task contract, context package, graph-lite, trace, verify, doctor, memory, and eval package skeletons.
+- Deterministic `krn` CLI for local current-state artifacts.
+- `krn.config.json` schema and `.krn/` runtime layout.
+- Safe downstream install for `AGENTS.md`, hooks, runtime skill, and runtime directories.
+- Task contract, context package, graph-lite, trace, verify, handoff, doctor, memory, and eval contracts.
+- Hook guardrails with deterministic `allow`, `warn`, and `block` decisions, compact trace evidence, and operator guidance.
 - Repo-scoped build-time skills in `.agents/skills/*`.
 
 ## Commands
@@ -28,6 +29,14 @@ pnpm typecheck
 pnpm test
 pnpm --silent krn --help
 pnpm --silent krn status
+pnpm --silent krn install
+pnpm --silent krn start "example task"
+pnpm --silent krn graph
+pnpm --silent krn context
+pnpm --silent krn verify
+pnpm --silent krn handoff
+pnpm --silent krn doctor
+pnpm --silent krn eval
 ```
 
 ## P0 Non-Goals

@@ -65,6 +65,22 @@ describe("doctor result", () => {
       status: "pass",
       detail: "No current context package; memory context gate skipped",
     });
+    expect(result.checks).toContainEqual({
+      name: "downstream-agents",
+      status: "warn",
+      detail: "AGENTS.md is missing; run `krn install` in the downstream repo",
+    });
+    expect(result.checks).toContainEqual({
+      name: "downstream-runtime-skill",
+      status: "warn",
+      detail:
+        ".agents/skills/krn-harness/SKILL.md is missing; run `krn install` in the downstream repo",
+    });
+    expect(result.checks).toContainEqual({
+      name: "downstream-hooks-template",
+      status: "warn",
+      detail: ".codex/hooks.json is missing; run `krn install` in the downstream repo",
+    });
     expect(result.nextActions).toEqual([
       "Run `krn graph` to generate graph artifacts.",
       "Run `krn context` to generate the current context package.",
@@ -85,6 +101,34 @@ describe("doctor result", () => {
       name: "config",
       status: "fail",
       detail: "krn.config.json is invalid: version must be 1",
+    });
+  });
+
+  it("fails malformed downstream hook and runtime skill artifacts", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".codex"), { recursive: true });
+    await mkdir(path.join(cwd, ".agents", "skills", "krn-harness"), { recursive: true });
+    await writeFile(path.join(cwd, ".codex", "hooks.json"), '{"hooks":{}}\n', "utf8");
+    await writeFile(
+      path.join(cwd, ".agents", "skills", "krn-harness", "SKILL.md"),
+      "# KRN Harness\n\nRun `krn status` only.\n",
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "downstream-runtime-skill",
+      status: "fail",
+      detail:
+        ".agents/skills/krn-harness/SKILL.md is missing runtime command(s): krn start, krn context, krn verify, krn handoff",
+    });
+    expect(result.checks).toContainEqual({
+      name: "downstream-hooks-template",
+      status: "fail",
+      detail:
+        ".codex/hooks.json is missing hook event(s): SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, PostCompact, Stop",
     });
   });
 

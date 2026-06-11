@@ -10,7 +10,7 @@ No dashboard, MCP server, multi-agent orchestrator, vector DB, semantic embeddin
 
 ## Runtime Model
 
-Downstream repositories use `krn.config.json` for stable config and `.krn/` for local runtime state. `.krn/current/` contains the current task contract and context package.
+Downstream repositories use `krn.config.json` for stable config and `.krn/` for local runtime state. `.krn/current/` contains current task, context, verify, handoff, doctor, and eval artifacts. `.krn/runs/<task_id>/` contains run-scoped trace and metadata for the current task. `.krn/traces/trace.jsonl` remains the global trace for install, hooks, memory commands, and compatibility events.
 
 ## File Layout
 
@@ -18,7 +18,7 @@ The P0 monorepo uses `packages/*` for TypeScript packages, `docs/*` for canon/sp
 
 ## CLI Commands
 
-`krn --help`, `krn status`, `krn start "<task>"`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, `krn eval`, `krn install`, and `krn memory <command>` are deterministic skeleton commands. Hook entrypoints accept `krn hook codex <event>`.
+`krn --help`, `krn status`, `krn start "<task>"`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, `krn eval`, `krn install`, and `krn memory <command>` are deterministic P0 commands. Hook entrypoints accept `krn hook codex <event>`.
 
 ## Codex Adapter Model
 
@@ -50,11 +50,11 @@ Graph-lite exposes nodes, edges, and detector interfaces. P0 ships file and pack
 
 ## Trace
 
-Trace writes JSONL events under `.krn/traces/trace.jsonl`.
+Trace writes JSONL events. Task-loop commands write run-scoped events under `.krn/runs/<task_id>/trace.jsonl` and mirror current evidence to the global trace where needed. Install, hook, and memory commands write compact global trace events.
 
 ## Verify/Evidence
 
-Verify is a skeleton profile runner. P0 evidence is local validation only and must not be called production proof.
+Verify records deterministic P0 result artifacts from current task/context/config state. P0 evidence is local validation only and must not be called production proof.
 
 ## Memory
 
@@ -66,7 +66,7 @@ Doctor returns typed checks for runtime, adapters, skills, context, docs, memory
 
 ## Harness-Only Evals
 
-P0 eval fixtures are tiny local repos and tasks. They do not run real non-interactive Codex eval automation.
+P0 eval fixtures are tiny local repos and tasks. They cover context, STOP, graph-lite, memory gates, hook guardrails, trace completeness, and downstream onboarding acceptance. They do not run real non-interactive Codex eval automation.
 
 ## Security/Trust
 
@@ -74,4 +74,4 @@ Trust boundaries are explicit: user prompt, repo files, `.krn/` runtime state, h
 
 ## P0/P1/P2/P3
 
-P0 is this scaffold and local typed skeleton. P1 may harden context/verify behavior. P2 may add richer graph intelligence. P3 may add dashboard, MCP server, or plugin distribution after ADR approval.
+P0 is the deterministic local harness loop, shallow graph/context evidence, hook guardrails, governed memory gates, downstream onboarding, and harness-only evals. P1 may harden runtime intelligence. P2 may add richer graph intelligence. P3 may add dashboard, MCP server, or plugin distribution after ADR approval.

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,6 +10,13 @@ async function runInTemp(args: string[]) {
   const result = await runInCwd(cwd, args);
 
   return { cwd, ...result };
+}
+
+async function copyFixtureRepo(name: string): Promise<string> {
+  const parent = await mkdtemp(path.join(os.tmpdir(), "krn-harness-fixture-"));
+  const cwd = path.join(parent, name);
+  await cp(path.join(process.cwd(), "fixtures", "repos", name), cwd, { recursive: true });
+  return cwd;
 }
 
 async function runInCwd(cwd: string, args: string[], input: { stdin?: string } = {}) {
@@ -270,12 +277,14 @@ markdown: .krn/graph/repo-graph.md
 
     expect(install.code).toBe(0);
     expect(install.stdout).toContain("KRN install: installed");
-    expect(install.stdout).toContain("created: 7");
+    expect(install.stdout).toContain("created: 9");
     expect(install.stdout).toContain("skipped: 0");
 
     await expectDirectory(install.cwd, ".krn/current");
     await expectDirectory(install.cwd, ".krn/graph");
     await expectDirectory(install.cwd, ".krn/traces");
+    await expectDirectory(install.cwd, ".krn/runs");
+    await expectDirectory(install.cwd, ".krn/memory");
 
     await expect(readJson(install.cwd, "krn.config.json")).resolves.toEqual({
       version: 1,
@@ -296,23 +305,33 @@ markdown: .krn/graph/repo-graph.md
     expect(agents).toContain("KRN Harness");
     expect(agents).toContain("krn start");
     expect(agents).toContain("STOP");
-    expect(hooks.hooks.SessionStart?.[0]?.hooks[0]?.command).toBe("krn hook codex SessionStart");
-    expect(hooks.hooks.Stop?.[0]?.hooks[0]?.command).toBe("krn hook codex Stop");
+    expect(agents.length).toBeLessThan(2200);
+    expect(agents).not.toContain("Architecture Spec");
+    for (const event of supportedP0CodexHookEvents) {
+      expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`krn hook codex ${event}`);
+    }
     expect(runtimeSkill).toContain("krn status");
+    expect(runtimeSkill).toContain("krn start");
+    expect(runtimeSkill).toContain("krn context");
+    expect(runtimeSkill).toContain("krn verify");
     expect(runtimeSkill).toContain("krn handoff");
+    expect(runtimeSkill.length).toBeLessThan(1600);
+    expect(runtimeSkill).not.toContain("Architecture Spec");
 
     await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
       {
         name: "install.ran",
         data: {
           status: "installed",
-          created: 7,
+          created: 9,
           skipped: 0,
           reason: null,
           actions: [
             { path: ".krn/current", kind: "directory", status: "created" },
             { path: ".krn/graph", kind: "directory", status: "created" },
             { path: ".krn/traces", kind: "directory", status: "created" },
+            { path: ".krn/runs", kind: "directory", status: "created" },
+            { path: ".krn/memory", kind: "directory", status: "created" },
             { path: "krn.config.json", kind: "file", status: "created" },
             { path: "AGENTS.md", kind: "file", status: "created" },
             { path: ".codex/hooks.json", kind: "file", status: "created" },
@@ -329,7 +348,7 @@ markdown: .krn/graph/repo-graph.md
     const secondInstall = await runInCwd(install.cwd, ["install"]);
     expect(secondInstall).toMatchObject({ code: 0 });
     expect(secondInstall.stdout).toContain("created: 0");
-    expect(secondInstall.stdout).toContain("skipped: 7");
+    expect(secondInstall.stdout).toContain("skipped: 9");
     await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
       { name: "install.ran" },
       {
@@ -337,12 +356,14 @@ markdown: .krn/graph/repo-graph.md
         data: {
           status: "installed",
           created: 0,
-          skipped: 7,
+          skipped: 9,
           reason: null,
           actions: [
             { path: ".krn/current", kind: "directory", status: "skipped" },
             { path: ".krn/graph", kind: "directory", status: "skipped" },
             { path: ".krn/traces", kind: "directory", status: "skipped" },
+            { path: ".krn/runs", kind: "directory", status: "skipped" },
+            { path: ".krn/memory", kind: "directory", status: "skipped" },
             { path: "krn.config.json", kind: "file", status: "skipped" },
             { path: "AGENTS.md", kind: "file", status: "skipped" },
             { path: ".codex/hooks.json", kind: "file", status: "skipped" },
@@ -372,17 +393,17 @@ markdown: .krn/graph/repo-graph.md
         expect.objectContaining({
           name: "downstream-agents",
           status: "pass",
-          detail: "AGENTS.md is present",
+          detail: "AGENTS.md is present; downstream guidance may be project-owned",
         }),
         expect.objectContaining({
           name: "downstream-runtime-skill",
           status: "pass",
-          detail: ".agents/skills/krn-harness/SKILL.md is present",
+          detail: ".agents/skills/krn-harness/SKILL.md is present and routes through the KRN CLI",
         }),
         expect.objectContaining({
           name: "downstream-hooks-template",
           status: "pass",
-          detail: ".codex/hooks.json is present",
+          detail: ".codex/hooks.json covers 7 P0 Codex hook event(s)",
         }),
       ]),
     );
@@ -391,6 +412,8 @@ markdown: .krn/graph/repo-graph.md
   it("preserves existing downstream instructions during install", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
     await writeFile(path.join(cwd, "AGENTS.md"), "# Existing Instructions\n", "utf8");
+    await mkdir(path.join(cwd, ".codex"), { recursive: true });
+    await writeFile(path.join(cwd, ".codex/hooks.json"), '{\n  "hooks": {}\n}\n', "utf8");
     await writeFile(
       path.join(cwd, "krn.config.json"),
       '{\n  "version": 1,\n  "runtime": {\n    "dir": ".custom-krn"\n  }\n}\n',
@@ -402,15 +425,111 @@ markdown: .krn/graph/repo-graph.md
     expect(install.code).toBe(0);
     expect(install.stdout).toContain("- skipped AGENTS.md: existing file preserved");
     expect(install.stdout).toContain("- skipped krn.config.json: existing file preserved");
+    expect(install.stdout).toContain("- skipped .codex/hooks.json: existing file preserved");
     await expect(readFile(path.join(cwd, "AGENTS.md"), "utf8")).resolves.toBe(
       "# Existing Instructions\n",
     );
+    await expect(readJson(cwd, ".codex/hooks.json")).resolves.toEqual({
+      hooks: {},
+    });
     await expect(readJson(cwd, "krn.config.json")).resolves.toEqual({
       version: 1,
       runtime: {
         dir: ".custom-krn",
       },
     });
+  });
+
+  it("runs the downstream-basic acceptance loop on a temp fixture copy", async () => {
+    const cwd = await copyFixtureRepo("downstream-basic");
+
+    await expect(runInCwd(cwd, ["install"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["status"])).resolves.toMatchObject({ code: 0 });
+    const start = await runInCwd(cwd, [
+      "start",
+      "Harden",
+      "downstream",
+      "basic",
+      "fixture",
+      "context",
+    ]);
+    expect(start).toMatchObject({ code: 0 });
+
+    const contract = await readJson<{ id: string; task: string }>(
+      cwd,
+      ".krn/current/task-contract.json",
+    );
+    await expect(runInCwd(cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const hook = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({ tool: "Read", filePath: "src/index.ts" }),
+    });
+    expect(hook).toMatchObject({ code: 0 });
+    expect(JSON.parse(hook.stdout)).toMatchObject({
+      event: "PreToolUse",
+      decision: "allow",
+      status: "ok",
+      enforced: false,
+    });
+
+    await expect(runInCwd(cwd, ["verify"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
+    const doctor = await runInCwd(cwd, ["doctor"]);
+    const evalResult = await runInCwd(cwd, ["eval"]);
+
+    expect(doctor).toMatchObject({ code: 0 });
+    expect(evalResult).toMatchObject({ code: 0 });
+    await expectFile(cwd, "krn.config.json");
+    await expectFile(cwd, "AGENTS.md");
+    await expectFile(cwd, ".codex/hooks.json");
+    await expectFile(cwd, ".agents/skills/krn-harness/SKILL.md");
+    await expectFile(cwd, ".krn/current/handoff.md");
+    await expectFile(cwd, ".krn/current/doctor-result.json");
+    await expectFile(cwd, ".krn/current/eval-result.json");
+    await expectFile(cwd, `.krn/runs/${contract.id}/trace.jsonl`);
+
+    const doctorJson = await readJson<{
+      checks: Array<{ name: string; status: string; detail: string }>;
+    }>(cwd, ".krn/current/doctor-result.json");
+    expect(doctorJson.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "downstream-agents", status: "pass" }),
+        expect.objectContaining({ name: "downstream-runtime-skill", status: "pass" }),
+        expect.objectContaining({ name: "downstream-hooks-template", status: "pass" }),
+      ]),
+    );
+
+    const evalJson = await readJson<{
+      status: string;
+      downstream?: { status: string };
+    }>(cwd, ".krn/current/eval-result.json");
+    expect(evalJson).toMatchObject({
+      status: "pass",
+      downstream: { status: "pass" },
+    });
+
+    expect((await readTraceEvents(cwd)).map((event) => event.name)).toEqual([
+      "install.ran",
+      "cli.status",
+      "task.started",
+      "graph.built",
+      "context.built",
+      "hook.received",
+      "verify.ran",
+      "handoff.created",
+      "doctor.ran",
+      "eval.ran",
+    ]);
+    expect((await readRunTraceEvents(cwd, contract.id)).map((event) => event.name)).toEqual([
+      "task.started",
+      "graph.built",
+      "context.built",
+      "verify.ran",
+      "handoff.created",
+      "doctor.ran",
+      "eval.ran",
+    ]);
   });
 
   it("handles Codex hook events with deterministic trace output", async () => {
@@ -1698,10 +1817,11 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 14,
+      passCount: 15,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
+      downstream: { status: "pass" },
       hooks: { status: "pass" },
       memory: { status: "pass" },
       trace: { status: "pass" },
@@ -1715,6 +1835,7 @@ markdown: .krn/graph/repo-graph.md
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
     expect(evalMarkdown).toContain("## Graph Coverage");
+    expect(evalMarkdown).toContain("## Downstream Acceptance");
     expect(evalMarkdown).toContain("## Hook Guardrails");
     expect(evalMarkdown).toContain("## Memory Governance");
     expect(evalMarkdown).toContain("## Trace Coverage");
@@ -1726,6 +1847,7 @@ markdown: .krn/graph/repo-graph.md
     expect(handoffMarkdown).toContain("Current run trace: .krn/runs/task-a39f90427522/trace.jsonl");
     expect(handoffMarkdown).toContain("## Doctor\n\nStatus: warn");
     expect(handoffMarkdown).toContain("## Eval\n\nStatus: pass");
+    expect(handoffMarkdown).toContain("Downstream acceptance: pass");
     expect(handoffMarkdown).toContain("## Artifact Pointers");
     expect(handoffMarkdown).toContain("- Task contract: .krn/current/task-contract.json");
     expect(handoffMarkdown).toContain("- Graph JSON: .krn/graph/repo-graph.json");
@@ -1743,8 +1865,9 @@ markdown: .krn/graph/repo-graph.md
         data: {
           status: "pass",
           fixtures: 3,
-          passCount: 14,
+          passCount: 15,
           failCount: 0,
+          downstreamStatus: "pass",
           hookStatus: "pass",
           memoryStatus: "pass",
         },

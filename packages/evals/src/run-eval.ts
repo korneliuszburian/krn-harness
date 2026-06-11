@@ -1,6 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  generateAgentsAdapter,
+  generateHooksTemplate,
+  generateRuntimeSkillTemplate,
+} from "../../codex-adapter/src/index.js";
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
@@ -18,6 +23,7 @@ import {
   maxOwnedProofPathHints,
   remediationCodesForFindingCodes,
   runHookGuardrailFixtureCase,
+  supportedCodexHookEvents,
 } from "../../hooks/src/index.js";
 import {
   approveMemory,
@@ -48,6 +54,7 @@ export interface EvalResult {
   fixtures: EvalFixtureResult[];
   graph: EvalGrade;
   graphArtifact: EvalGrade;
+  downstream: EvalGrade;
   hooks: EvalGrade;
   memory: EvalGrade;
   trace: EvalGrade;
@@ -67,6 +74,15 @@ interface TraceReadResult {
 
 function repoRootFromModule(): string {
   return path.resolve(fileURLToPath(new URL("../../../", import.meta.url)));
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readTraceEventNames(tracePath: string): Promise<string[]> {
@@ -587,6 +603,74 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
   };
 }
 
+async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade> {
+  const fixtureRootPath = path.join(fixtureRoot, "fixtures", "repos", "downstream-basic");
+  const requiredFixturePaths = [
+    "package.json",
+    "README.md",
+    "src/index.ts",
+    "src/index.test.ts",
+    "docs/overview.md",
+  ];
+  const failures: string[] = [];
+
+  for (const relativePath of requiredFixturePaths) {
+    if (!(await pathExists(path.join(fixtureRootPath, relativePath)))) {
+      failures.push(`missing fixtures/repos/downstream-basic/${relativePath}`);
+    }
+  }
+
+  const agents = generateAgentsAdapter();
+  const runtimeSkill = generateRuntimeSkillTemplate();
+  let hooks: { hooks?: Record<string, Array<{ hooks?: Array<{ command?: string }> }>> };
+
+  try {
+    hooks = JSON.parse(generateHooksTemplate()) as typeof hooks;
+  } catch {
+    hooks = {};
+    failures.push("generated hooks template is not valid JSON");
+  }
+
+  if (
+    !agents.includes("KRN Harness") ||
+    !agents.includes("krn start") ||
+    !agents.includes("STOP")
+  ) {
+    failures.push("generated AGENTS adapter is missing the KRN workflow");
+  }
+
+  if (agents.includes("Architecture Spec") || agents.length > 2200) {
+    failures.push("generated AGENTS adapter is too broad for downstream active context");
+  }
+
+  for (const command of ["krn status", "krn start", "krn context", "krn verify", "krn handoff"]) {
+    if (!runtimeSkill.includes(command)) {
+      failures.push(`runtime skill is missing ${command}`);
+    }
+  }
+
+  if (runtimeSkill.includes("Architecture Spec") || runtimeSkill.length > 1600) {
+    failures.push("runtime skill template is too broad for downstream active context");
+  }
+
+  for (const event of supportedCodexHookEvents) {
+    const command = hooks.hooks?.[event]?.[0]?.hooks?.[0]?.command;
+
+    if (command !== `krn hook codex ${event}`) {
+      failures.push(`generated hooks template is missing ${event}`);
+    }
+  }
+
+  return {
+    name: "downstream-acceptance",
+    status: failures.length === 0 ? "pass" : "fail",
+    detail:
+      failures.length === 0
+        ? "downstream-basic fixture and generated AGENTS/hooks/runtime skill templates satisfy P0 onboarding acceptance"
+        : failures.join("; "),
+  };
+}
+
 export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const cwd = input.cwd ?? process.cwd();
   const fixtureRoot = input.fixtureRoot ?? repoRootFromModule();
@@ -632,10 +716,12 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const graphArtifact = await gradeGraphArtifact(cwd);
   const memory = gradeMemoryGovernance();
   const hooks = await gradeHookGuardrails(fixtureRoot);
+  const downstream = await gradeDownstreamAcceptance(fixtureRoot);
   const allGrades = [
     ...fixtures.flatMap((fixture) => fixture.grades),
     graphGrade,
     graphArtifact,
+    downstream,
     hooks,
     memory,
     trace,
@@ -650,6 +736,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     fixtures,
     graph: graphGrade,
     graphArtifact,
+    downstream,
     hooks,
     memory,
     trace,
@@ -664,7 +751,14 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
         .filter((grade) => grade.status === "fail")
         .map((grade) => `${fixture.name}/${grade.name}: ${grade.detail}`),
     ),
-    ...[result.graph, result.graphArtifact, result.hooks, result.memory, result.trace]
+    ...[
+      result.graph,
+      result.graphArtifact,
+      result.downstream,
+      result.hooks,
+      result.memory,
+      result.trace,
+    ]
       .filter((grade) => grade.status === "fail")
       .map((grade) => `${grade.name}: ${grade.detail}`),
   ];
@@ -682,6 +776,10 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     "",
     `- ${result.graph.name}: ${result.graph.status} - ${result.graph.detail}`,
     `- ${result.graphArtifact.name}: ${result.graphArtifact.status} - ${result.graphArtifact.detail}`,
+    "",
+    "## Downstream Acceptance",
+    "",
+    `- ${result.downstream.name}: ${result.downstream.status} - ${result.downstream.detail}`,
     "",
     "## Hook Guardrails",
     "",

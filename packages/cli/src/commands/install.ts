@@ -111,6 +111,8 @@ export async function runInstall(cwd: string): Promise<InstallResult> {
     await ensureDirectory(cwd, ".krn/current"),
     await ensureDirectory(cwd, ".krn/graph"),
     await ensureDirectory(cwd, ".krn/traces"),
+    await ensureDirectory(cwd, ".krn/runs"),
+    await ensureDirectory(cwd, ".krn/memory"),
     await writeFileIfMissing(cwd, "krn.config.json", defaultConfig()),
     await writeFileIfMissing(cwd, "AGENTS.md", generateAgentsAdapter()),
     await writeFileIfMissing(cwd, ".codex/hooks.json", generateHooksTemplate()),

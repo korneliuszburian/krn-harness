@@ -14,7 +14,7 @@ Use JSONL trace events as the first eval and audit substrate.
 
 ## Consequences
 
-P0 writes local trace events and includes harness-only eval fixture skeletons.
+P0 writes local trace events and includes harness-only deterministic eval fixtures.
 
 ## Alternatives Considered
 

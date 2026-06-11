@@ -22,7 +22,8 @@
 - Governed memory store presence, shape, status separation, and manual approval/deprecation timestamps.
 - Memory context gate: memory-sourced context must be reference-only, backed by approved store records, carry approved provenance, avoid broad single-term task matches, and honor English and Polish explicit opt-out.
 - Graph JSON/Markdown artifact presence, graph JSON shape, and graph summary fields.
-- Downstream `AGENTS.md`, runtime skill, and hooks template presence.
+- Downstream `AGENTS.md`, runtime skill, and hooks template presence with source-checkout vs downstream messaging.
+- Downstream runtime skill and hooks template shape. Missing files warn; malformed installed runtime skill or hooks fail.
 - Current context STOP state when available.
 - Source checkout adapter template and build-time skill presence when applicable.
 - Run trace, run metadata, global trace, hook guardrail trace payloads, and current-run pointer presence/shape.
@@ -34,3 +35,5 @@
 ## P0 Rule
 
 Doctor reports local health. Missing current-state artifacts are warnings, not hard CLI failures.
+
+In the source checkout, downstream runtime artifacts may be absent because adapter templates are the source truth. In a downstream repository, missing generated artifacts should point operators to `krn install`.

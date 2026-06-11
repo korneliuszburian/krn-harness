@@ -28,6 +28,10 @@ interface ArtifactStatusSummary {
   status: string;
 }
 
+interface EvalStatusSummary extends ArtifactStatusSummary {
+  downstreamStatus?: string | undefined;
+}
+
 export function parseGitStatusPath(line: string): string | undefined {
   const rawPath = line.slice(3).trim();
   if (!rawPath) {
@@ -106,6 +110,18 @@ async function artifactStatus(cwd: string, relativePath: string): Promise<Artifa
   };
 }
 
+async function evalStatus(cwd: string): Promise<EvalStatusSummary> {
+  const artifact = await readJson<{ status?: unknown; downstream?: { status?: unknown } }>(
+    path.join(cwd, ".krn", "current", "eval-result.json"),
+  );
+
+  return {
+    status: typeof artifact?.status === "string" ? artifact.status : "missing",
+    downstreamStatus:
+      typeof artifact?.downstream?.status === "string" ? artifact.downstream.status : undefined,
+  };
+}
+
 function renderHandoffMarkdown(input: {
   taskId?: string | undefined;
   taskSummary: string;
@@ -116,6 +132,7 @@ function renderHandoffMarkdown(input: {
   run: CurrentRunSummary;
   doctorStatus: string;
   evalStatus: string;
+  downstreamEvalStatus?: string | undefined;
   changedFiles: string[];
 }): string {
   const lines = [
@@ -150,6 +167,7 @@ function renderHandoffMarkdown(input: {
     "## Eval",
     "",
     `Status: ${input.evalStatus}`,
+    `Downstream acceptance: ${input.downstreamEvalStatus ?? "missing"}`,
     "",
     "## Artifact Pointers",
     "",
@@ -197,7 +215,7 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
       graphSummary(runtime.cwd),
       currentRunSummary(runtime.cwd),
       artifactStatus(runtime.cwd, ".krn/current/doctor-result.json"),
-      artifactStatus(runtime.cwd, ".krn/current/eval-result.json"),
+      evalStatus(runtime.cwd),
       changedFiles(runtime.cwd),
     ]);
   const taskId = taskContract?.id ?? contextPackage?.taskId ?? verifyResult?.taskId;
@@ -212,6 +230,7 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
     run,
     doctorStatus: doctor.status,
     evalStatus: evalResult.status,
+    downstreamEvalStatus: evalResult.downstreamStatus,
     changedFiles: files,
   });
 

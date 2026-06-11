@@ -2,6 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "../../config/src/index.js";
 import { hasExplicitMemoryOptOut, isTaskRelevantMemoryMatch } from "../../context/src/index.js";
+import { supportedCodexHookEvents } from "../../hooks/src/index.js";
 import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
 import { readTraceLines, type TraceEvent } from "../../trace/src/index.js";
 
@@ -81,6 +82,135 @@ function artifactCheck(name: string, present: boolean, relativePath: string): Do
     name,
     status: present ? "pass" : "warn",
     detail: present ? `${relativePath} is present` : `${relativePath} is missing`,
+  };
+}
+
+async function downstreamAgentsCheck(cwd: string, source: boolean): Promise<DoctorCheck> {
+  const relativePath = "AGENTS.md";
+  const present = await pathExists(path.join(cwd, relativePath));
+
+  if (!present) {
+    return {
+      name: "downstream-agents",
+      status: "warn",
+      detail: source
+        ? "AGENTS.md is missing in source checkout; source guidance unavailable"
+        : "AGENTS.md is missing; run `krn install` in the downstream repo",
+    };
+  }
+
+  return {
+    name: "downstream-agents",
+    status: "pass",
+    detail: source
+      ? "AGENTS.md is present for source checkout guidance"
+      : "AGENTS.md is present; downstream guidance may be project-owned",
+  };
+}
+
+async function downstreamRuntimeSkillCheck(cwd: string, source: boolean): Promise<DoctorCheck> {
+  const relativePath = ".agents/skills/krn-harness/SKILL.md";
+  const absolutePath = path.join(cwd, relativePath);
+
+  if (!(await pathExists(absolutePath))) {
+    return {
+      name: "downstream-runtime-skill",
+      status: "warn",
+      detail: source
+        ? `${relativePath} is not installed in the source checkout; adapter template is checked separately`
+        : `${relativePath} is missing; run \`krn install\` in the downstream repo`,
+    };
+  }
+
+  const content = await readFile(absolutePath, "utf8");
+  const missingCommands = [
+    "krn status",
+    "krn start",
+    "krn context",
+    "krn verify",
+    "krn handoff",
+  ].filter((command) => !content.includes(command));
+
+  if (missingCommands.length > 0) {
+    return {
+      name: "downstream-runtime-skill",
+      status: "fail",
+      detail: `${relativePath} is missing runtime command(s): ${missingCommands.join(", ")}`,
+    };
+  }
+
+  if (content.includes("Architecture Spec") || content.length > 1600) {
+    return {
+      name: "downstream-runtime-skill",
+      status: "fail",
+      detail: `${relativePath} is too broad for downstream active context`,
+    };
+  }
+
+  return {
+    name: "downstream-runtime-skill",
+    status: "pass",
+    detail: `${relativePath} is present and routes through the KRN CLI`,
+  };
+}
+
+async function downstreamHooksTemplateCheck(cwd: string, source: boolean): Promise<DoctorCheck> {
+  const relativePath = ".codex/hooks.json";
+  const absolutePath = path.join(cwd, relativePath);
+
+  if (!(await pathExists(absolutePath))) {
+    return {
+      name: "downstream-hooks-template",
+      status: "warn",
+      detail: source
+        ? `${relativePath} is not installed in the source checkout; adapter template is checked separately`
+        : `${relativePath} is missing; run \`krn install\` in the downstream repo`,
+    };
+  }
+
+  const parsed = await parseJsonFile(absolutePath);
+
+  if (parsed.status !== "parsed") {
+    return {
+      name: "downstream-hooks-template",
+      status: "fail",
+      detail: `${relativePath} is malformed`,
+    };
+  }
+
+  if (!isRecord(parsed.value) || !isRecord(parsed.value.hooks)) {
+    return {
+      name: "downstream-hooks-template",
+      status: "fail",
+      detail: `${relativePath} is missing hooks object`,
+    };
+  }
+
+  const hooks = parsed.value.hooks;
+  const missingEvents = supportedCodexHookEvents.filter((event) => {
+    const entries = hooks[event];
+
+    return !(
+      Array.isArray(entries) &&
+      isRecord(entries[0]) &&
+      Array.isArray(entries[0].hooks) &&
+      isRecord(entries[0].hooks[0]) &&
+      entries[0].hooks[0].command === `krn hook codex ${event}`
+    );
+  });
+
+  if (missingEvents.length > 0) {
+    return {
+      name: "downstream-hooks-template",
+      status: "fail",
+      detail: `${relativePath} is missing hook event(s): ${missingEvents.join(", ")}`,
+    };
+  }
+
+  return {
+    name: "downstream-hooks-template",
+    status: "pass",
+    detail: `${relativePath} covers ${supportedCodexHookEvents.length} P0 Codex hook event(s)`,
   };
 }
 
@@ -983,6 +1113,7 @@ async function sourceTreeCheck(
 export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
   const currentDir = path.join(cwd, ".krn", "current");
   const tracePath = path.join(cwd, ".krn", "traces", "trace.jsonl");
+  const source = await isHarnessSource(cwd);
   const contextPackage = await readJson<{ stop?: boolean; stopReason?: string }>(
     path.join(currentDir, "context-package.json"),
   );
@@ -1034,17 +1165,9 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
     ),
     await graphJsonShapeCheck(cwd),
     await graphSummaryCheck(cwd),
-    artifactCheck("downstream-agents", await pathExists(path.join(cwd, "AGENTS.md")), "AGENTS.md"),
-    artifactCheck(
-      "downstream-runtime-skill",
-      await pathExists(path.join(cwd, ".agents", "skills", "krn-harness", "SKILL.md")),
-      ".agents/skills/krn-harness/SKILL.md",
-    ),
-    artifactCheck(
-      "downstream-hooks-template",
-      await pathExists(path.join(cwd, ".codex", "hooks.json")),
-      ".codex/hooks.json",
-    ),
+    await downstreamAgentsCheck(cwd, source),
+    await downstreamRuntimeSkillCheck(cwd, source),
+    await downstreamHooksTemplateCheck(cwd, source),
     await sourceTreeCheck(cwd, {
       name: "adapter-templates",
       paths: [

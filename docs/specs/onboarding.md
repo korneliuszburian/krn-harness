@@ -22,3 +22,19 @@ If KRN reports STOP, do not edit until the missing context or unsafe condition i
 `krn install` preserves existing downstream files. It reports skipped files instead of overwriting project-owned instructions.
 
 Each install run writes an `install.ran` JSONL trace event with deterministic created/skipped counts and action summaries so onboarding can be checked without reading generated file bodies.
+
+## Runtime Layout
+
+`krn install` creates these missing local runtime directories:
+
+- `.krn/current/`
+- `.krn/graph/`
+- `.krn/traces/`
+- `.krn/runs/`
+- `.krn/memory/`
+
+They are local runtime state. They are not a hosted service, daemon, sandbox, or plugin distribution channel.
+
+## Acceptance
+
+The downstream acceptance contract lives in `docs/specs/downstream-acceptance.md`. The canonical fixture is `fixtures/repos/downstream-basic/`.
