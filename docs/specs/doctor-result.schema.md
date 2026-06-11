@@ -27,7 +27,7 @@
 - Source checkout adapter template and build-time skill presence when applicable.
 - Run trace, run metadata, global trace, hook guardrail trace payloads, and current-run pointer presence/shape.
 - Hook guardrail trace payloads with `proof-path-exception` under `task-context-owned-proof-paths-v1` must include non-empty owned proof-path hints.
-- Hook guardrail trace payloads must reject unknown ownership models, malformed ownership hints, and over-broad hints such as `docs`, `fixtures`, `tests`, or `packages`.
+- Hook guardrail trace payloads must reject unknown ownership models, malformed ownership hints, over-broad hints such as `docs`, `fixtures`, `tests`, or `packages`, hint lists longer than the declared limit, and payloads larger than the declared byte limit.
 
 ## P0 Rule
 

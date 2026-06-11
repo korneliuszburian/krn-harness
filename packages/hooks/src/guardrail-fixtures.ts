@@ -11,11 +11,18 @@ export type HookGuardrailFixtureStateName =
   | "task-only"
   | "ready"
   | "config-task-owned"
+  | "config-context-owned"
+  | "config-context-collision"
   | "context-task-owned"
   | "codex-adapter-task-owned"
+  | "codex-adapter-context-owned"
   | "hook-task-owned"
   | "hook-context-owned"
+  | "trace-memory-collision"
   | "memory-context-owned"
+  | "cli-context-owned"
+  | "handoff-task-owned"
+  | "duplicate-context-hints"
   | "verify-task-owned"
   | "stop-active"
   | "final-missing";
@@ -89,6 +96,22 @@ export function hookGuardrailFixtureState(name: HookGuardrailFixtureStateName): 
     };
   }
 
+  if (name === "config-context-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden config loading and validation fixtures",
+      writablePaths: ["src/in-scope.ts", "packages/config/src/load-config.ts"],
+    };
+  }
+
+  if (name === "config-context-collision") {
+    return {
+      ...readyState,
+      taskText: "Harden config and context package ownership hints",
+      writablePaths: ["src/in-scope.ts", "packages/config/src/load-config.ts"],
+    };
+  }
+
   if (name === "context-task-owned") {
     return {
       ...readyState,
@@ -100,6 +123,14 @@ export function hookGuardrailFixtureState(name: HookGuardrailFixtureStateName): 
     return {
       ...readyState,
       taskText: "Harden downstream codex adapter onboarding templates",
+    };
+  }
+
+  if (name === "codex-adapter-context-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden downstream codex adapter onboarding templates",
+      writablePaths: ["src/in-scope.ts", "packages/codex-adapter/src/generate-adapter.ts"],
     };
   }
 
@@ -116,6 +147,42 @@ export function hookGuardrailFixtureState(name: HookGuardrailFixtureStateName): 
       ...readyState,
       taskText: "Update current package proof tests",
       writablePaths: ["src/in-scope.ts", "packages/memory/src/memory-store.ts"],
+    };
+  }
+
+  if (name === "trace-memory-collision") {
+    return {
+      ...readyState,
+      taskText: "Trace memory issue in context package",
+      writablePaths: ["src/in-scope.ts", "packages/trace/src/trace-writer.ts"],
+    };
+  }
+
+  if (name === "cli-context-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden handoff command behavior",
+      writablePaths: ["src/in-scope.ts", "packages/cli/src/commands/handoff.ts"],
+    };
+  }
+
+  if (name === "handoff-task-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden handoff behavior",
+    };
+  }
+
+  if (name === "duplicate-context-hints") {
+    return {
+      ...readyState,
+      taskText: "Harden config loading",
+      writablePaths: [
+        "src/in-scope.ts",
+        "packages/config/src/load-config.ts",
+        "packages/config/src/load-config.ts",
+      ],
+      ownedProofPaths: ["packages/config", "docs", "packages/config"],
     };
   }
 

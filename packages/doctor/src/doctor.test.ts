@@ -584,6 +584,8 @@ describe("doctor result", () => {
           decision: "warn",
           enforced: false,
           ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHintLimit: 4,
+          tracePayloadByteLimit: 1024,
           ownedProofPathHints: ["docs/specs/hooks-pack.md"],
           payloadSource: "stdin-json",
           detail: "P0 hook guardrail warn: proof-path-exception",
@@ -716,6 +718,82 @@ describe("doctor result", () => {
       status: "fail",
       detail:
         "hook.received trace-hook-unknown-ownership has an unknown proof-path ownership model",
+    });
+  });
+
+  it("fails current hook trace events that exceed ownership hint limits", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-too-many-hints",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHintLimit: 4,
+          tracePayloadByteLimit: 1024,
+          ownedProofPathHints: [
+            "docs/specs/context-package.schema.md",
+            "docs/specs/doctor-result.schema.md",
+            "docs/specs/eval-result.schema.md",
+            "docs/specs/hooks-pack.md",
+            "docs/specs/trace.schema.md",
+          ],
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail warn: proof-path-exception",
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail: "hook.received trace-hook-too-many-hints exceeds proof-path ownership hint limit",
+    });
+  });
+
+  it("fails current hook trace events that exceed payload byte limits", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-too-large",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHintLimit: 4,
+          tracePayloadByteLimit: 1024,
+          ownedProofPathHints: ["docs/specs/hooks-pack.md"],
+          payloadSource: "stdin-json",
+          detail: `P0 hook guardrail warn: ${"x".repeat(1100)}`,
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail: "hook.received trace-hook-too-large exceeds trace payload byte limit",
     });
   });
 

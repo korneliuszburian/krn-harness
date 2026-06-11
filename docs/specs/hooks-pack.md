@@ -30,7 +30,9 @@ The P0 response shape includes:
 - `status`: `ok`, `warn`, `blocked`, or `ignored`.
 - `enforced`: always `false` in P0, because hooks are guardrails and trace points.
 - `ownershipModel`: `task-context-owned-proof-paths-v1`.
-- `ownedProofPathHints`: deterministic exact paths or prefixes derived from the current task text, current context paths, and explicit hook state hints.
+- `ownedProofPathHintLimit`: `4`.
+- `tracePayloadByteLimit`: `1024`.
+- `ownedProofPathHints`: compact exact paths or prefixes that were actually used by `proof-path-exception` findings.
 - `findings`: deterministic codes with severity and optional path.
 
 P0 records `block` decisions for:
@@ -53,7 +55,9 @@ P0 records `warn` decisions for:
 
 P0 proof paths are recognized as docs, fixture, README, test, or spec files. Recognition alone is not enough to bypass scope. A proof path produces `proof-path-exception` only when it matches a deterministic ownership hint derived from the current task/context. Unowned proof paths remain `out-of-scope-edit` blocks. Paths marked `do-not-use` still block.
 
-The P0 ownership model is deliberately shallow. It maps current context paths under `packages/<name>/...` to the exact `packages/<name>` proof hint, and maps obvious P0 task signals such as `config`, `context`, `task contract`, `graph`, `memory`, `verify`, `handoff`, `doctor`, `eval`, `hook`, `trace`, and `adapter` to narrow package/spec/fixture hints. Broad hints such as `docs`, `fixtures`, `tests`, or `packages` are not valid ownership hints. This is not semantic retrieval, repo intelligence, or a full policy engine.
+The P0 ownership model is deliberately shallow. It maps current context paths under `packages/<name>/...` to the exact `packages/<name>` proof hint. Task signals such as `config`, `context`, `task contract`, `graph`, `memory`, `verify`, `handoff`, `doctor`, `eval`, `hook`, `trace`, and `adapter` map only to narrow spec or fixture hints. Task words alone do not unlock package proof paths. Broad hints such as `docs`, `fixtures`, `tests`, or `packages` are not valid ownership hints. This is not semantic retrieval, repo intelligence, or a full policy engine.
+
+To keep trace payloads small, `ownedProofPathHints` contains only the compact hints used by proof-path findings, sorted and de-duplicated, capped at 4 entries. Allow/block events without proof-path exceptions should normally emit an empty owned hint list.
 
 P0 payload parsing is shallow and deterministic. It recognizes JSON stdin, common tool name fields, path fields, and simple patch file headers. It is not a full Codex policy engine.
 

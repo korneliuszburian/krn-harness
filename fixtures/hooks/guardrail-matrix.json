@@ -151,9 +151,32 @@
       }
     },
     {
-      "name": "pretool-edit-owned-config-package-test-proof-path-warns",
+      "name": "pretool-edit-task-owned-config-spec-proof-path-warns",
       "event": "PreToolUse",
       "state": "config-task-owned",
+      "payload": { "toolName": "Write", "filePath": "docs/specs/krn-config.schema.md" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["docs/specs/krn-config.schema.md"]
+      }
+    },
+    {
+      "name": "pretool-edit-task-only-config-package-test-blocks",
+      "event": "PreToolUse",
+      "state": "config-task-owned",
+      "payload": { "toolName": "Write", "filePath": "packages/config/src/load-config.test.ts" },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-context-owned-config-package-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "config-context-owned",
       "payload": { "toolName": "Write", "filePath": "packages/config/src/load-config.test.ts" },
       "expected": {
         "status": "warn",
@@ -175,9 +198,51 @@
       }
     },
     {
-      "name": "pretool-edit-owned-codex-adapter-package-test-proof-path-warns",
+      "name": "pretool-edit-config-context-collision-config-package-warns",
+      "event": "PreToolUse",
+      "state": "config-context-collision",
+      "payload": { "toolName": "Write", "filePath": "packages/config/src/load-config.test.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/config"]
+      }
+    },
+    {
+      "name": "pretool-edit-config-context-collision-context-package-blocks",
+      "event": "PreToolUse",
+      "state": "config-context-collision",
+      "payload": {
+        "toolName": "Write",
+        "filePath": "packages/context/src/build-context-package.test.ts"
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-task-only-codex-adapter-package-test-blocks",
       "event": "PreToolUse",
       "state": "codex-adapter-task-owned",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: packages/codex-adapter/src/generate-adapter.test.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-context-owned-codex-adapter-package-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "codex-adapter-context-owned",
       "payload": {
         "tool": "apply_patch",
         "arguments": {
@@ -201,6 +266,29 @@
         "decision": "warn",
         "findingCodes": ["proof-path-exception"],
         "ownedProofPathHints": ["packages/memory"]
+      }
+    },
+    {
+      "name": "pretool-edit-trace-memory-collision-trace-test-warns",
+      "event": "PreToolUse",
+      "state": "trace-memory-collision",
+      "payload": { "toolName": "Write", "filePath": "packages/trace/src/trace-writer.test.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/trace"]
+      }
+    },
+    {
+      "name": "pretool-edit-trace-memory-collision-memory-test-blocks",
+      "event": "PreToolUse",
+      "state": "trace-memory-collision",
+      "payload": { "toolName": "Write", "filePath": "packages/memory/src/memory-store.test.ts" },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
       }
     },
     {
@@ -229,6 +317,53 @@
         "decision": "warn",
         "findingCodes": ["proof-path-exception"],
         "ownedProofPathHints": ["docs/specs/verify-result.schema.md"]
+      }
+    },
+    {
+      "name": "pretool-edit-handoff-task-owned-spec-warns",
+      "event": "PreToolUse",
+      "state": "handoff-task-owned",
+      "payload": { "toolName": "Write", "filePath": "docs/specs/handoff.md" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["docs/specs/handoff.md"]
+      }
+    },
+    {
+      "name": "pretool-edit-handoff-task-only-cli-test-blocks",
+      "event": "PreToolUse",
+      "state": "handoff-task-owned",
+      "payload": { "toolName": "Write", "filePath": "packages/cli/src/index.test.ts" },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-cli-context-owned-handoff-test-warns",
+      "event": "PreToolUse",
+      "state": "cli-context-owned",
+      "payload": { "toolName": "Write", "filePath": "packages/cli/src/index.test.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/cli"]
+      }
+    },
+    {
+      "name": "pretool-edit-duplicate-context-hints-stable-single-package-warns",
+      "event": "PreToolUse",
+      "state": "duplicate-context-hints",
+      "payload": { "toolName": "Write", "filePath": "packages/config/src/load-config.test.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/config"]
       }
     },
     {

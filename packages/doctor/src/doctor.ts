@@ -644,6 +644,9 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+const maxOwnedProofPathHints = 4;
+const maxHookTracePayloadBytes = 1024;
+
 function normalizeTracePathHint(filePath: string): string {
   return filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/+$/, "");
 }
@@ -753,6 +756,50 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
         status: "fail",
         detail: `hook.received ${event.id} has malformed proof-path ownership hints`,
       };
+    }
+
+    if (data.ownedProofPathHintLimit !== undefined) {
+      if (data.ownedProofPathHintLimit !== maxOwnedProofPathHints) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has unexpected proof-path ownership hint limit`,
+        };
+      }
+
+      if (!isStringArray(data.ownedProofPathHints)) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has a hint limit without compact ownership hints`,
+        };
+      }
+
+      if (data.ownedProofPathHints.length > maxOwnedProofPathHints) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} exceeds proof-path ownership hint limit`,
+        };
+      }
+    }
+
+    if (data.tracePayloadByteLimit !== undefined) {
+      if (data.tracePayloadByteLimit !== maxHookTracePayloadBytes) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has unexpected trace payload byte limit`,
+        };
+      }
+
+      if (Buffer.byteLength(JSON.stringify(data), "utf8") > maxHookTracePayloadBytes) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} exceeds trace payload byte limit`,
+        };
+      }
     }
 
     if (isStringArray(data.ownedProofPathHints)) {

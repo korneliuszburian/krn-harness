@@ -70,6 +70,8 @@ export interface HookResult {
   decision: HookDecision;
   enforced: false;
   ownershipModel: HookOwnershipModel;
+  ownedProofPathHintLimit: number;
+  tracePayloadByteLimit: number;
   ownedProofPathHints: string[];
   payloadSource: HookPayloadSource;
   detail: string;
@@ -77,6 +79,8 @@ export interface HookResult {
 }
 
 export const hookOwnershipModel: HookOwnershipModel = "task-context-owned-proof-paths-v1";
+export const maxOwnedProofPathHints = 4;
+export const maxHookTracePayloadBytes = 1024;
 
 interface ProofPathOwnershipRule {
   anyTerms?: string[] | undefined;
@@ -86,60 +90,48 @@ interface ProofPathOwnershipRule {
 
 const p0ProofPathOwnershipRules: ProofPathOwnershipRule[] = [
   {
-    anyTerms: ["cli", "command", "commands"],
-    hints: ["packages/cli"],
-  },
-  {
     anyTerms: ["adapter", "onboarding", "install"],
-    hints: [
-      "docs/specs/onboarding.md",
-      "docs/specs/runtime-skill-adapter.md",
-      "packages/codex-adapter",
-    ],
+    hints: ["docs/specs/onboarding.md", "docs/specs/runtime-skill-adapter.md"],
   },
   {
     anyTerms: ["config", "configuration"],
-    hints: ["docs/specs/krn-config.schema.md", "packages/config"],
+    hints: ["docs/specs/krn-config.schema.md"],
   },
   {
     anyTerms: ["context", "ranking"],
-    hints: ["docs/specs/context-package.schema.md", "packages/context"],
-  },
-  {
-    anyTerms: ["core"],
-    hints: ["packages/core"],
+    hints: ["docs/specs/context-package.schema.md"],
   },
   {
     anyTerms: ["doctor", "health"],
-    hints: ["docs/specs/doctor-result.schema.md", "packages/doctor"],
+    hints: ["docs/specs/doctor-result.schema.md"],
   },
   {
     anyTerms: ["eval", "evals", "grader", "graders", "matrix"],
-    hints: ["docs/specs/eval-result.schema.md", "fixtures/hooks", "packages/evals"],
+    hints: ["docs/specs/eval-result.schema.md", "fixtures/hooks"],
   },
   {
     anyTerms: ["graph"],
-    hints: ["docs/specs/graph-lite.md", "packages/graph"],
+    hints: ["docs/specs/graph-lite.md"],
   },
   {
     anyTerms: ["hook", "hooks", "guardrail", "guardrails", "codex"],
-    hints: ["docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks"],
+    hints: ["docs/specs/hooks-pack.md", "fixtures/hooks"],
   },
   {
     anyTerms: ["memory"],
-    hints: ["docs/specs/memory.schema.md", "packages/memory"],
+    hints: ["docs/specs/memory.schema.md"],
   },
   {
     allTerms: ["task", "contract"],
-    hints: ["docs/specs/task-contract.schema.md", "packages/task-contract"],
+    hints: ["docs/specs/task-contract.schema.md"],
   },
   {
     anyTerms: ["trace", "traces", "finding", "findings"],
-    hints: ["docs/specs/trace.schema.md", "packages/trace"],
+    hints: ["docs/specs/trace.schema.md"],
   },
   {
     anyTerms: ["verify", "verification"],
-    hints: ["docs/specs/verify-result.schema.md", "packages/verify"],
+    hints: ["docs/specs/verify-result.schema.md"],
   },
   {
     anyTerms: ["handoff"],
@@ -250,6 +242,15 @@ export function ownedProofPathHintsForState(state: HookCurrentState): string[] {
   }
 
   return uniqueSortedPaths(hints).filter((hint) => !isBroadProofPathHint(hint));
+}
+
+function compactOwnedProofPathHints(findings: HookGuardrailFinding[]): string[] {
+  return uniqueSortedPaths(
+    findings
+      .filter((finding) => finding.code === "proof-path-exception")
+      .map((finding) => finding.ownershipHint)
+      .filter((hint): hint is string => typeof hint === "string"),
+  ).slice(0, maxOwnedProofPathHints);
 }
 
 function collectPathsFromPatch(text: string): string[] {
@@ -562,6 +563,8 @@ export function handleCodexHook(
       decision: "allow",
       enforced: false,
       ownershipModel: hookOwnershipModel,
+      ownedProofPathHintLimit: maxOwnedProofPathHints,
+      tracePayloadByteLimit: maxHookTracePayloadBytes,
       ownedProofPathHints: [],
       payloadSource: payload.source,
       detail: "Unsupported Codex hook event ignored by P0 hook guardrail",
@@ -603,7 +606,9 @@ export function handleCodexHook(
     decision,
     enforced: false,
     ownershipModel: hookOwnershipModel,
-    ownedProofPathHints,
+    ownedProofPathHintLimit: maxOwnedProofPathHints,
+    tracePayloadByteLimit: maxHookTracePayloadBytes,
+    ownedProofPathHints: compactOwnedProofPathHints(findings),
     payloadSource: payload.source,
     detail,
     findings,

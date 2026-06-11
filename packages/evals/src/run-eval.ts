@@ -7,6 +7,8 @@ import {
   type HookGuardrailMatrix,
   hookFindingCodes,
   hookProofPathOwnershipHints,
+  maxHookTracePayloadBytes,
+  maxOwnedProofPathHints,
   runHookGuardrailFixtureCase,
 } from "../../hooks/src/index.js";
 import {
@@ -436,6 +438,25 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
       failures.push(`${testCase.name} used an unknown proof-path ownership model`);
     }
 
+    if (result.ownedProofPathHintLimit !== maxOwnedProofPathHints) {
+      failures.push(`${testCase.name} used an unexpected proof-path hint limit`);
+    }
+
+    if (result.tracePayloadByteLimit !== maxHookTracePayloadBytes) {
+      failures.push(`${testCase.name} used an unexpected trace payload byte limit`);
+    }
+
+    if (result.ownedProofPathHints.length > maxOwnedProofPathHints) {
+      failures.push(`${testCase.name} emitted too many compact ownership hints`);
+    }
+
+    if (
+      JSON.stringify(result.ownedProofPathHints) !==
+      JSON.stringify(hookProofPathOwnershipHints(result))
+    ) {
+      failures.push(`${testCase.name} emitted non-compact ownership hints`);
+    }
+
     if (result.enforced !== false) {
       failures.push(`${testCase.name} claimed enforcement instead of guardrail evidence`);
     }
@@ -446,7 +467,7 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, package-owned proof fixtures, cross-package blocks, unowned proof-path blocks, and trace finding codes`
+        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, false-positive collisions, compact ownership hints, trace payload limits, and finding codes`
         : failures.join("; "),
   };
 }

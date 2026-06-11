@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 import {
   type HookCurrentState,
   handleCodexHook,
+  maxHookTracePayloadBytes,
+  maxOwnedProofPathHints,
+  ownedProofPathHintsForState,
   parseCodexHookPayload,
 } from "./codex-hook-entry.js";
 import {
@@ -68,8 +71,13 @@ describe("Codex hook entry guardrails", () => {
       expect(hookProofPathOwnershipHints(result), testCase.name).toEqual(
         testCase.expected.ownedProofPathHints ?? [],
       );
+      expect(result.ownedProofPathHints, testCase.name).toEqual(
+        testCase.expected.ownedProofPathHints ?? [],
+      );
       expect(result.enforced, testCase.name).toBe(false);
       expect(result.ownershipModel, testCase.name).toBe("task-context-owned-proof-paths-v1");
+      expect(result.ownedProofPathHintLimit, testCase.name).toBe(maxOwnedProofPathHints);
+      expect(result.tracePayloadByteLimit, testCase.name).toBe(maxHookTracePayloadBytes);
     }
   });
 
@@ -214,11 +222,7 @@ describe("Codex hook entry guardrails", () => {
       enforced: false,
       ownershipModel: "task-context-owned-proof-paths-v1",
     });
-    expect(result.ownedProofPathHints).toEqual([
-      "docs/specs/hooks-pack.md",
-      "fixtures/hooks",
-      "packages/hooks",
-    ]);
+    expect(result.ownedProofPathHints).toEqual(["docs/specs/hooks-pack.md"]);
     expect(result.findings).toContainEqual({
       code: "proof-path-exception",
       severity: "warn",
@@ -274,10 +278,7 @@ describe("Codex hook entry guardrails", () => {
       },
     });
 
-    expect(result.ownedProofPathHints).toEqual([
-      "docs/specs/krn-config.schema.md",
-      "packages/config",
-    ]);
+    expect(result.ownedProofPathHints).toEqual(["packages/config"]);
     expect(result.findings).toContainEqual({
       code: "proof-path-exception",
       severity: "warn",
@@ -309,6 +310,50 @@ describe("Codex hook entry guardrails", () => {
       detail: "Tool payload edits a path outside must-read/should-read current context",
       path: "docs/proof.md",
     });
+  });
+
+  it("keeps candidate ownership hints stable, sorted, and de-duplicated", () => {
+    expect(
+      ownedProofPathHintsForState({
+        ...readyState,
+        taskText: "Harden config loading",
+        writablePaths: ["packages/config/src/load-config.ts", "packages/config/src/load-config.ts"],
+        ownedProofPaths: ["docs", "packages/config", "packages/config"],
+      }),
+    ).toEqual(["docs/specs/krn-config.schema.md", "packages/config"]);
+  });
+
+  it("caps compact proof path hints in hook results", () => {
+    const result = handleCodexHook("PreToolUse", {
+      payload: parseCodexHookPayload(
+        JSON.stringify({
+          toolName: "Write",
+          edits: [
+            { filePath: "docs/specs/context-package.schema.md" },
+            { filePath: "docs/specs/doctor-result.schema.md" },
+            { filePath: "docs/specs/eval-result.schema.md" },
+            { filePath: "docs/specs/hooks-pack.md" },
+            { filePath: "docs/specs/krn-config.schema.md" },
+            { filePath: "docs/specs/memory.schema.md" },
+          ],
+        }),
+      ),
+      state: {
+        ...readyState,
+        taskText: "Harden config context doctor eval hook memory ownership hints",
+      },
+    });
+
+    expect(
+      result.findings.filter((finding) => finding.code === "proof-path-exception"),
+    ).toHaveLength(6);
+    expect(result.ownedProofPathHints).toEqual([
+      "docs/specs/context-package.schema.md",
+      "docs/specs/doctor-result.schema.md",
+      "docs/specs/eval-result.schema.md",
+      "docs/specs/hooks-pack.md",
+    ]);
+    expect(result.ownedProofPathHints).toHaveLength(maxOwnedProofPathHints);
   });
 
   it("blocks edit payloads for do-not-use paths", () => {

@@ -73,6 +73,8 @@ export async function hookCommand(args: string[], runtime: CliRuntime): Promise<
         decision: result.decision,
         enforced: result.enforced,
         ownershipModel: result.ownershipModel,
+        ownedProofPathHintLimit: result.ownedProofPathHintLimit,
+        tracePayloadByteLimit: result.tracePayloadByteLimit,
         ownedProofPathHints: result.ownedProofPathHints,
         payloadSource: result.payloadSource,
         detail: result.detail,
