@@ -1,0 +1,8 @@
+{
+  "id": "memory-polish-prior-decisions-opt-out",
+  "task": "Harden graph selector behavior nie używaj poprzednich decyzji",
+  "expected": {
+    "stop": false,
+    "referenceOnly": ["docs/specs/context-package.schema.md"]
+  }
+}

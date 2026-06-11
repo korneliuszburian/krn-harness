@@ -255,8 +255,32 @@ function gradeMemoryGovernance(): EvalGrade {
       approvedMemory: [approved],
     },
   );
+  const polishOptOutContext = buildContextPackage(
+    buildTaskContract("Harden graph selector behavior bez pamięci"),
+    undefined,
+    {
+      approvedMemory: [approved],
+    },
+  );
+  const polishPriorDecisionOptOutContext = buildContextPackage(
+    buildTaskContract("Harden graph selector behavior nie używaj poprzednich decyzji"),
+    undefined,
+    {
+      approvedMemory: [approved],
+    },
+  );
+  const polishExplicitContext = buildContextPackage(
+    buildTaskContract("Użyj zatwierdzonej pamięci do tego zadania"),
+    undefined,
+    {
+      approvedMemory: [explicitApproved],
+    },
+  );
   const relevantMemoryItems = relevantContext.items.filter((item) => item.source === "memory");
   const explicitMemoryItems = explicitContext.items.filter((item) => item.source === "memory");
+  const polishExplicitMemoryItems = polishExplicitContext.items.filter(
+    (item) => item.source === "memory",
+  );
   const failures = [];
 
   if (pending.status !== "pending") {
@@ -287,6 +311,14 @@ function gradeMemoryGovernance(): EvalGrade {
     failures.push("explicit memory opt-out leaked memory into context");
   }
 
+  if (polishOptOutContext.items.some((item) => item.source === "memory")) {
+    failures.push("Polish memory opt-out leaked memory into context");
+  }
+
+  if (polishPriorDecisionOptOutContext.items.some((item) => item.source === "memory")) {
+    failures.push("Polish prior-decision opt-out leaked memory into context");
+  }
+
   if (
     relevantMemoryItems.length !== 1 ||
     relevantMemoryItems[0]?.bucket !== "reference-only" ||
@@ -315,12 +347,21 @@ function gradeMemoryGovernance(): EvalGrade {
     failures.push("explicit approved memory request did not surface reference-only memory");
   }
 
+  if (
+    polishExplicitMemoryItems.length !== 1 ||
+    polishExplicitMemoryItems[0]?.bucket !== "reference-only" ||
+    polishExplicitMemoryItems[0]?.selector !== "approved-memory-explicit" ||
+    polishExplicitMemoryItems[0]?.memoryId !== explicitApproved.id
+  ) {
+    failures.push("Polish explicit approved memory request did not surface reference-only memory");
+  }
+
   return {
     name: "memory-governance",
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? "Approved memory is gated to reference-only context with provenance; pending, deprecated, unrelated, broad-term, and opt-out memory are excluded"
+        ? "Approved memory is gated to reference-only context with provenance; pending, deprecated, unrelated, broad-term, English opt-out, Polish opt-out, and Polish explicit-request behavior are covered"
         : failures.join("; "),
   };
 }

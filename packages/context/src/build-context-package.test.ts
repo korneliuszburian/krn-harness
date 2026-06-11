@@ -511,6 +511,42 @@ describe("context package", () => {
     expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
   });
 
+  it("honors Polish memory opt-out even when approved memory is task-relevant", () => {
+    const fixture = readTaskFixture("memory-polish-opt-out");
+    const contract = buildTaskContract(fixture.task);
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.stop).toBe(fixture.expected.stop);
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual(
+      fixture.expected.referenceOnly,
+    );
+    expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
+  });
+
+  it("honors Polish prior-decision opt-out even when approved memory is task-relevant", () => {
+    const fixture = readTaskFixture("memory-polish-prior-decisions-opt-out");
+    const contract = buildTaskContract(fixture.task);
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.stop).toBe(fixture.expected.stop);
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual(
+      fixture.expected.referenceOnly,
+    );
+    expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
+  });
+
   it("surfaces task-relevant approved memory only as reference-only with provenance", () => {
     const contract = buildTaskContract("Harden graph selector behavior");
     const memory = approvedMemory(
@@ -559,6 +595,38 @@ describe("context package", () => {
         evidencePath: "docs/specs/handoff.md",
       }),
     );
+  });
+
+  it("surfaces approved memory on explicit Polish memory request", () => {
+    const fixture = readTaskFixture("memory-polish-explicit-request");
+    const contract = buildTaskContract(fixture.task);
+    const memory = approvedMemory("Prefer short handoff summaries", "docs/specs/handoff.md");
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.stop).toBe(fixture.expected.stop);
+    expect(pkg.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: `.krn/memory/approved.json#${memory.id}`,
+        bucket: "reference-only",
+        source: "memory",
+        selector: "approved-memory-explicit",
+        memoryId: memory.id,
+        approvedAt: "2026-06-03T00:01:00.000Z",
+        evidencePath: "docs/specs/handoff.md",
+      }),
+    );
+  });
+
+  it("lets Polish opt-out win over explicit Polish memory request", () => {
+    const contract = buildTaskContract("Użyj zatwierdzonej pamięci, ale bez pamięci");
+    const memory = approvedMemory("Prefer short handoff summaries", "docs/specs/handoff.md");
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
   });
 
   it("ignores pending and deprecated memory records even if passed to context builder", () => {

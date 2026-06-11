@@ -1,0 +1,7 @@
+{
+  "id": "memory-polish-explicit-request",
+  "task": "Użyj zatwierdzonej pamięci do tego zadania",
+  "expected": {
+    "stop": false
+  }
+}

@@ -426,6 +426,70 @@ describe("doctor result", () => {
     });
   });
 
+  it("fails surfaced memory when the current task uses Polish memory opt-out", async () => {
+    const cwd = await tempRepo();
+    const created = await proposeMemory(cwd, {
+      summary: "Graph selector should remain generic.",
+      evidencePath: "docs/specs/graph-lite.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    });
+    const approved = await approveMemoryById(
+      cwd,
+      created.record?.id ?? "",
+      new Date("2026-06-03T00:01:00.000Z"),
+    );
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "task-contract.json"),
+      '{"task":"Harden graph selector behavior bez pamięci"}\n',
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          items: [
+            {
+              path: `.krn/memory/approved.json#${approved.record?.id}`,
+              reason: "Approved governed memory reference: Graph selector should remain generic.",
+              priority: 33,
+              bucket: "reference-only",
+              status: "available",
+              source: "memory",
+              selector: "approved-memory-task-match",
+              matchedTerms: ["graph", "selector"],
+              memoryId: approved.record?.id,
+              memorySummary: "Graph selector should remain generic.",
+              approvedAt: "2026-06-03T00:01:00.000Z",
+              evidencePath: "docs/specs/graph-lite.md",
+            },
+          ],
+          buckets: {
+            mustRead: [],
+            shouldRead: [],
+            referenceOnly: [],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 0, present: 0, missing: 0 },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "memory-context-gate",
+      status: "fail",
+      detail: `Current task explicitly opts out of memory but ${approved.record?.id} is surfaced`,
+    });
+  });
+
   it("fails pending memory leakage in current context", async () => {
     const cwd = await tempRepo();
     const pending = await proposeMemory(cwd, {

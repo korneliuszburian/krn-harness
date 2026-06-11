@@ -125,6 +125,8 @@ describe("harness-only eval", () => {
     ]);
     expect(result.memory.detail).toContain("broad-term");
     expect(result.memory.detail).toContain("opt-out");
+    expect(result.memory.detail).toContain("Polish opt-out");
+    expect(result.memory.detail).toContain("Polish explicit-request");
     expect(result.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
 
     const markdown = renderEvalResultMarkdown(result);
