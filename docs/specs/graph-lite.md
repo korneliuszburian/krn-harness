@@ -26,7 +26,14 @@ Included v0 detectors:
 
 ## Context Package Use
 
-Context package construction may consume graph-lite output to promote directly related fixture files into `must-read` context and mark deprecated docs as `do-not-use` context.
+Context package construction may consume graph-lite output through generic relation selectors:
+
+- `style-related-to` edges promote matching markup and stylesheet files to `must-read`.
+- Matching ACF group nodes promote their JSON evidence paths to `must-read`.
+- Matching available docs become `reference-only`.
+- Matching deprecated docs become `do-not-use`.
+
+Selectors match task terms against graph labels and evidence paths. They must not depend on fixture path prefixes.
 
 ## Deferred
 

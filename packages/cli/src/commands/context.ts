@@ -1,4 +1,5 @@
 import { buildContextPackage, renderContextPackageMarkdown } from "../../../context/src/index.js";
+import { buildGraph } from "../../../graph/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import {
   readCurrentTaskContract,
@@ -9,7 +10,8 @@ import type { CliRuntime } from "../runtime.js";
 
 export async function contextCommand(runtime: CliRuntime): Promise<number> {
   const contract = await readCurrentTaskContract(runtime.cwd);
-  const pkg = buildContextPackage(contract);
+  const graph = await buildGraph(runtime.cwd);
+  const pkg = buildContextPackage(contract, graph);
   await writeCurrentMarkdown(runtime.cwd, "context-package.md", renderContextPackageMarkdown(pkg));
   await writeCurrentJson(runtime.cwd, "context-package.json", pkg);
 

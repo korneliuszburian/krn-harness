@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildContextPackage } from "../../context/src/index.js";
+import { buildGraph } from "../../graph/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { defaultTracePath, readTraceLines } from "../../trace/src/index.js";
 import { harnessFixtures, loadEvalTaskFixture } from "./fixtures.js";
@@ -48,12 +49,13 @@ async function readTraceEventNames(tracePath: string): Promise<string[]> {
 export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const cwd = input.cwd ?? process.cwd();
   const fixtureRoot = input.fixtureRoot ?? repoRootFromModule();
+  const graph = await buildGraph(fixtureRoot);
   const fixtures: EvalFixtureResult[] = [];
 
   for (const fixture of harnessFixtures) {
     const taskFixture = await loadEvalTaskFixture(fixture, fixtureRoot);
     const contract = buildTaskContract(taskFixture.task);
-    const contextPackage = buildContextPackage(contract);
+    const contextPackage = buildContextPackage(contract, graph);
     const grades = [
       gradeContextCoverage(fixture.name, contextPackage, taskFixture.expected),
       gradeStaleDocLeakage(fixture.name, contextPackage, taskFixture.expected),

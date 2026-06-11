@@ -10,6 +10,27 @@ import type {
 } from "./schema.js";
 import { shouldStop } from "./stop-policy.js";
 
+const taskStopWords = new Set([
+  "active",
+  "avoid",
+  "context",
+  "docs",
+  "implement",
+  "missing",
+  "only",
+  "relevant",
+  "required",
+  "stop",
+  "task",
+  "treating",
+  "truth",
+  "update",
+  "using",
+  "when",
+  "with",
+  "work",
+]);
+
 function item(
   bucket: ContextBucket,
   path: string,
@@ -44,62 +65,35 @@ function baseItems(): ContextItem[] {
   ];
 }
 
-function fixtureItemsForTask(task: string): ContextItem[] {
+function taskTermsFor(task: string): string[] {
+  return [
+    ...new Set(
+      task
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((term) => term.length >= 4 && !taskStopWords.has(term)),
+    ),
+  ].sort((left, right) => left.localeCompare(right));
+}
+
+function textMatchesTerms(text: string, terms: string[]): boolean {
+  const normalized = text.toLowerCase();
+  return terms.some((term) => normalized.includes(term));
+}
+
+function graphNodeText(node: { label: string; evidencePath: string } | undefined): string {
+  return node ? `${node.label} ${node.evidencePath}` : "";
+}
+
+function taskPolicyItems(task: string): ContextItem[] {
   const normalized = task.toLowerCase();
-
-  if (normalized.includes("frontend section")) {
-    return [
-      item(
-        "must-read",
-        "fixtures/repos/frontend-section-context/theme/templates/section.php",
-        "Fixture template for the requested frontend section",
-        95,
-      ),
-      item(
-        "must-read",
-        "fixtures/repos/frontend-section-context/theme/assets/section.css",
-        "Fixture CSS for the requested frontend section",
-        90,
-      ),
-      item(
-        "must-read",
-        "fixtures/repos/frontend-section-context/acf-json/section.json",
-        "Fixture ACF field contract for the requested section",
-        85,
-      ),
-      item(
-        "reference-only",
-        "fixtures/repos/frontend-section-context/README.md",
-        "Fixture repo note",
-        30,
-      ),
-    ];
-  }
-
-  if (normalized.includes("stale doc")) {
-    return [
-      item(
-        "do-not-use",
-        "fixtures/repos/docs-heavy-stale/docs/old-plan.md",
-        "Deprecated fixture doc must not enter active context",
-        100,
-        "deprecated",
-      ),
-      item(
-        "should-read",
-        "fixtures/repos/docs-heavy-stale/README.md",
-        "Fixture root note for stale-doc task",
-        50,
-      ),
-    ];
-  }
 
   if (normalized.includes("missing context") || normalized.includes("context is missing")) {
     return [
       item(
         "missing-context",
-        "fixtures/repos/missing-context-stop/docs/required-context.md",
-        "Required fixture context is absent",
+        "docs/required-context.md",
+        "Required context is absent",
         100,
         "missing",
       ),
@@ -114,60 +108,60 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
     return [];
   }
 
-  const normalized = task.toLowerCase();
+  const taskTerms = taskTermsFor(task);
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
   const items: ContextItem[] = [];
 
-  if (normalized.includes("frontend section")) {
-    const frontendPrefix = "fixtures/repos/frontend-section-context/";
-    const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
-
-    for (const edge of graph.edges) {
-      if (edge.kind !== "style-related-to" || !edge.evidencePath.startsWith(frontendPrefix)) {
-        continue;
-      }
-
-      items.push(
-        item(
-          "must-read",
-          edge.evidencePath,
-          "Graph-lite CSS class relation for requested section",
-          98,
-        ),
-      );
-
-      const stylesheet = nodeById.get(edge.to);
-      if (stylesheet?.evidencePath.startsWith(frontendPrefix)) {
-        items.push(
-          item(
-            "must-read",
-            stylesheet.evidencePath,
-            "Graph-lite stylesheet relation for requested section",
-            97,
-          ),
-        );
-      }
+  for (const edge of graph.edges) {
+    if (edge.kind !== "style-related-to") {
+      continue;
     }
 
-    for (const node of graph.nodes) {
-      if (node.kind === "acf-group" && node.evidencePath.startsWith(`${frontendPrefix}acf-json/`)) {
-        items.push(
-          item(
-            "must-read",
-            node.evidencePath,
-            "Graph-lite ACF field contract for requested section",
-            96,
-          ),
-        );
-      }
+    const from = nodeById.get(edge.from);
+    const to = nodeById.get(edge.to);
+    const relationText = `${edge.evidencePath} ${graphNodeText(from)} ${graphNodeText(to)}`;
 
-      if (node.kind === "doc" && node.evidencePath === `${frontendPrefix}README.md`) {
-        items.push(item("reference-only", node.evidencePath, "Graph-lite fixture repo note", 30));
-      }
+    if (!textMatchesTerms(relationText, taskTerms)) {
+      continue;
+    }
+
+    items.push(
+      item("must-read", edge.evidencePath, "Graph-lite style relation matched task terms", 98),
+    );
+
+    if (to?.evidencePath) {
+      items.push(
+        item("must-read", to.evidencePath, "Graph-lite related stylesheet matched task terms", 97),
+      );
     }
   }
 
   for (const node of graph.nodes) {
-    if (node.kind === "doc" && node.status === "deprecated") {
+    if (
+      node.kind === "acf-group" &&
+      textMatchesTerms(graphNodeText(node), taskTerms) &&
+      node.status !== "deprecated"
+    ) {
+      items.push(
+        item("must-read", node.evidencePath, "Graph-lite ACF contract matched task terms", 96),
+      );
+    }
+
+    if (
+      node.kind === "doc" &&
+      node.status !== "deprecated" &&
+      textMatchesTerms(graphNodeText(node), taskTerms)
+    ) {
+      items.push(
+        item("reference-only", node.evidencePath, "Graph-lite doc matched task terms", 30),
+      );
+    }
+
+    if (
+      node.kind === "doc" &&
+      node.status === "deprecated" &&
+      textMatchesTerms(graphNodeText(node), taskTerms)
+    ) {
       items.push(
         item(
           "do-not-use",
@@ -231,7 +225,7 @@ function coverageFor(buckets: ContextBuckets): ContextCoverage {
 export function buildContextPackage(contract?: TaskContract, graph?: GraphLite): ContextPackage {
   const task = contract?.task ?? "";
   const items = rankContext(
-    dedupeItems([...baseItems(), ...fixtureItemsForTask(task), ...graphItemsForTask(task, graph)]),
+    dedupeItems([...baseItems(), ...taskPolicyItems(task), ...graphItemsForTask(task, graph)]),
   );
   const buckets = bucketItems(items);
   const stop = shouldStop(contract, buckets);

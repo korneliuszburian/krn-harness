@@ -382,13 +382,11 @@ describe("krn CLI", () => {
     );
 
     expect(pkg.stop).toBe(true);
-    expect(pkg.stopReason).toBe(
-      "Required context is missing: fixtures/repos/missing-context-stop/docs/required-context.md",
-    );
+    expect(pkg.stopReason).toBe("Required context is missing: docs/required-context.md");
     expect(pkg.buckets.missingContext).toEqual([
       {
-        path: "fixtures/repos/missing-context-stop/docs/required-context.md",
-        reason: "Required fixture context is absent",
+        path: "docs/required-context.md",
+        reason: "Required context is absent",
         priority: 100,
         bucket: "missing-context",
         status: "missing",
@@ -500,12 +498,11 @@ describe("krn CLI", () => {
       status: "blocked",
       taskId: "task-739518f3ddd0",
       contextStop: true,
-      notRunnableReason:
-        "Required context is missing: fixtures/repos/missing-context-stop/docs/required-context.md",
+      notRunnableReason: "Required context is missing: docs/required-context.md",
     });
     expect(handoffMarkdown).toContain("Context STOP: true");
     expect(handoffMarkdown).toContain(
-      "STOP reason: Required context is missing: fixtures/repos/missing-context-stop/docs/required-context.md",
+      "STOP reason: Required context is missing: docs/required-context.md",
     );
     expect(handoffMarkdown).toContain("Status: blocked");
   });
