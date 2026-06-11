@@ -79,4 +79,13 @@ describe("P0 docs anti-regression", () => {
     expect(readme).not.toMatch(/skeletal|skeleton/i);
     expect(architecture).not.toMatch(/skeletal|skeleton/i);
   });
+
+  it("keeps release prep local and unpublished", async () => {
+    const checklist = await readDoc("docs/release/checklist.md");
+
+    expect(checklist).toContain("Do not add `bin` metadata yet");
+    expect(checklist).toContain("Do not publish from P0");
+    expect(checklist).toContain("Do not add GitHub Actions");
+    expect(checklist).toContain("Codex CLI CI dependency");
+  });
 });
