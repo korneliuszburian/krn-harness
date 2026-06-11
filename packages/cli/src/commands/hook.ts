@@ -1,6 +1,7 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import {
+  buildHookTracePayload,
   type HookCurrentState,
   handleCodexHook,
   parseCodexHookPayload,
@@ -65,23 +66,7 @@ export async function hookCommand(args: string[], runtime: CliRuntime): Promise<
   await writeTraceEvent(
     createTraceEvent("hook.received", {
       now: runtime.now?.(),
-      data: {
-        provider: result.provider,
-        event: result.event,
-        supported: result.supported,
-        status: result.status,
-        decision: result.decision,
-        enforced: result.enforced,
-        ownershipModel: result.ownershipModel,
-        ownedProofPathHintLimit: result.ownedProofPathHintLimit,
-        tracePayloadByteLimit: result.tracePayloadByteLimit,
-        ownedProofPathHints: result.ownedProofPathHints,
-        payloadSource: result.payloadSource,
-        detail: result.detail,
-        findingCodes: result.findings.map((finding) => finding.code),
-        operatorMessageVersion: result.operatorMessageVersion,
-        remediationCodes: result.remediationCodes,
-      },
+      data: buildHookTracePayload(result),
     }),
     runtime.tracePath ?? defaultTracePath(runtime.cwd),
   );

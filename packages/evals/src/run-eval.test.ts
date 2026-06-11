@@ -134,6 +134,8 @@ describe("harness-only eval", () => {
     expect(result.hooks.detail).toContain("allow, warn, block");
     expect(result.hooks.detail).toContain("false-positive collisions");
     expect(result.hooks.detail).toContain("compact ownership hints");
+    expect(result.hooks.detail).toContain("remediation taxonomy");
+    expect(result.hooks.detail).toContain("writer-side compact trace payloads");
     expect(result.hooks.detail).toContain("trace payload limits");
     expect(result.hooks.detail).toContain("finding codes");
     expect(result.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);

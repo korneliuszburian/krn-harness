@@ -648,6 +648,7 @@ const maxOwnedProofPathHints = 4;
 const maxHookTracePayloadBytes = 1024;
 const hookOperatorMessageVersion = "hook-operator-message-v1";
 const maxHookRemediationCodes = 6;
+const hookTraceCompactedDetail = "P0 hook trace payload compacted to fit budget";
 
 function normalizeTracePathHint(filePath: string): string {
   return filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/+$/, "");
@@ -746,6 +747,26 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
         name: "hook-guardrail-trace",
         status: "fail",
         detail: `hook.received ${event.id} includes long operator text in trace payload`,
+      };
+    }
+
+    if (
+      data.tracePayloadMode !== undefined &&
+      data.tracePayloadMode !== "full" &&
+      data.tracePayloadMode !== "compacted"
+    ) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} has an unknown trace payload mode`,
+      };
+    }
+
+    if (data.tracePayloadMode === "compacted" && data.detail !== hookTraceCompactedDetail) {
+      return {
+        name: "hook-guardrail-trace",
+        status: "fail",
+        detail: `hook.received ${event.id} has malformed compacted trace detail`,
       };
     }
 

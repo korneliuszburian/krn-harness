@@ -4,13 +4,19 @@ import { fileURLToPath } from "node:url";
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
+  buildHookTracePayload,
   type HookGuardrailMatrix,
+  type HookRemediationTaxonomyFixture,
   hookFindingCodes,
   hookOperatorMessageVersion,
   hookProofPathOwnershipHints,
+  hookRemediationCodeTaxonomy,
+  hookRemediationHintCatalog,
+  hookTracePayloadByteLength,
   maxHookRemediationCodes,
   maxHookTracePayloadBytes,
   maxOwnedProofPathHints,
+  remediationCodesForFindingCodes,
   runHookGuardrailFixtureCase,
 } from "../../hooks/src/index.js";
 import {
@@ -379,6 +385,7 @@ function gradeMemoryGovernance(): EvalGrade {
 
 async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
   let matrix: HookGuardrailMatrix;
+  let remediationTaxonomy: HookRemediationTaxonomyFixture;
 
   try {
     matrix = JSON.parse(
@@ -392,6 +399,21 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     };
   }
 
+  try {
+    remediationTaxonomy = JSON.parse(
+      await readFile(
+        path.join(fixtureRoot, "fixtures", "hooks", "remediation-taxonomy.json"),
+        "utf8",
+      ),
+    ) as HookRemediationTaxonomyFixture;
+  } catch {
+    return {
+      name: "hook-guardrails",
+      status: "fail",
+      detail: "fixtures/hooks/remediation-taxonomy.json is missing or malformed",
+    };
+  }
+
   if (matrix.schemaVersion !== 1 || !Array.isArray(matrix.cases)) {
     return {
       name: "hook-guardrails",
@@ -400,15 +422,51 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     };
   }
 
+  if (
+    remediationTaxonomy.schemaVersion !== 1 ||
+    !Array.isArray(remediationTaxonomy.codes) ||
+    !Array.isArray(remediationTaxonomy.findingMappings)
+  ) {
+    return {
+      name: "hook-guardrails",
+      status: "fail",
+      detail: "fixtures/hooks/remediation-taxonomy.json has an invalid schema",
+    };
+  }
+
   const failures: string[] = [];
   let wordingFixtureCount = 0;
   let remediationFixtureCount = 0;
 
+  if (
+    JSON.stringify(remediationTaxonomy.codes.map((item) => item.code)) !==
+    JSON.stringify(hookRemediationCodeTaxonomy)
+  ) {
+    failures.push("hook remediation-code taxonomy fixture is out of order or incomplete");
+  }
+
+  for (const item of remediationTaxonomy.codes) {
+    const catalogItem = hookRemediationHintCatalog[item.code];
+
+    if (!catalogItem || catalogItem.en !== item.en || catalogItem.pl !== item.pl) {
+      failures.push(`${item.code} remediation hint taxonomy regression`);
+    }
+  }
+
+  for (const mapping of remediationTaxonomy.findingMappings) {
+    const actualCodes = remediationCodesForFindingCodes([mapping.findingCode]);
+
+    if (JSON.stringify(actualCodes) !== JSON.stringify(mapping.remediationCodes)) {
+      failures.push(`${mapping.findingCode} remediation mapping regression`);
+    }
+  }
+
   for (const testCase of matrix.cases) {
     const result = runHookGuardrailFixtureCase(testCase);
+    const tracePayload = buildHookTracePayload(result);
     const findingCodes = hookFindingCodes(result);
-    const traceFindingCodes = [...findingCodes];
-    const traceRemediationCodes = [...result.remediationCodes];
+    const traceFindingCodes = tracePayload.findingCodes;
+    const traceRemediationCodes = tracePayload.remediationCodes;
 
     if (result.status !== testCase.expected.status) {
       failures.push(
@@ -449,6 +507,14 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
 
     if (result.tracePayloadByteLimit !== maxHookTracePayloadBytes) {
       failures.push(`${testCase.name} used an unexpected trace payload byte limit`);
+    }
+
+    if (hookTracePayloadByteLength(tracePayload) > maxHookTracePayloadBytes) {
+      failures.push(`${testCase.name} emitted an oversized compact trace payload`);
+    }
+
+    if ("userFacingMessage" in tracePayload || "remediationHints" in tracePayload) {
+      failures.push(`${testCase.name} leaked operator text into compact trace payload`);
     }
 
     if (result.operatorMessageVersion !== hookOperatorMessageVersion) {
@@ -516,7 +582,7 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, false-positive collisions, compact ownership hints, operator wording, remediation codes, trace payload limits, and finding codes`
+        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, false-positive collisions, compact ownership hints, operator wording, remediation taxonomy, writer-side compact trace payloads, trace payload limits, and finding codes`
         : failures.join("; "),
   };
 }

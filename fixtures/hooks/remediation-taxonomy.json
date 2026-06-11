@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "codes": [
+    {
+      "code": "run-krn-start",
+      "en": "Run `krn start \"<task>\"` to create current task artifacts.",
+      "pl": "Uruchom `krn start \"<zadanie>\"`, żeby utworzyć aktualny kontrakt zadania."
+    },
+    {
+      "code": "run-krn-context",
+      "en": "Run `krn context` to rebuild current context before editing.",
+      "pl": "Uruchom `krn context`, żeby odświeżyć aktualny kontekst przed edycją."
+    },
+    {
+      "code": "scope-path",
+      "en": "Add the path to the task scope before editing it.",
+      "pl": "Dodaj tę ścieżkę do zakresu zadania przed edycją."
+    },
+    {
+      "code": "review-owned-proof-path",
+      "en": "Review the owned proof path before handoff.",
+      "pl": "Sprawdź owned proof path przed handoffem."
+    },
+    {
+      "code": "avoid-do-not-use-path",
+      "en": "Choose a path outside the current do-not-use bucket.",
+      "pl": "Wybierz ścieżkę spoza aktualnego bucketu do-not-use."
+    },
+    {
+      "code": "resolve-context-stop",
+      "en": "Resolve the active context STOP before editing.",
+      "pl": "Rozwiąż aktywny STOP kontekstu przed edycją."
+    },
+    {
+      "code": "send-valid-hook-json",
+      "en": "Send valid hook JSON or omit stdin for placeholder mode.",
+      "pl": "Przekaż poprawny JSON hooka albo pomiń stdin dla trybu placeholder."
+    },
+    {
+      "code": "run-krn-verify",
+      "en": "Run `krn verify` before final Stop.",
+      "pl": "Uruchom `krn verify` przed końcowym Stop."
+    },
+    {
+      "code": "run-krn-handoff",
+      "en": "Run `krn handoff` before final Stop.",
+      "pl": "Uruchom `krn handoff` przed końcowym Stop."
+    },
+    {
+      "code": "resolve-verify-block",
+      "en": "Fix the blocked verify result or preserve an active context STOP.",
+      "pl": "Napraw zablokowany wynik verify albo zachowaj aktywny STOP kontekstu."
+    }
+  ],
+  "findingMappings": [
+    {
+      "findingCode": "invalid-hook-payload",
+      "remediationCodes": ["send-valid-hook-json"]
+    },
+    {
+      "findingCode": "missing-task-contract",
+      "remediationCodes": ["run-krn-start"]
+    },
+    {
+      "findingCode": "missing-context-package",
+      "remediationCodes": ["run-krn-context"]
+    },
+    {
+      "findingCode": "context-stop-active",
+      "remediationCodes": ["resolve-context-stop"]
+    },
+    {
+      "findingCode": "do-not-use-edit",
+      "remediationCodes": ["avoid-do-not-use-path"]
+    },
+    {
+      "findingCode": "out-of-scope-edit",
+      "remediationCodes": ["run-krn-context", "scope-path"]
+    },
+    {
+      "findingCode": "proof-path-exception",
+      "remediationCodes": ["review-owned-proof-path"]
+    },
+    {
+      "findingCode": "final-verify-missing",
+      "remediationCodes": ["run-krn-verify"]
+    },
+    {
+      "findingCode": "final-verify-blocked",
+      "remediationCodes": ["resolve-verify-block"]
+    },
+    {
+      "findingCode": "final-handoff-missing",
+      "remediationCodes": ["run-krn-handoff"]
+    }
+  ]
+}

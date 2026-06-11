@@ -22,6 +22,7 @@ export type HookDecision = "allow" | "warn" | "block";
 export type HookFindingSeverity = "info" | "warn" | "block";
 export type HookOwnershipModel = "task-context-owned-proof-paths-v1";
 export type HookOperatorMessageVersion = "hook-operator-message-v1";
+export type HookTracePayloadMode = "full" | "compacted";
 export type HookRemediationCode =
   | "run-krn-start"
   | "run-krn-context"
@@ -33,6 +34,17 @@ export type HookRemediationCode =
   | "run-krn-verify"
   | "run-krn-handoff"
   | "resolve-verify-block";
+export type HookGuardrailFindingCode =
+  | "invalid-hook-payload"
+  | "missing-task-contract"
+  | "missing-context-package"
+  | "context-stop-active"
+  | "do-not-use-edit"
+  | "out-of-scope-edit"
+  | "proof-path-exception"
+  | "final-verify-missing"
+  | "final-verify-blocked"
+  | "final-handoff-missing";
 
 export interface HookLocalizedText {
   en: string;
@@ -42,6 +54,14 @@ export interface HookLocalizedText {
 export interface HookRemediationHint extends HookLocalizedText {
   code: HookRemediationCode;
 }
+
+type HookTraceJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | HookTraceJsonValue[]
+  | { [key: string]: HookTraceJsonValue };
 
 export interface HookPayload {
   source: HookPayloadSource;
@@ -66,17 +86,7 @@ export interface HookCurrentState {
 }
 
 export interface HookGuardrailFinding {
-  code:
-    | "invalid-hook-payload"
-    | "missing-task-contract"
-    | "missing-context-package"
-    | "context-stop-active"
-    | "do-not-use-edit"
-    | "out-of-scope-edit"
-    | "proof-path-exception"
-    | "final-verify-missing"
-    | "final-verify-blocked"
-    | "final-handoff-missing";
+  code: HookGuardrailFindingCode;
   severity: HookFindingSeverity;
   detail: string;
   path?: string | undefined;
@@ -103,13 +113,46 @@ export interface HookResult {
   findings: HookGuardrailFinding[];
 }
 
+export interface HookTracePayload extends Record<string, HookTraceJsonValue> {
+  provider: "codex";
+  event: string;
+  supported: boolean;
+  status: HookResult["status"];
+  decision: HookDecision;
+  enforced: false;
+  ownershipModel: HookOwnershipModel;
+  ownedProofPathHintLimit: number;
+  tracePayloadByteLimit: number;
+  ownedProofPathHints: string[];
+  payloadSource: HookPayloadSource;
+  detail: string;
+  findingCodes: HookGuardrailFindingCode[];
+  operatorMessageVersion: HookOperatorMessageVersion;
+  remediationCodes: HookRemediationCode[];
+  tracePayloadMode: HookTracePayloadMode;
+}
+
 export const hookOwnershipModel: HookOwnershipModel = "task-context-owned-proof-paths-v1";
 export const hookOperatorMessageVersion: HookOperatorMessageVersion = "hook-operator-message-v1";
 export const maxOwnedProofPathHints = 4;
 export const maxHookTracePayloadBytes = 1024;
 export const maxHookRemediationCodes = 6;
+export const hookTraceCompactedDetail = "P0 hook trace payload compacted to fit budget";
 
-const remediationHintCatalog: Record<HookRemediationCode, HookLocalizedText> = {
+export const hookRemediationCodeTaxonomy: HookRemediationCode[] = [
+  "run-krn-start",
+  "run-krn-context",
+  "scope-path",
+  "review-owned-proof-path",
+  "avoid-do-not-use-path",
+  "resolve-context-stop",
+  "send-valid-hook-json",
+  "run-krn-verify",
+  "run-krn-handoff",
+  "resolve-verify-block",
+];
+
+export const hookRemediationHintCatalog: Record<HookRemediationCode, HookLocalizedText> = {
   "run-krn-start": {
     en: 'Run `krn start "<task>"` to create current task artifacts.',
     pl: 'Uruchom `krn start "<zadanie>"`, żeby utworzyć aktualny kontrakt zadania.',
@@ -442,7 +485,20 @@ function findingDecision(findings: HookGuardrailFinding[]): HookDecision {
   return "allow";
 }
 
-function remediationCodesForFinding(code: HookGuardrailFinding["code"]): HookRemediationCode[] {
+function compactTraceString(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const suffix = "...<compacted>";
+  return `${value.slice(0, Math.max(0, maxLength - suffix.length))}${suffix}`;
+}
+
+export function hookTracePayloadByteLength(payload: HookTracePayload): number {
+  return Buffer.byteLength(JSON.stringify(payload), "utf8");
+}
+
+function remediationCodesForFinding(code: HookGuardrailFindingCode): HookRemediationCode[] {
   if (code === "invalid-hook-payload") {
     return ["send-valid-hook-json"];
   }
@@ -482,13 +538,15 @@ function remediationCodesForFinding(code: HookGuardrailFinding["code"]): HookRem
   return ["run-krn-handoff"];
 }
 
-function remediationCodesForFindings(findings: HookGuardrailFinding[]): HookRemediationCode[] {
+export function remediationCodesForFindingCodes(
+  findingCodes: HookGuardrailFindingCode[],
+): HookRemediationCode[] {
   const codes: HookRemediationCode[] = [];
 
-  for (const finding of findings) {
-    for (const code of remediationCodesForFinding(finding.code)) {
-      if (!codes.includes(code)) {
-        codes.push(code);
+  for (const findingCode of findingCodes) {
+    for (const remediationCode of remediationCodesForFinding(findingCode)) {
+      if (!codes.includes(remediationCode)) {
+        codes.push(remediationCode);
       }
     }
   }
@@ -496,11 +554,100 @@ function remediationCodesForFindings(findings: HookGuardrailFinding[]): HookReme
   return codes.slice(0, maxHookRemediationCodes);
 }
 
+function remediationCodesForFindings(findings: HookGuardrailFinding[]): HookRemediationCode[] {
+  return remediationCodesForFindingCodes(findings.map((finding) => finding.code));
+}
+
 function remediationHintsForCodes(codes: HookRemediationCode[]): HookRemediationHint[] {
   return codes.map((code) => ({
     code,
-    ...remediationHintCatalog[code],
+    ...hookRemediationHintCatalog[code],
   }));
+}
+
+function hookTracePayloadFromResult(
+  result: HookResult,
+  input: {
+    event: string;
+    detail: string;
+    ownedProofPathHints: string[];
+    tracePayloadMode: HookTracePayloadMode;
+  },
+): HookTracePayload {
+  return {
+    provider: result.provider,
+    event: input.event,
+    supported: result.supported,
+    status: result.status,
+    decision: result.decision,
+    enforced: result.enforced,
+    ownershipModel: result.ownershipModel,
+    ownedProofPathHintLimit: result.ownedProofPathHintLimit,
+    tracePayloadByteLimit: result.tracePayloadByteLimit,
+    ownedProofPathHints: input.ownedProofPathHints,
+    payloadSource: result.payloadSource,
+    detail: input.detail,
+    findingCodes: result.findings.map((finding) => finding.code).slice(0, 10),
+    operatorMessageVersion: result.operatorMessageVersion,
+    remediationCodes: result.remediationCodes
+      .filter((code) => hookRemediationCodeTaxonomy.includes(code))
+      .slice(0, maxHookRemediationCodes),
+    tracePayloadMode: input.tracePayloadMode,
+  };
+}
+
+function compactOwnedTraceHints(hints: string[], maxLength: number): string[] {
+  return hints.slice(0, maxOwnedProofPathHints).map((hint) => compactTraceString(hint, maxLength));
+}
+
+function firstPayloadWithinBudget(payloads: HookTracePayload[]): HookTracePayload {
+  const lastPayload = payloads[payloads.length - 1];
+
+  for (const payload of payloads) {
+    if (hookTracePayloadByteLength(payload) <= maxHookTracePayloadBytes) {
+      return payload;
+    }
+  }
+
+  if (!lastPayload) {
+    throw new Error("No hook trace payload fallback was provided");
+  }
+
+  return lastPayload;
+}
+
+export function buildHookTracePayload(result: HookResult): HookTracePayload {
+  const fullPayload = hookTracePayloadFromResult(result, {
+    event: result.event,
+    detail: result.detail,
+    ownedProofPathHints: result.ownedProofPathHints,
+    tracePayloadMode: "full",
+  });
+
+  if (hookTracePayloadByteLength(fullPayload) <= maxHookTracePayloadBytes) {
+    return fullPayload;
+  }
+
+  return firstPayloadWithinBudget([
+    hookTracePayloadFromResult(result, {
+      event: compactTraceString(result.event, 96),
+      detail: hookTraceCompactedDetail,
+      ownedProofPathHints: compactOwnedTraceHints(result.ownedProofPathHints, 128),
+      tracePayloadMode: "compacted",
+    }),
+    hookTracePayloadFromResult(result, {
+      event: compactTraceString(result.event, 48),
+      detail: hookTraceCompactedDetail,
+      ownedProofPathHints: compactOwnedTraceHints(result.ownedProofPathHints, 64),
+      tracePayloadMode: "compacted",
+    }),
+    hookTracePayloadFromResult(result, {
+      event: "<compacted>",
+      detail: hookTraceCompactedDetail,
+      ownedProofPathHints: result.ownedProofPathHints.length > 0 ? ["<compacted>"] : [],
+      tracePayloadMode: "compacted",
+    }),
+  ]);
 }
 
 function findingCodesSet(findings: HookGuardrailFinding[]): Set<HookGuardrailFinding["code"]> {

@@ -43,6 +43,8 @@ The machine decision is the contract for guardrail behavior. `decision`, `status
 
 Trace payloads stay compact. `hook.received` records `operatorMessageVersion` and `remediationCodes`, but it must not record `userFacingMessage` or full `remediationHints` text. Long wording belongs in the hook command JSON result, not in trace JSONL.
 
+`krn hook codex <event>` must build trace data through `buildHookTracePayload(result)`. The helper is the writer-side budget boundary for hook traces. It preserves the machine decision fields, finding codes, compact ownership hints, and compact remediation codes while keeping stdout/API output full.
+
 P0 records `block` decisions for:
 
 - edit-intent `PreToolUse` without `.krn/current/task-contract.json`;
@@ -67,7 +69,9 @@ The P0 ownership model is deliberately shallow. It maps current context paths un
 
 To keep trace payloads small, `ownedProofPathHints` contains only the compact hints used by proof-path findings, sorted and de-duplicated, capped at 4 entries. Allow/block events without proof-path exceptions should normally emit an empty owned hint list.
 
-P0 remediation codes are intentionally small and action-oriented. Examples include `run-krn-start`, `run-krn-context`, `scope-path`, `review-owned-proof-path`, `avoid-do-not-use-path`, `resolve-context-stop`, `run-krn-verify`, and `run-krn-handoff`.
+Hook trace payloads include `tracePayloadMode`: `full` when the compact writer payload fits under 1024 bytes, or `compacted` when the writer replaces oversized detail/event/hint strings with deterministic compact values before writing. Compacted payloads must keep decision, status, finding codes, and remediation codes intact.
+
+P0 remediation codes are intentionally small and action-oriented. Examples include `run-krn-start`, `run-krn-context`, `scope-path`, `review-owned-proof-path`, `avoid-do-not-use-path`, `resolve-context-stop`, `run-krn-verify`, and `run-krn-handoff`. The deterministic taxonomy fixture is `fixtures/hooks/remediation-taxonomy.json`.
 
 P0 payload parsing is shallow and deterministic. It recognizes JSON stdin, common tool name fields, path fields, and simple patch file headers. It is not a full Codex policy engine.
 

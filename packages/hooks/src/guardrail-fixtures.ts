@@ -1,6 +1,7 @@
 import {
   type HookCurrentState,
   type HookDecision,
+  type HookGuardrailFindingCode,
   type HookLocalizedText,
   type HookRemediationCode,
   type HookResult,
@@ -47,6 +48,19 @@ export interface HookGuardrailMatrixCase {
 export interface HookGuardrailMatrix {
   schemaVersion: 1;
   cases: HookGuardrailMatrixCase[];
+}
+
+export interface HookRemediationTaxonomyFixture {
+  schemaVersion: 1;
+  codes: Array<{
+    code: HookRemediationCode;
+    en: string;
+    pl: string;
+  }>;
+  findingMappings: Array<{
+    findingCode: HookGuardrailFindingCode;
+    remediationCodes: HookRemediationCode[];
+  }>;
 }
 
 const readyState: HookCurrentState = {

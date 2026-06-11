@@ -572,6 +572,7 @@ describe("doctor result", () => {
           findingCodes: [],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: [],
+          tracePayloadMode: "full",
         },
       },
       {
@@ -594,6 +595,7 @@ describe("doctor result", () => {
           findingCodes: ["proof-path-exception"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["review-owned-proof-path"],
+          tracePayloadMode: "full",
         },
       },
       {
@@ -612,6 +614,7 @@ describe("doctor result", () => {
           findingCodes: ["out-of-scope-edit"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["run-krn-context", "scope-path"],
+          tracePayloadMode: "full",
         },
       },
     ]);
@@ -656,6 +659,78 @@ describe("doctor result", () => {
       status: "fail",
       detail:
         "hook.received trace-hook-proof-path has proof-path-exception without ownership hints",
+    });
+  });
+
+  it("passes compacted hook trace payloads inside the byte budget", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-compacted",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "<compacted>",
+          supported: true,
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHintLimit: 4,
+          tracePayloadByteLimit: 1024,
+          ownedProofPathHints: [],
+          payloadSource: "stdin-json",
+          detail: "P0 hook trace payload compacted to fit budget",
+          findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
+          tracePayloadMode: "compacted",
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "pass",
+      detail:
+        "1 hook guardrail trace event(s) valid: allow 0, warn 0, block 1, owned proof paths 0",
+    });
+  });
+
+  it("fails current hook trace events with unknown trace payload modes", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-unknown-mode",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail block: out-of-scope-edit",
+          findingCodes: ["out-of-scope-edit"],
+          operatorMessageVersion: "hook-operator-message-v1",
+          remediationCodes: ["run-krn-context", "scope-path"],
+          tracePayloadMode: "oversized",
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail: "hook.received trace-hook-unknown-mode has an unknown trace payload mode",
     });
   });
 

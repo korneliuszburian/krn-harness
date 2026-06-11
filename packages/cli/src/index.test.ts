@@ -488,6 +488,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: [],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: [],
+          tracePayloadMode: "full",
         },
       },
       ...supportedP0CodexHookEvents.map((event) => ({
@@ -503,6 +504,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: expect.any(Array),
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: expect.any(Array),
+          tracePayloadMode: "full",
         },
       })),
       {
@@ -519,6 +521,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: [],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: [],
+          tracePayloadMode: "full",
         },
       },
     ]);
@@ -557,6 +560,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["missing-task-contract", "missing-context-package"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["run-krn-start", "run-krn-context"],
+          tracePayloadMode: "full",
         },
       },
     ]);
@@ -596,6 +600,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["missing-task-contract", "missing-context-package"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["run-krn-start", "run-krn-context"],
+          tracePayloadMode: "full",
         },
       },
     ]);
@@ -678,6 +683,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["out-of-scope-edit"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["run-krn-context", "scope-path"],
+          tracePayloadMode: "full",
         },
       },
     ]);
@@ -782,6 +788,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["proof-path-exception"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["review-owned-proof-path"],
+          tracePayloadMode: "full",
         },
       },
       {
@@ -797,6 +804,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["out-of-scope-edit"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["run-krn-context", "scope-path"],
+          tracePayloadMode: "full",
         },
       },
     ]);
@@ -895,6 +903,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["proof-path-exception"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["review-owned-proof-path"],
+          tracePayloadMode: "full",
         },
       },
       {
@@ -910,6 +919,7 @@ markdown: .krn/graph/repo-graph.md
           findingCodes: ["out-of-scope-edit"],
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: ["run-krn-context", "scope-path"],
+          tracePayloadMode: "full",
         },
       },
     ]);

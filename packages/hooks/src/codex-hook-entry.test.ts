@@ -3,15 +3,22 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  buildHookTracePayload,
   type HookCurrentState,
   handleCodexHook,
+  hookRemediationCodeTaxonomy,
+  hookRemediationHintCatalog,
+  hookTraceCompactedDetail,
+  hookTracePayloadByteLength,
   maxHookTracePayloadBytes,
   maxOwnedProofPathHints,
   ownedProofPathHintsForState,
   parseCodexHookPayload,
+  remediationCodesForFindingCodes,
 } from "./codex-hook-entry.js";
 import {
   type HookGuardrailMatrix,
+  type HookRemediationTaxonomyFixture,
   hookFindingCodes,
   hookProofPathOwnershipHints,
   runHookGuardrailFixtureCase,
@@ -23,6 +30,12 @@ function readHookMatrix(): HookGuardrailMatrix {
   return JSON.parse(
     readFileSync(path.join(repoRoot, "fixtures", "hooks", "guardrail-matrix.json"), "utf8"),
   ) as HookGuardrailMatrix;
+}
+
+function readRemediationTaxonomy(): HookRemediationTaxonomyFixture {
+  return JSON.parse(
+    readFileSync(path.join(repoRoot, "fixtures", "hooks", "remediation-taxonomy.json"), "utf8"),
+  ) as HookRemediationTaxonomyFixture;
 }
 
 const readyState: HookCurrentState = {
@@ -148,6 +161,77 @@ describe("Codex hook entry guardrails", () => {
       },
       remediationCodes: ["run-krn-verify", "run-krn-handoff"],
     });
+  });
+
+  it("matches the deterministic remediation-code taxonomy fixture", () => {
+    const taxonomy = readRemediationTaxonomy();
+
+    expect(taxonomy.schemaVersion).toBe(1);
+    expect(taxonomy.codes.map((item) => item.code)).toEqual(hookRemediationCodeTaxonomy);
+
+    for (const item of taxonomy.codes) {
+      expect(hookRemediationHintCatalog[item.code]).toEqual({
+        en: item.en,
+        pl: item.pl,
+      });
+    }
+
+    for (const mapping of taxonomy.findingMappings) {
+      expect(remediationCodesForFindingCodes([mapping.findingCode]), mapping.findingCode).toEqual(
+        mapping.remediationCodes,
+      );
+    }
+  });
+
+  it("builds compact hook trace payloads without stdout-only operator text", () => {
+    const result = handleCodexHook("PreToolUse", {
+      payload: parseCodexHookPayload(
+        JSON.stringify({ toolName: "Write", filePath: "src/out-of-scope.ts" }),
+      ),
+      state: readyState,
+    });
+    const tracePayload = buildHookTracePayload(result);
+
+    expect(tracePayload).toMatchObject({
+      provider: "codex",
+      event: "PreToolUse",
+      status: "blocked",
+      decision: "block",
+      enforced: false,
+      findingCodes: ["out-of-scope-edit"],
+      operatorMessageVersion: "hook-operator-message-v1",
+      remediationCodes: ["run-krn-context", "scope-path"],
+      tracePayloadMode: "full",
+    });
+    expect(tracePayload).not.toHaveProperty("userFacingMessage");
+    expect(tracePayload).not.toHaveProperty("remediationHints");
+    expect(hookTracePayloadByteLength(tracePayload)).toBeLessThanOrEqual(maxHookTracePayloadBytes);
+  });
+
+  it("compacts oversized hook trace payloads before writing", () => {
+    const result = {
+      ...handleCodexHook("PreToolUse", {
+        payload: parseCodexHookPayload(
+          JSON.stringify({ toolName: "Write", filePath: "docs/specs/hooks-pack.md" }),
+        ),
+        state: {
+          ...readyState,
+          taskText: "Harden hook trace payload budgeting",
+        },
+      }),
+      event: `PreToolUse-${"x".repeat(2000)}`,
+      detail: `P0 hook guardrail warn: ${"x".repeat(2000)}`,
+      ownedProofPathHints: [`docs/specs/${"x".repeat(2000)}.md`],
+    };
+    const tracePayload = buildHookTracePayload(result);
+
+    expect(tracePayload.tracePayloadMode).toBe("compacted");
+    expect(tracePayload.detail).toBe(hookTraceCompactedDetail);
+    expect(tracePayload.findingCodes).toEqual(["proof-path-exception"]);
+    expect(tracePayload.remediationCodes).toEqual(["review-owned-proof-path"]);
+    expect(tracePayload).not.toHaveProperty("userFacingMessage");
+    expect(tracePayload).not.toHaveProperty("remediationHints");
+    expect(hookTracePayloadByteLength(tracePayload)).toBeLessThanOrEqual(maxHookTracePayloadBytes);
   });
 
   it("blocks edit tool use when task or context artifacts are missing", () => {
