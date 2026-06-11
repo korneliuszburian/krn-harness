@@ -96,7 +96,8 @@ function artifactCheck(name: string, present: boolean, relativePath: string): Do
 
 async function downstreamAgentsCheck(cwd: string, source: boolean): Promise<DoctorCheck> {
   const relativePath = "AGENTS.md";
-  const present = await pathExists(path.join(cwd, relativePath));
+  const filePath = path.join(cwd, relativePath);
+  const present = await pathExists(filePath);
 
   if (!present) {
     return {
@@ -106,6 +107,22 @@ async function downstreamAgentsCheck(cwd: string, source: boolean): Promise<Doct
         ? "AGENTS.md is missing in source checkout; source guidance unavailable"
         : "AGENTS.md is missing; run `krn install` in the downstream repo",
     };
+  }
+
+  if (!source) {
+    const content = await readFile(filePath, "utf8");
+    if (
+      !content.includes("KRN Harness") ||
+      !content.includes("krn start") ||
+      !content.includes("krn context")
+    ) {
+      return {
+        name: "downstream-agents",
+        status: "warn",
+        detail:
+          "AGENTS.md is present but does not mention the KRN workflow; review project guidance or run `krn install` if KRN should manage onboarding",
+      };
+    }
   }
 
   return {

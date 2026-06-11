@@ -25,6 +25,7 @@
 - Memory context gate: memory-sourced context must be reference-only, backed by approved store records, carry approved provenance, avoid broad single-term task matches, and honor English and Polish explicit opt-out.
 - Graph JSON/Markdown artifact presence, graph JSON shape, and graph summary fields.
 - Downstream `AGENTS.md`, runtime skill, and hooks template presence with source-checkout vs downstream messaging.
+- Downstream `AGENTS.md` without KRN workflow text warns because it may be project-owned but not KRN-ready.
 - Downstream runtime skill and hooks template shape. Missing files warn; malformed installed runtime skill or hooks fail.
 - Current context STOP state when available.
 - Source checkout adapter template and build-time skill presence when applicable.

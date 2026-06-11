@@ -296,6 +296,57 @@ describe("doctor result", () => {
     });
   });
 
+  it("warns when downstream AGENTS exists without KRN workflow", async () => {
+    const cwd = await tempRepo();
+    await writeFile(
+      path.join(cwd, "AGENTS.md"),
+      "# Project Notes\n\nUse local conventions.\n",
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "downstream-agents",
+      status: "warn",
+      detail:
+        "AGENTS.md is present but does not mention the KRN workflow; review project guidance or run `krn install` if KRN should manage onboarding",
+    });
+  });
+
+  it("uses source-checkout wording for missing downstream runtime artifacts", async () => {
+    const cwd = await tempRepo();
+    await writeFile(
+      path.join(cwd, "package.json"),
+      `${JSON.stringify({ name: "krn-harness" }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toEqual(
+      expect.arrayContaining([
+        {
+          name: "downstream-agents",
+          status: "warn",
+          detail: "AGENTS.md is missing in source checkout; source guidance unavailable",
+        },
+        {
+          name: "downstream-runtime-skill",
+          status: "warn",
+          detail:
+            ".agents/skills/krn-harness/SKILL.md is not installed in the source checkout; adapter template is checked separately",
+        },
+        {
+          name: "downstream-hooks-template",
+          status: "warn",
+          detail:
+            ".codex/hooks.json is not installed in the source checkout; adapter template is checked separately",
+        },
+      ]),
+    );
+  });
+
   it("reports valid graph artifacts", async () => {
     const cwd = await tempRepo();
     await mkdir(path.join(cwd, ".krn", "graph"), { recursive: true });
