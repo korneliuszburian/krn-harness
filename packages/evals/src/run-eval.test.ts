@@ -98,7 +98,7 @@ describe("harness-only eval", () => {
 
     expect(result).toMatchObject({
       status: "pass",
-      passCount: 15,
+      passCount: 16,
       failCount: 0,
       graph: {
         name: "graph-behavior",
@@ -110,6 +110,10 @@ describe("harness-only eval", () => {
       },
       downstream: {
         name: "downstream-acceptance",
+        status: "pass",
+      },
+      verify: {
+        name: "verify-profiles",
         status: "pass",
       },
       hooks: {
@@ -136,6 +140,7 @@ describe("harness-only eval", () => {
     expect(result.memory.detail).toContain("Polish opt-out");
     expect(result.memory.detail).toContain("Polish explicit-request");
     expect(result.downstream.detail).toContain("downstream-basic fixture");
+    expect(result.verify.detail).toContain("safe record-only commands");
     expect(result.hooks.detail).toContain("allow, warn, block");
     expect(result.hooks.detail).toContain("false-positive collisions");
     expect(result.hooks.detail).toContain("compact ownership hints");
@@ -150,6 +155,7 @@ describe("harness-only eval", () => {
     expect(markdown).toContain("## Fixture Results");
     expect(markdown).toContain("## Graph Coverage");
     expect(markdown).toContain("## Downstream Acceptance");
+    expect(markdown).toContain("## Verify Profiles");
     expect(markdown).toContain("## Hook Guardrails");
     expect(markdown).toContain("## Memory Governance");
     expect(markdown).toContain("## Trace Coverage");

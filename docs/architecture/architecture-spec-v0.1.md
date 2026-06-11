@@ -54,7 +54,7 @@ Trace writes JSONL events. Task-loop commands write run-scoped events under `.kr
 
 ## Verify/Evidence
 
-Verify records deterministic P0 result artifacts from current task/context/config state. P0 evidence is local validation only and must not be called production proof.
+Verify records deterministic P0 result artifacts from current task/context/config state. It resolves named profiles, applies a narrow command allowlist, records limits, and defaults to record-only mode. `execute` mode is recognized but remains not-runnable until a safe execution engine exists. P0 evidence is local validation only and must not be called production proof.
 
 ## Memory
 

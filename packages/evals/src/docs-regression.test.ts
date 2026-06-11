@@ -38,6 +38,17 @@ describe("P0 docs anti-regression", () => {
     expect(feasibility).toContain("launch Codex non-interactively");
   });
 
+  it("keeps verify profile docs explicit about policy and non-execution", async () => {
+    const verifySpec = await readDoc("docs/specs/verify-result.schema.md");
+    const configSpec = await readDoc("docs/specs/krn-config.schema.md");
+
+    expect(verifySpec).toContain("record-only");
+    expect(verifySpec).toContain("Execute mode is recognized as config");
+    expect(verifySpec).toContain("Shell syntax, redirects, pipes");
+    expect(configSpec).toContain("verify.profiles");
+    expect(configSpec).toContain("verify.defaultProfile");
+  });
+
   it("does not describe current P0 docs as skeleton-only output", async () => {
     const readme = await readDoc("README.md");
     const architecture = await readDoc("docs/architecture/architecture-spec-v0.1.md");

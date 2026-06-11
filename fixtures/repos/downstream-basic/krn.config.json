@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "project": {
+    "name": "downstream-basic"
+  },
+  "runtime": {
+    "dir": ".krn"
+  },
+  "verify": {
+    "defaultProfile": "unit",
+    "profiles": {
+      "unit": {
+        "commands": [
+          {
+            "command": "node",
+            "args": ["src/index.test.ts"],
+            "label": "unit smoke"
+          }
+        ],
+        "timeoutMs": 30000,
+        "maxOutputBytes": 4096
+      }
+    }
+  }
+}

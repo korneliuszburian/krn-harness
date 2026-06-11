@@ -29,6 +29,7 @@ describe("doctor result", () => {
     expect(result.status).toBe("warn");
     expect(result.checks.map((check) => check.name)).toEqual([
       "config",
+      "verify-config-policy",
       "current-task-contract",
       "current-run",
       "current-context-package",
@@ -66,6 +67,11 @@ describe("doctor result", () => {
       detail: "No current context package; memory context gate skipped",
     });
     expect(result.checks).toContainEqual({
+      name: "verify-config-policy",
+      status: "pass",
+      detail: "No verify commands configured; policy check skipped",
+    });
+    expect(result.checks).toContainEqual({
       name: "downstream-agents",
       status: "warn",
       detail: "AGENTS.md is missing; run `krn install` in the downstream repo",
@@ -101,6 +107,39 @@ describe("doctor result", () => {
       name: "config",
       status: "fail",
       detail: "krn.config.json is invalid: version must be 1",
+    });
+  });
+
+  it("fails disallowed verify commands configured in a profile", async () => {
+    const cwd = await tempRepo();
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unsafe",
+            profiles: {
+              unsafe: {
+                commands: ["pnpm test && rm -rf .krn"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "verify-config-policy",
+      status: "fail",
+      detail:
+        "Disallowed verify command(s): unsafe: pnpm test && rm -rf .krn - shell syntax is not allowed",
     });
   });
 

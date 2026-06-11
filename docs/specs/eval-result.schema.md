@@ -20,6 +20,7 @@ The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, H
 - `graph`: graph behavior grader result.
 - `graphArtifact`: generated graph artifact shape grader result.
 - `downstream`: downstream onboarding acceptance grader result.
+- `verify`: verify profile and policy grader result.
 - `hooks`: hook guardrail fixture matrix grader result.
 - `memory`: governed memory grader result.
 - `trace`: local trace completeness grader result.
@@ -43,3 +44,5 @@ The memory grader is harness-only. It verifies that pending memory is inactive, 
 The hook grader is harness-only. It loads the deterministic guardrail matrix and remediation taxonomy fixture, then checks blocked, warned, and allowed decisions, false-positive ownership collisions, compact owned hint lists, package-owned proof fixtures, cross-package proof-path blocks, unowned proof-path blocks, `enforced: false`, the P0 proof-path ownership model, expected ownership hints, declared hint and byte limits, selected English/Polish operator wording, compact remediation codes, writer-side compact trace payload shape, and expected trace finding-code payloads without invoking Codex or relying on a live hook run.
 
 The downstream acceptance grader is harness-only. It checks fixture shape and generated AGENTS/hooks/runtime skill template contracts without installing into the source checkout, invoking Codex, or running downstream project commands.
+
+The verify grader is harness-only. It checks safe record-only profile behavior, unsafe command blocking, output limits, and explicit no-engine behavior for `execute` mode without running project commands.

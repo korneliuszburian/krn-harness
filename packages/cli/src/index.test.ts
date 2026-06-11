@@ -114,7 +114,7 @@ describe("krn CLI", () => {
       'krn start "<task>"',
       "krn graph",
       "krn context",
-      "krn verify",
+      "krn verify [--profile <name>]",
       "krn handoff",
       "krn doctor",
       "krn eval",
@@ -1621,8 +1621,17 @@ markdown: .krn/graph/repo-graph.md
     expect(handoff.stdout).toContain("KRN handoff: ready");
 
     const verifyResult = await readJson<{
+      schemaVersion: number;
       status: string;
+      profileName: string;
+      mode: string;
       taskId: string;
+      summary: {
+        totalCommands: number;
+        allowedCommands: number;
+        blockedCommands: number;
+        executedCommands: number;
+      };
       contextStop: boolean;
       graphArtifactPresent: boolean;
       currentRunTracePresent: boolean;
@@ -1637,16 +1646,37 @@ markdown: .krn/graph/repo-graph.md
     const handoffMarkdown = await readFile(path.join(start.cwd, ".krn/current/handoff.md"), "utf8");
 
     expect(verifyResult).toEqual({
+      schemaVersion: 1,
+      generatedAt: "2026-06-03T00:00:00.000Z",
+      profileName: "generic",
       profile: "generic",
+      mode: "record-only",
       status: "not-runnable",
+      summary: {
+        totalCommands: 0,
+        allowedCommands: 0,
+        blockedCommands: 0,
+        executedCommands: 0,
+      },
+      configSource: "default",
+      limits: {
+        timeoutMs: 120000,
+        maxOutputBytes: 12000,
+      },
       taskId: "task-d62ea4fbc009",
       contextStop: false,
       graphArtifactPresent: false,
       currentRunTracePresent: true,
+      commands: [],
       configuredCommands: [],
       executedCommands: [],
       notRunnableReason: "No verify commands are configured",
       checks: [
+        {
+          name: "verify-profile",
+          status: "pass",
+          detail: "Profile generic resolved in record-only mode",
+        },
         {
           name: "configured-commands",
           status: "warn",
@@ -1681,11 +1711,16 @@ markdown: .krn/graph/repo-graph.md
         name: "verify.ran",
         taskId: "task-d62ea4fbc009",
         data: {
+          profileName: "generic",
+          mode: "record-only",
           status: "not-runnable",
           contextStop: false,
           graphArtifactPresent: false,
           currentRunTracePresent: true,
-          configuredCommands: 0,
+          totalCommands: 0,
+          allowedCommands: 0,
+          blockedCommands: 0,
+          executedCommands: 0,
         },
       },
       {
@@ -1694,6 +1729,77 @@ markdown: .krn/graph/repo-graph.md
         data: { contextStop: false, verifyStatus: "not-runnable" },
       },
     ]);
+  });
+
+  it("resolves named verify profiles from krn.config.json without executing commands", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "quality",
+            profiles: {
+              quality: {
+                commands: ["pnpm lint", "pnpm typecheck", "pnpm test"],
+                timeoutMs: 30000,
+                maxOutputBytes: 4096,
+              },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    await expect(runInCwd(cwd, ["start", "verify", "profile", "task"])).resolves.toMatchObject({
+      code: 0,
+    });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+    const verify = await runInCwd(cwd, ["verify", "--profile", "quality"]);
+
+    expect(verify).toMatchObject({ code: 0 });
+    expect(verify.stdout).toContain("KRN verify: warn");
+    expect(verify.stdout).toContain("profile: quality");
+    expect(verify.stdout).toContain("mode: record-only");
+    expect(verify.stdout).toContain("commands: 3");
+
+    const result = await readJson<{
+      profileName: string;
+      status: string;
+      summary: { totalCommands: number; allowedCommands: number; executedCommands: number };
+      limits: { timeoutMs: number; maxOutputBytes: number };
+      configuredCommands: string[];
+      executedCommands: string[];
+    }>(cwd, ".krn/current/verify-result.json");
+
+    expect(result).toMatchObject({
+      profileName: "quality",
+      status: "warn",
+      summary: {
+        totalCommands: 3,
+        allowedCommands: 3,
+        executedCommands: 0,
+      },
+      limits: {
+        timeoutMs: 30000,
+        maxOutputBytes: 4096,
+      },
+      configuredCommands: ["pnpm lint", "pnpm typecheck", "pnpm test"],
+      executedCommands: [],
+    });
+
+    const missingProfile = await runInCwd(cwd, ["verify", "--profile", "missing"]);
+    expect(missingProfile).toMatchObject({ code: 0 });
+    expect(missingProfile.stdout).toContain("KRN verify: blocked");
+    await expect(readJson(cwd, ".krn/current/verify-result.json")).resolves.toMatchObject({
+      profileName: "missing",
+      status: "blocked",
+      notRunnableReason: "Unknown verify profile: missing",
+    });
   });
 
   it("writes STOP-aware verify and handoff artifacts", async () => {
@@ -1787,6 +1893,7 @@ markdown: .krn/graph/repo-graph.md
     expect(doctorJson.status).toBe("warn");
     expect(doctorJson.checks.map((check) => check.name)).toEqual([
       "config",
+      "verify-config-policy",
       "current-task-contract",
       "current-run",
       "current-context-package",
@@ -1817,11 +1924,12 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 15,
+      passCount: 16,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
       downstream: { status: "pass" },
+      verify: { status: "pass" },
       hooks: { status: "pass" },
       memory: { status: "pass" },
       trace: { status: "pass" },
@@ -1836,6 +1944,7 @@ markdown: .krn/graph/repo-graph.md
     expect(evalMarkdown).toContain("### frontend-section-context");
     expect(evalMarkdown).toContain("## Graph Coverage");
     expect(evalMarkdown).toContain("## Downstream Acceptance");
+    expect(evalMarkdown).toContain("## Verify Profiles");
     expect(evalMarkdown).toContain("## Hook Guardrails");
     expect(evalMarkdown).toContain("## Memory Governance");
     expect(evalMarkdown).toContain("## Trace Coverage");
@@ -1859,15 +1968,16 @@ markdown: .krn/graph/repo-graph.md
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 21 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 22 } },
       {
         name: "eval.ran",
         data: {
           status: "pass",
           fixtures: 3,
-          passCount: 15,
+          passCount: 16,
           failCount: 0,
           downstreamStatus: "pass",
+          verifyStatus: "pass",
           hookStatus: "pass",
           memoryStatus: "pass",
         },

@@ -18,6 +18,7 @@
 ## P0 Checks
 
 - Config validity or missing default-config state.
+- Verify config policy: configured profiles must use allowed command forms before execution can be considered.
 - Current task, current run, context, verify, and handoff artifact presence.
 - Governed memory store presence, shape, status separation, and manual approval/deprecation timestamps.
 - Memory context gate: memory-sourced context must be reference-only, backed by approved store records, carry approved provenance, avoid broad single-term task matches, and honor English and Polish explicit opt-out.

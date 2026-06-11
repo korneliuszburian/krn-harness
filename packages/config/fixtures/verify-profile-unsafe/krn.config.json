@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "verify": {
+    "defaultProfile": "unsafe",
+    "profiles": {
+      "unsafe": {
+        "commands": ["pnpm test && rm -rf .krn"]
+      }
+    }
+  }
+}

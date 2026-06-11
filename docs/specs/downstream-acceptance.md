@@ -38,6 +38,8 @@ krn eval
 
 The loop is local-only evidence. It does not claim CI, sandbox, hosted, or production enforcement.
 
+`fixtures/repos/downstream-basic/krn.config.json` includes a safe record-only `node src/index.test.ts` verify profile for dogfood checks. P0 policy-checks and records that command; it does not execute it.
+
 ## Template Expectations
 
 Generated `AGENTS.md` and runtime skill content must stay thin. They route Codex through KRN CLI commands and must not embed full architecture, raw research, or a policy engine.

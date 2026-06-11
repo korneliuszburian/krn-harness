@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "verify": {
+    "defaultProfile": "missing",
+    "profiles": {
+      "unit": {
+        "commands": [
+          {
+            "command": "node",
+            "args": "src/index.test.ts"
+          }
+        ],
+        "timeoutMs": 0
+      }
+    }
+  }
+}

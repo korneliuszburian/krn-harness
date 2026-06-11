@@ -42,6 +42,8 @@ The run summary Markdown records task id, event count, last event, artifact path
 
 `install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, guardrail decision, `enforced: false`, proof-path ownership model, owned proof-path hint limit, trace payload byte limit, compact owned proof-path hints, payload source, detail, finding codes, `operatorMessageVersion`, compact `remediationCodes`, and `tracePayloadMode`. Warned or blocked hook decisions must include finding codes and, for `hook-operator-message-v1` events, remediation codes. Current-model `proof-path-exception` events must include at least one owned proof-path hint, must not use broad hints such as `docs`, `fixtures`, `tests`, or `packages`, must not exceed 4 compact hints, and must stay within the declared 1024-byte trace payload limit.
 
+`verify.ran` records compact verify evidence: `profileName`, `mode`, `status`, `contextStop`, graph and run-trace presence, total/allowed/blocked/executed command counts. It does not record command stdout/stderr or environment.
+
 `hook.received` trace payloads must not include long operator text such as `userFacingMessage` or full `remediationHints`. Those belong in hook command output only.
 
 Hook trace payloads are built through the writer-side `buildHookTracePayload(result)` helper. If the normal compact payload would exceed 1024 bytes, the helper writes a deterministic `tracePayloadMode: "compacted"` fallback with compacted event/detail/hint strings while preserving decision, status, finding codes, and remediation codes.

@@ -23,6 +23,7 @@ export async function evalCommand(runtime: CliRuntime): Promise<number> {
       graphStatus: result.graph.status,
       graphArtifactStatus: result.graphArtifact.status,
       downstreamStatus: result.downstream.status,
+      verifyStatus: result.verify.status,
       hookStatus: result.hooks.status,
       memoryStatus: result.memory.status,
       runTraceMode: result.runTraceMode,

@@ -19,7 +19,7 @@ Usage:
   krn start "<task>"
   krn graph
   krn context
-  krn verify
+  krn verify [--profile <name>]
   krn handoff
   krn doctor
   krn eval
@@ -56,7 +56,7 @@ export async function runCli(
   }
 
   if (command === "verify") {
-    return verifyCommand(runtime);
+    return verifyCommand(rest, runtime);
   }
 
   if (command === "handoff") {

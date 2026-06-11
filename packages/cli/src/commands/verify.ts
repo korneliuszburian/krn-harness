@@ -1,7 +1,11 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "../../../config/src/index.js";
-import { buildVerifyResult, renderVerifyResultMarkdown } from "../../../verify/src/index.js";
+import {
+  buildVerifyResult,
+  renderVerifyResultMarkdown,
+  resolveVerifyProfile,
+} from "../../../verify/src/index.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -20,16 +24,38 @@ async function pathExists(filePath: string): Promise<boolean> {
   }
 }
 
-export async function verifyCommand(runtime: CliRuntime): Promise<number> {
+function parseVerifyArgs(args: string[]): { profileName?: string | undefined; error?: string } {
+  if (args.length === 0) {
+    return {};
+  }
+
+  if (args[0] === "--profile" && args[1] && args.length === 2) {
+    return { profileName: args[1] };
+  }
+
+  return { error: "KRN verify: expected `krn verify [--profile <name>]`" };
+}
+
+export async function verifyCommand(args: string[], runtime: CliRuntime): Promise<number> {
+  const parsedArgs = parseVerifyArgs(args);
+  if (parsedArgs.error) {
+    runtime.stderr(`${parsedArgs.error}\n`);
+    return 1;
+  }
+
   const [taskContract, contextPackage, loadedConfig] = await Promise.all([
     readCurrentTaskContract(runtime.cwd),
     readCurrentContextPackage(runtime.cwd),
     loadConfig(runtime.cwd),
   ]);
+  const resolvedProfile = resolveVerifyProfile(loadedConfig.config.verify, parsedArgs.profileName);
   const result = buildVerifyResult({
     taskContract,
     contextPackage,
-    configuredCommands: loadedConfig.config.verify?.commands ?? [],
+    profile: resolvedProfile.profile,
+    profileIssue: resolvedProfile.issue,
+    configSource: loadedConfig.source,
+    generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
     graphArtifactPresent: await pathExists(
       path.join(runtime.cwd, ".krn", "graph", "repo-graph.json"),
     ),
@@ -51,17 +77,23 @@ export async function verifyCommand(runtime: CliRuntime): Promise<number> {
     taskId: result.taskId,
     runScoped: true,
     data: {
-      profile: result.profile,
+      profileName: result.profileName,
+      mode: result.mode,
       status: result.status,
       contextStop: result.contextStop,
       graphArtifactPresent: result.graphArtifactPresent,
       currentRunTracePresent: result.currentRunTracePresent,
-      configuredCommands: result.configuredCommands.length,
+      totalCommands: result.summary.totalCommands,
+      allowedCommands: result.summary.allowedCommands,
+      blockedCommands: result.summary.blockedCommands,
+      executedCommands: result.summary.executedCommands,
     },
   });
 
   runtime.stdout(`KRN verify: ${result.status}
-profile: ${result.profile}
+profile: ${result.profileName}
+mode: ${result.mode}
+commands: ${result.summary.totalCommands}
 result: .krn/current/verify-result.md
 `);
 

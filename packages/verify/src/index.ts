@@ -1,3 +1,4 @@
+export * from "./command-policy.js";
 export * from "./profiles/docs.js";
 export * from "./profiles/frontend.js";
 export * from "./profiles/generic.js";

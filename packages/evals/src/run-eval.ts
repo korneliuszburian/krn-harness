@@ -33,6 +33,7 @@ import {
 } from "../../memory/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { defaultTracePath, readTraceLines } from "../../trace/src/index.js";
+import { buildVerifyResult, resolveVerifyProfile } from "../../verify/src/index.js";
 import { harnessFixtures, loadEvalTaskFixture } from "./fixtures.js";
 import { gradeContextCoverage } from "./graders/context-coverage.js";
 import { gradeStaleDocLeakage } from "./graders/stale-doc-leakage.js";
@@ -55,6 +56,7 @@ export interface EvalResult {
   graph: EvalGrade;
   graphArtifact: EvalGrade;
   downstream: EvalGrade;
+  verify: EvalGrade;
   hooks: EvalGrade;
   memory: EvalGrade;
   trace: EvalGrade;
@@ -606,6 +608,7 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
 async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade> {
   const fixtureRootPath = path.join(fixtureRoot, "fixtures", "repos", "downstream-basic");
   const requiredFixturePaths = [
+    "krn.config.json",
     "package.json",
     "README.md",
     "src/index.ts",
@@ -671,6 +674,92 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
   };
 }
 
+async function gradeVerifyProfiles(cwd: string): Promise<EvalGrade> {
+  const failures: string[] = [];
+  const safeProfile = resolveVerifyProfile({
+    commands: ["pnpm lint", "pnpm typecheck", "pnpm test"],
+    timeoutMs: 30000,
+    maxOutputBytes: 4096,
+  }).profile;
+  const unsafeProfile = resolveVerifyProfile({
+    commands: ["pnpm test && rm -rf .krn"],
+  }).profile;
+  const executeProfile = resolveVerifyProfile({
+    commands: ["pnpm test"],
+    mode: "execute",
+  }).profile;
+  const safeResult = buildVerifyResult({ profile: safeProfile });
+  const unsafeResult = buildVerifyResult({ profile: unsafeProfile });
+  const executeResult = buildVerifyResult({ profile: executeProfile });
+
+  if (
+    safeResult.status !== "warn" ||
+    safeResult.summary.allowedCommands !== 3 ||
+    safeResult.summary.executedCommands !== 0 ||
+    safeResult.limits.timeoutMs !== 30000 ||
+    safeResult.limits.maxOutputBytes !== 4096
+  ) {
+    failures.push("safe record-only verify profile did not produce compact non-executing evidence");
+  }
+
+  if (unsafeResult.status !== "blocked" || unsafeResult.summary.blockedCommands !== 1) {
+    failures.push("unsafe verify profile was not blocked before execution");
+  }
+
+  if (
+    executeResult.status !== "not-runnable" ||
+    executeResult.executedCommands.length !== 0 ||
+    executeResult.notRunnableReason !==
+      "Execute mode is configured, but the execution engine is not implemented"
+  ) {
+    failures.push("execute mode did not remain explicitly not-runnable without engine support");
+  }
+
+  try {
+    const artifact = JSON.parse(
+      await readFile(path.join(cwd, ".krn", "current", "verify-result.json"), "utf8"),
+    ) as {
+      schemaVersion?: unknown;
+      profileName?: unknown;
+      mode?: unknown;
+      summary?: {
+        totalCommands?: unknown;
+        allowedCommands?: unknown;
+        blockedCommands?: unknown;
+        executedCommands?: unknown;
+      };
+      limits?: { timeoutMs?: unknown; maxOutputBytes?: unknown };
+      commands?: unknown;
+    };
+
+    if (
+      artifact.schemaVersion !== 1 ||
+      typeof artifact.profileName !== "string" ||
+      (artifact.mode !== "record-only" && artifact.mode !== "execute") ||
+      typeof artifact.summary?.totalCommands !== "number" ||
+      typeof artifact.summary?.allowedCommands !== "number" ||
+      typeof artifact.summary?.blockedCommands !== "number" ||
+      typeof artifact.summary?.executedCommands !== "number" ||
+      typeof artifact.limits?.timeoutMs !== "number" ||
+      typeof artifact.limits?.maxOutputBytes !== "number" ||
+      !Array.isArray(artifact.commands)
+    ) {
+      failures.push(".krn/current/verify-result.json is missing verify profile schema fields");
+    }
+  } catch {
+    // Current verify artifact is optional for harness-only eval.
+  }
+
+  return {
+    name: "verify-profiles",
+    status: failures.length === 0 ? "pass" : "fail",
+    detail:
+      failures.length === 0
+        ? "verify profiles cover safe record-only commands, unsafe command blocking, output limits, and explicit no-engine execute behavior"
+        : failures.join("; "),
+  };
+}
+
 export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const cwd = input.cwd ?? process.cwd();
   const fixtureRoot = input.fixtureRoot ?? repoRootFromModule();
@@ -715,6 +804,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   });
   const graphArtifact = await gradeGraphArtifact(cwd);
   const memory = gradeMemoryGovernance();
+  const verify = await gradeVerifyProfiles(cwd);
   const hooks = await gradeHookGuardrails(fixtureRoot);
   const downstream = await gradeDownstreamAcceptance(fixtureRoot);
   const allGrades = [
@@ -722,6 +812,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     graphGrade,
     graphArtifact,
     downstream,
+    verify,
     hooks,
     memory,
     trace,
@@ -737,6 +828,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     graph: graphGrade,
     graphArtifact,
     downstream,
+    verify,
     hooks,
     memory,
     trace,
@@ -755,6 +847,7 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
       result.graph,
       result.graphArtifact,
       result.downstream,
+      result.verify,
       result.hooks,
       result.memory,
       result.trace,
@@ -780,6 +873,10 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     "## Downstream Acceptance",
     "",
     `- ${result.downstream.name}: ${result.downstream.status} - ${result.downstream.detail}`,
+    "",
+    "## Verify Profiles",
+    "",
+    `- ${result.verify.name}: ${result.verify.status} - ${result.verify.detail}`,
     "",
     "## Hook Guardrails",
     "",

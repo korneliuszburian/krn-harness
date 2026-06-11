@@ -5,6 +5,11 @@ import { hasExplicitMemoryOptOut, isTaskRelevantMemoryMatch } from "../../contex
 import { supportedCodexHookEvents } from "../../hooks/src/index.js";
 import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
 import { readTraceLines, type TraceEvent } from "../../trace/src/index.js";
+import {
+  resolveVerifyProfile,
+  verifyCommandPolicy,
+  verifyCommandText,
+} from "../../verify/src/index.js";
 
 export interface DoctorCheck {
   name: string;
@@ -1080,6 +1085,61 @@ async function configCheck(cwd: string): Promise<DoctorCheck> {
   }
 }
 
+async function verifyConfigPolicyCheck(cwd: string): Promise<DoctorCheck> {
+  try {
+    const loaded = await loadConfig(cwd);
+    const profiles = loaded.config.verify?.profiles;
+    const profileNames = profiles
+      ? Object.keys(profiles).sort((left, right) => left.localeCompare(right))
+      : [loaded.config.verify?.commands ? "default" : "generic"];
+    const failures: string[] = [];
+    let commandCount = 0;
+
+    for (const profileName of profileNames) {
+      const resolved = resolveVerifyProfile(loaded.config.verify, profileName);
+
+      if (resolved.issue) {
+        failures.push(resolved.issue);
+        continue;
+      }
+
+      for (const command of resolved.profile.commands) {
+        commandCount += 1;
+        const policy = verifyCommandPolicy(command);
+
+        if (!policy.allowed) {
+          failures.push(
+            `${profileName}: ${verifyCommandText(command)} - ${policy.reason ?? "not allowed"}`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      return {
+        name: "verify-config-policy",
+        status: "fail",
+        detail: `Disallowed verify command(s): ${failures.join("; ")}`,
+      };
+    }
+
+    return {
+      name: "verify-config-policy",
+      status: "pass",
+      detail:
+        commandCount === 0
+          ? "No verify commands configured; policy check skipped"
+          : `${commandCount} verify command(s) pass policy`,
+    };
+  } catch (error) {
+    return {
+      name: "verify-config-policy",
+      status: "fail",
+      detail: error instanceof Error ? error.message : "Verify config policy check failed",
+    };
+  }
+}
+
 async function sourceTreeCheck(
   cwd: string,
   input: { name: string; paths: string[] },
@@ -1120,6 +1180,7 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
 
   const checks: DoctorCheck[] = [
     await configCheck(cwd),
+    await verifyConfigPolicyCheck(cwd),
     artifactCheck(
       "current-task-contract",
       await pathExists(path.join(currentDir, "task-contract.json")),
