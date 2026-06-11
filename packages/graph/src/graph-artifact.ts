@@ -131,23 +131,19 @@ Status: graph-lite-p0
 
 ${artifact.detectors.length === 0 ? "- none" : artifact.detectors.map((detector) => `- ${detector}`).join("\n")}
 
-## Node Kind Counts
+## Node Kinds
 
 ${renderCountList(artifact.nodeKindCounts)}
 
-## Relation Kind Counts
+## Relation Kinds
 
 ${renderCountList(artifact.relationKindCounts)}
-
-## Status Counts
-
-${renderCountList(artifact.statusCounts)}
 
 ## Deprecated Docs
 
 ${renderDeprecatedDocs(artifact.nodes)}
 
-## Selected Evidence Examples
+## Evidence Examples
 
 ### Nodes
 

@@ -191,10 +191,12 @@ describe("krn CLI", () => {
     const result = await runInTemp(["graph"]);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("KRN graph: ready");
-    expect(result.stdout).toContain("json: .krn/graph/repo-graph.json");
-    expect(result.stdout).toContain("markdown: .krn/graph/repo-graph.md");
-    expect(result.stdout).toContain("warning: graph-lite is shallow P0 evidence");
+    expect(result.stdout).toBe(`KRN graph: ready
+nodes: 0
+edges: 0
+json: .krn/graph/repo-graph.json
+markdown: .krn/graph/repo-graph.md
+`);
 
     const graphJson = await readJson<{
       schemaVersion: number;
@@ -232,7 +234,8 @@ describe("krn CLI", () => {
     ]);
     expect(graphMarkdown).toContain("# Graph-Lite Repository Graph");
     expect(graphMarkdown).toContain("## Detectors");
-    expect(graphMarkdown).toContain("## Relation Kind Counts");
+    expect(graphMarkdown).toContain("## Relation Kinds");
+    expect(graphMarkdown).toContain("## Evidence Examples");
     expect(graphMarkdown).toContain("Graph-lite is shallow P0 evidence");
     await expect(stat(path.join(result.cwd, ".krn", "runs"))).rejects.toThrow();
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([

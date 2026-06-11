@@ -57,7 +57,7 @@ The JSON artifact is deterministic for a fixed repository and timestamp:
 
 Status counts use `unknown` for graph nodes without an explicit status. Count keys are sorted alphabetically.
 
-The Markdown artifact summarizes detector names, node kind counts, relation kind counts, deprecated docs count, deprecated doc examples, selected evidence examples, and the P0 warning that graph-lite is shallow evidence.
+The Markdown artifact contains Summary, Detectors, Node Kinds, Relation Kinds, Deprecated Docs, Evidence Examples, and P0 Limits sections.
 
 ## Deferred
 

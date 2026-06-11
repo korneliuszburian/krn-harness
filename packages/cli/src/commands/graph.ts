@@ -47,7 +47,6 @@ nodes: ${artifact.nodeCount}
 edges: ${artifact.edgeCount}
 json: ${graphJsonPath}
 markdown: ${graphMarkdownPath}
-warning: graph-lite is shallow P0 evidence
 `);
 
   return 0;
