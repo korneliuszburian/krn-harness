@@ -258,6 +258,59 @@ describe("Codex hook entry guardrails", () => {
     });
   });
 
+  it("warns for non-hook package proof paths owned by current context", () => {
+    const payload = parseCodexHookPayload(
+      JSON.stringify({
+        toolName: "Write",
+        filePath: "packages/config/src/load-config.test.ts",
+      }),
+    );
+    const result = handleCodexHook("PreToolUse", {
+      payload,
+      state: {
+        ...readyState,
+        taskText: "Update current package tests",
+        writablePaths: ["packages/config/src/load-config.ts"],
+      },
+    });
+
+    expect(result.ownedProofPathHints).toEqual([
+      "docs/specs/krn-config.schema.md",
+      "packages/config",
+    ]);
+    expect(result.findings).toContainEqual({
+      code: "proof-path-exception",
+      severity: "warn",
+      detail: "Tool payload edits a task/context-owned proof path outside active context",
+      path: "packages/config/src/load-config.test.ts",
+      ownershipHint: "packages/config",
+    });
+  });
+
+  it("does not accept broad explicit proof path ownership hints", () => {
+    const payload = parseCodexHookPayload(
+      JSON.stringify({
+        toolName: "Write",
+        filePath: "docs/proof.md",
+      }),
+    );
+    const result = handleCodexHook("PreToolUse", {
+      payload,
+      state: {
+        ...readyState,
+        ownedProofPaths: ["docs"],
+      },
+    });
+
+    expect(result.ownedProofPathHints).toEqual([]);
+    expect(result.findings).toContainEqual({
+      code: "out-of-scope-edit",
+      severity: "block",
+      detail: "Tool payload edits a path outside must-read/should-read current context",
+      path: "docs/proof.md",
+    });
+  });
+
   it("blocks edit payloads for do-not-use paths", () => {
     const payload = parseCodexHookPayload(
       JSON.stringify({

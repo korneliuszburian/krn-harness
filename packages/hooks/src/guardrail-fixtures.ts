@@ -10,8 +10,13 @@ export type HookGuardrailFixtureStateName =
   | "empty"
   | "task-only"
   | "ready"
+  | "config-task-owned"
+  | "context-task-owned"
+  | "codex-adapter-task-owned"
   | "hook-task-owned"
   | "hook-context-owned"
+  | "memory-context-owned"
+  | "verify-task-owned"
   | "stop-active"
   | "final-missing";
 
@@ -77,11 +82,47 @@ export function hookGuardrailFixtureState(name: HookGuardrailFixtureStateName): 
     };
   }
 
+  if (name === "config-task-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden config loading and validation fixtures",
+    };
+  }
+
+  if (name === "context-task-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden context package ranking and STOP behavior",
+    };
+  }
+
+  if (name === "codex-adapter-task-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden downstream codex adapter onboarding templates",
+    };
+  }
+
   if (name === "hook-context-owned") {
     return {
       ...readyState,
       taskText: "Update current package proof tests",
       writablePaths: ["src/in-scope.ts", "packages/hooks/src/codex-hook-entry.ts"],
+    };
+  }
+
+  if (name === "memory-context-owned") {
+    return {
+      ...readyState,
+      taskText: "Update current package proof tests",
+      writablePaths: ["src/in-scope.ts", "packages/memory/src/memory-store.ts"],
+    };
+  }
+
+  if (name === "verify-task-owned") {
+    return {
+      ...readyState,
+      taskText: "Harden verify result skeleton behavior",
     };
   }
 

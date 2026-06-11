@@ -745,6 +745,108 @@ markdown: .krn/graph/repo-graph.md
     ]);
   });
 
+  it("records non-hook package-owned proof path hints from current context", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "task-contract.json"),
+      '{"id":"task-config","task":"Harden config loading behavior"}\n',
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          taskId: "task-config",
+          items: [],
+          buckets: {
+            mustRead: [
+              {
+                path: "packages/config/src/load-config.ts",
+                reason: "Config package source",
+                priority: 10,
+                bucket: "must-read",
+                status: "available",
+              },
+            ],
+            shouldRead: [],
+            referenceOnly: [],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 1, present: 1, missing: 0, confidence: "high" },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const owned = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({
+        toolName: "Write",
+        filePath: "packages/config/src/load-config.test.ts",
+      }),
+    });
+    const crossPackage = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({
+        toolName: "Write",
+        filePath: "packages/context/src/build-context-package.test.ts",
+      }),
+    });
+
+    expect(owned.code).toBe(0);
+    expect(JSON.parse(owned.stdout)).toMatchObject({
+      status: "warn",
+      decision: "warn",
+      ownershipModel: "task-context-owned-proof-paths-v1",
+      ownedProofPathHints: ["docs/specs/krn-config.schema.md", "packages/config"],
+      findings: [
+        expect.objectContaining({
+          code: "proof-path-exception",
+          path: "packages/config/src/load-config.test.ts",
+          ownershipHint: "packages/config",
+        }),
+      ],
+    });
+    expect(crossPackage.code).toBe(0);
+    expect(JSON.parse(crossPackage.stdout)).toMatchObject({
+      status: "blocked",
+      decision: "block",
+      findings: [
+        expect.objectContaining({
+          code: "out-of-scope-edit",
+          path: "packages/context/src/build-context-package.test.ts",
+        }),
+      ],
+    });
+    await expect(readTraceEvents(cwd)).resolves.toMatchObject([
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
+          status: "warn",
+          decision: "warn",
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHints: ["docs/specs/krn-config.schema.md", "packages/config"],
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
+          status: "blocked",
+          decision: "block",
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHints: ["docs/specs/krn-config.schema.md", "packages/config"],
+          findingCodes: ["out-of-scope-edit"],
+        },
+      },
+    ]);
+  });
+
   it("runs the manual governed memory workflow without auto-approval", async () => {
     const proposed = await runInTemp([
       "memory",

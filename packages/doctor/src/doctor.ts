@@ -644,6 +644,23 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function normalizeTracePathHint(filePath: string): string {
+  return filePath.trim().replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/+$/, "");
+}
+
+function isBroadProofPathHint(filePath: string): boolean {
+  const normalized = normalizeTracePathHint(filePath);
+
+  return (
+    normalized.length === 0 ||
+    normalized === "docs" ||
+    normalized === "fixtures" ||
+    normalized === "test" ||
+    normalized === "tests" ||
+    normalized === "packages"
+  );
+}
+
 async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
   const relativePath = ".krn/traces/trace.jsonl";
   const tracePath = path.join(cwd, relativePath);
@@ -736,6 +753,18 @@ async function hookGuardrailTraceCheck(cwd: string): Promise<DoctorCheck> {
         status: "fail",
         detail: `hook.received ${event.id} has malformed proof-path ownership hints`,
       };
+    }
+
+    if (isStringArray(data.ownedProofPathHints)) {
+      const broadHint = data.ownedProofPathHints.find(isBroadProofPathHint);
+
+      if (broadHint !== undefined) {
+        return {
+          name: "hook-guardrail-trace",
+          status: "fail",
+          detail: `hook.received ${event.id} has over-broad proof-path ownership hint ${broadHint}`,
+        };
+      }
     }
 
     if (data.findingCodes.includes("proof-path-exception")) {

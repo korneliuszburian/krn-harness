@@ -651,6 +651,74 @@ describe("doctor result", () => {
     });
   });
 
+  it("fails current hook proof-path trace events with broad ownership hints", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-broad-proof-path",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          ownershipModel: "task-context-owned-proof-paths-v1",
+          ownedProofPathHints: ["docs"],
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail warn: proof-path-exception",
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail:
+        "hook.received trace-hook-broad-proof-path has over-broad proof-path ownership hint docs",
+    });
+  });
+
+  it("fails current hook trace events with unknown ownership models", async () => {
+    const cwd = await tempRepo();
+    await writeGlobalTrace(cwd, [
+      {
+        id: "trace-hook-unknown-ownership",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          supported: true,
+          status: "warn",
+          decision: "warn",
+          enforced: false,
+          ownershipModel: "package-policy-v2",
+          ownedProofPathHints: ["packages/config"],
+          payloadSource: "stdin-json",
+          detail: "P0 hook guardrail warn: proof-path-exception",
+          findingCodes: ["proof-path-exception"],
+        },
+      },
+    ]);
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "hook-guardrail-trace",
+      status: "fail",
+      detail:
+        "hook.received trace-hook-unknown-ownership has an unknown proof-path ownership model",
+    });
+  });
+
   it("fails hook guardrail trace events without finding-code payloads", async () => {
     const cwd = await tempRepo();
     await writeGlobalTrace(cwd, [

@@ -40,7 +40,7 @@ The run summary Markdown records task id, event count, last event, artifact path
 
 `krn hook codex <event>` and `krn install` remain global-only P0 events. `krn memory ...` writes global memory trace events and also appends them to the current run trace when a current task exists. Run traces are local evidence only and do not claim production observability.
 
-`install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, guardrail decision, `enforced: false`, proof-path ownership model, owned proof-path hints, payload source, detail, and finding codes. Warned or blocked hook decisions must include finding codes. Current-model `proof-path-exception` events must include at least one owned proof-path hint.
+`install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, guardrail decision, `enforced: false`, proof-path ownership model, owned proof-path hints, payload source, detail, and finding codes. Warned or blocked hook decisions must include finding codes. Current-model `proof-path-exception` events must include at least one owned proof-path hint and must not use broad hints such as `docs`, `fixtures`, `tests`, or `packages`.
 
 Memory trace payloads are compact:
 

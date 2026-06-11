@@ -446,7 +446,7 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, owned proof-path exceptions, unowned proof-path blocks, and trace finding codes`
+        ? `${matrix.cases.length} hook guardrail fixture(s) cover allow, warn, block, package-owned proof fixtures, cross-package blocks, unowned proof-path blocks, and trace finding codes`
         : failures.join("; "),
   };
 }

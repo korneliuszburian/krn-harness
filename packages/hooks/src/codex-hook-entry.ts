@@ -78,6 +78,75 @@ export interface HookResult {
 
 export const hookOwnershipModel: HookOwnershipModel = "task-context-owned-proof-paths-v1";
 
+interface ProofPathOwnershipRule {
+  anyTerms?: string[] | undefined;
+  allTerms?: string[] | undefined;
+  hints: string[];
+}
+
+const p0ProofPathOwnershipRules: ProofPathOwnershipRule[] = [
+  {
+    anyTerms: ["cli", "command", "commands"],
+    hints: ["packages/cli"],
+  },
+  {
+    anyTerms: ["adapter", "onboarding", "install"],
+    hints: [
+      "docs/specs/onboarding.md",
+      "docs/specs/runtime-skill-adapter.md",
+      "packages/codex-adapter",
+    ],
+  },
+  {
+    anyTerms: ["config", "configuration"],
+    hints: ["docs/specs/krn-config.schema.md", "packages/config"],
+  },
+  {
+    anyTerms: ["context", "ranking"],
+    hints: ["docs/specs/context-package.schema.md", "packages/context"],
+  },
+  {
+    anyTerms: ["core"],
+    hints: ["packages/core"],
+  },
+  {
+    anyTerms: ["doctor", "health"],
+    hints: ["docs/specs/doctor-result.schema.md", "packages/doctor"],
+  },
+  {
+    anyTerms: ["eval", "evals", "grader", "graders", "matrix"],
+    hints: ["docs/specs/eval-result.schema.md", "fixtures/hooks", "packages/evals"],
+  },
+  {
+    anyTerms: ["graph"],
+    hints: ["docs/specs/graph-lite.md", "packages/graph"],
+  },
+  {
+    anyTerms: ["hook", "hooks", "guardrail", "guardrails", "codex"],
+    hints: ["docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks"],
+  },
+  {
+    anyTerms: ["memory"],
+    hints: ["docs/specs/memory.schema.md", "packages/memory"],
+  },
+  {
+    allTerms: ["task", "contract"],
+    hints: ["docs/specs/task-contract.schema.md", "packages/task-contract"],
+  },
+  {
+    anyTerms: ["trace", "traces", "finding", "findings"],
+    hints: ["docs/specs/trace.schema.md", "packages/trace"],
+  },
+  {
+    anyTerms: ["verify", "verification"],
+    hints: ["docs/specs/verify-result.schema.md", "packages/verify"],
+  },
+  {
+    anyTerms: ["handoff"],
+    hints: ["docs/specs/handoff.md"],
+  },
+];
+
 export function isSupportedCodexHookEvent(event: string): event is CodexHookEvent {
   return supportedCodexHookEvents.includes(event as CodexHookEvent);
 }
@@ -119,9 +188,27 @@ function pathMatches(candidate: string, scopedPath: string): boolean {
 }
 
 function uniqueSortedPaths(paths: string[]): string[] {
-  return [...new Set(paths.map(normalizeHookPath).filter(Boolean))].sort((left, right) =>
-    left.localeCompare(right),
+  return [...new Set(paths.map(normalizeHookPath).filter((item) => item.length > 0))].sort(
+    (left, right) => left.localeCompare(right),
   );
+}
+
+function isBroadProofPathHint(filePath: string): boolean {
+  const normalized = normalizeHookPath(filePath).replace(/\/+$/, "");
+
+  return (
+    normalized.length === 0 ||
+    normalized === "docs" ||
+    normalized === "fixtures" ||
+    normalized === "test" ||
+    normalized === "tests" ||
+    normalized === "packages"
+  );
+}
+
+function packageProofHintForPath(filePath: string): string | undefined {
+  const match = /^packages\/([^/]+)\//.exec(normalizeHookPath(filePath));
+  return match?.[1] ? `packages/${match[1]}` : undefined;
 }
 
 function ownershipSignalText(state: HookCurrentState): string {
@@ -141,27 +228,28 @@ function signalMatches(text: string, terms: string[]): boolean {
   return terms.some((term) => new RegExp(`(^|[^a-z0-9])${term}([^a-z0-9]|$)`, "u").test(text));
 }
 
+function ownershipRuleMatches(text: string, rule: ProofPathOwnershipRule): boolean {
+  if (rule.allTerms?.every((term) => signalMatches(text, [term]))) {
+    return true;
+  }
+
+  return rule.anyTerms ? signalMatches(text, rule.anyTerms) : false;
+}
+
 export function ownedProofPathHintsForState(state: HookCurrentState): string[] {
   const signalText = ownershipSignalText(state);
-  const hints = [...(state.ownedProofPaths ?? [])];
+  const hints = [
+    ...(state.ownedProofPaths ?? []),
+    ...(state.writablePaths ?? []).flatMap((item) => packageProofHintForPath(item) ?? []),
+  ];
 
-  if (signalMatches(signalText, ["hook", "hooks", "guardrail", "guardrails", "codex"])) {
-    hints.push("docs/specs/hooks-pack.md", "fixtures/hooks", "packages/hooks");
+  for (const rule of p0ProofPathOwnershipRules) {
+    if (ownershipRuleMatches(signalText, rule)) {
+      hints.push(...rule.hints);
+    }
   }
 
-  if (signalMatches(signalText, ["eval", "evals", "grader", "graders", "matrix"])) {
-    hints.push("docs/specs/eval-result.schema.md", "fixtures/hooks", "packages/evals");
-  }
-
-  if (signalMatches(signalText, ["doctor", "health"])) {
-    hints.push("docs/specs/doctor-result.schema.md", "packages/doctor");
-  }
-
-  if (signalMatches(signalText, ["trace", "traces", "finding", "findings"])) {
-    hints.push("docs/specs/trace.schema.md", "packages/trace");
-  }
-
-  return uniqueSortedPaths(hints);
+  return uniqueSortedPaths(hints).filter((hint) => !isBroadProofPathHint(hint));
 }
 
 function collectPathsFromPatch(text: string): string[] {

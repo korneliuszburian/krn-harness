@@ -53,7 +53,7 @@ P0 records `warn` decisions for:
 
 P0 proof paths are recognized as docs, fixture, README, test, or spec files. Recognition alone is not enough to bypass scope. A proof path produces `proof-path-exception` only when it matches a deterministic ownership hint derived from the current task/context. Unowned proof paths remain `out-of-scope-edit` blocks. Paths marked `do-not-use` still block.
 
-The P0 ownership model is deliberately shallow. It maps obvious task/context signals such as `hook`, `guardrail`, `eval`, `doctor`, and `trace` to narrow package/spec/fixture hints. It is not semantic retrieval, repo intelligence, or a full policy engine.
+The P0 ownership model is deliberately shallow. It maps current context paths under `packages/<name>/...` to the exact `packages/<name>` proof hint, and maps obvious P0 task signals such as `config`, `context`, `task contract`, `graph`, `memory`, `verify`, `handoff`, `doctor`, `eval`, `hook`, `trace`, and `adapter` to narrow package/spec/fixture hints. Broad hints such as `docs`, `fixtures`, `tests`, or `packages` are not valid ownership hints. This is not semantic retrieval, repo intelligence, or a full policy engine.
 
 P0 payload parsing is shallow and deterministic. It recognizes JSON stdin, common tool name fields, path fields, and simple patch file headers. It is not a full Codex policy engine.
 

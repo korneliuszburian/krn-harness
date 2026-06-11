@@ -132,7 +132,8 @@ describe("harness-only eval", () => {
     expect(result.memory.detail).toContain("Polish opt-out");
     expect(result.memory.detail).toContain("Polish explicit-request");
     expect(result.hooks.detail).toContain("allow, warn, block");
-    expect(result.hooks.detail).toContain("owned proof-path exceptions");
+    expect(result.hooks.detail).toContain("package-owned proof fixtures");
+    expect(result.hooks.detail).toContain("cross-package blocks");
     expect(result.hooks.detail).toContain("unowned proof-path blocks");
     expect(result.hooks.detail).toContain("trace finding codes");
     expect(result.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);

@@ -151,6 +151,87 @@
       }
     },
     {
+      "name": "pretool-edit-owned-config-package-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "config-task-owned",
+      "payload": { "toolName": "Write", "filePath": "packages/config/src/load-config.test.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/config"]
+      }
+    },
+    {
+      "name": "pretool-edit-owned-context-spec-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "context-task-owned",
+      "payload": { "toolName": "Write", "filePath": "docs/specs/context-package.schema.md" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["docs/specs/context-package.schema.md"]
+      }
+    },
+    {
+      "name": "pretool-edit-owned-codex-adapter-package-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "codex-adapter-task-owned",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: packages/codex-adapter/src/generate-adapter.test.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/codex-adapter"]
+      }
+    },
+    {
+      "name": "pretool-edit-context-owned-memory-test-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "memory-context-owned",
+      "payload": { "toolName": "Write", "filePath": "packages/memory/src/memory-store.test.ts" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["packages/memory"]
+      }
+    },
+    {
+      "name": "pretool-edit-cross-package-test-proof-path-blocks",
+      "event": "PreToolUse",
+      "state": "memory-context-owned",
+      "payload": {
+        "tool": "apply_patch",
+        "arguments": {
+          "patch": "*** Begin Patch\n*** Update File: packages/context/src/build-context-package.test.ts\n@@\n+test\n*** End Patch\n"
+        }
+      },
+      "expected": {
+        "status": "blocked",
+        "decision": "block",
+        "findingCodes": ["out-of-scope-edit"]
+      }
+    },
+    {
+      "name": "pretool-edit-owned-verify-spec-proof-path-warns",
+      "event": "PreToolUse",
+      "state": "verify-task-owned",
+      "payload": { "toolName": "Write", "filePath": "docs/specs/verify-result.schema.md" },
+      "expected": {
+        "status": "warn",
+        "decision": "warn",
+        "findingCodes": ["proof-path-exception"],
+        "ownedProofPathHints": ["docs/specs/verify-result.schema.md"]
+      }
+    },
+    {
       "name": "posttool-missing-context-warns",
       "event": "PostToolUse",
       "state": "task-only",
