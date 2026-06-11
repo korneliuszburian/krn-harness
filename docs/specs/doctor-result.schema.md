@@ -18,10 +18,11 @@
 
 - Config validity or missing default-config state.
 - Current task, current run, context, verify, and handoff artifact presence.
+- Graph JSON/Markdown artifact presence, graph JSON shape, and graph summary fields.
 - Downstream `AGENTS.md`, runtime skill, and hooks template presence.
 - Current context STOP state when available.
 - Source checkout adapter template and build-time skill presence when applicable.
-- Trace file and current-run pointer presence/shape.
+- Run trace, run metadata, global trace, and current-run pointer presence/shape.
 
 ## P0 Rule
 

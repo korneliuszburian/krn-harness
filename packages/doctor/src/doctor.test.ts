@@ -22,12 +22,17 @@ describe("doctor result", () => {
       "context-stop",
       "current-verify-result",
       "current-handoff",
+      "graph-json",
+      "graph-markdown",
+      "graph-json-shape",
+      "graph-summary",
       "downstream-agents",
       "downstream-runtime-skill",
       "downstream-hooks-template",
       "adapter-templates",
       "build-time-skills",
-      "trace",
+      "run-trace",
+      "global-trace",
     ]);
     expect(result.checks).toContainEqual({
       name: "config",
@@ -48,6 +53,74 @@ describe("doctor result", () => {
       name: "config",
       status: "fail",
       detail: "krn.config.json is invalid: version must be 1",
+    });
+  });
+
+  it("reports valid graph artifacts", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".krn", "graph"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "graph", "repo-graph.json"),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          generatedAt: "2026-06-03T00:00:00.000Z",
+          nodeCount: 0,
+          edgeCount: 0,
+          detectors: ["filesystem"],
+          relationKindCounts: {},
+          nodeKindCounts: {},
+          statusCounts: {},
+          nodes: [],
+          edges: [],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "graph", "repo-graph.md"),
+      "# Graph-Lite Repository Graph\n",
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "graph-json",
+      status: "pass",
+      detail: ".krn/graph/repo-graph.json is present",
+    });
+    expect(result.checks).toContainEqual({
+      name: "graph-markdown",
+      status: "pass",
+      detail: ".krn/graph/repo-graph.md is present",
+    });
+    expect(result.checks).toContainEqual({
+      name: "graph-json-shape",
+      status: "pass",
+      detail: ".krn/graph/repo-graph.json has 0 node(s) and 0 edge(s)",
+    });
+    expect(result.checks).toContainEqual({
+      name: "graph-summary",
+      status: "pass",
+      detail: "1 detector(s), 0 relation kind(s)",
+    });
+  });
+
+  it("reports malformed graph JSON as a failure", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".krn", "graph"), { recursive: true });
+    await writeFile(path.join(cwd, ".krn", "graph", "repo-graph.json"), "not json\n", "utf8");
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "graph-json-shape",
+      status: "fail",
+      detail: ".krn/graph/repo-graph.json is malformed",
     });
   });
 

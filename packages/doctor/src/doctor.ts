@@ -57,6 +57,127 @@ function artifactCheck(name: string, present: boolean, relativePath: string): Do
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function parseJsonFile(
+  filePath: string,
+): Promise<{ status: "missing" } | { status: "malformed" } | { status: "parsed"; value: unknown }> {
+  if (!(await pathExists(filePath))) {
+    return { status: "missing" };
+  }
+
+  try {
+    return {
+      status: "parsed",
+      value: JSON.parse(await readFile(filePath, "utf8")) as unknown,
+    };
+  } catch {
+    return { status: "malformed" };
+  }
+}
+
+function isGraphArtifact(value: unknown): value is {
+  nodeCount: number;
+  edgeCount: number;
+  detectors: unknown[];
+  relationKindCounts: Record<string, unknown>;
+  nodes: unknown[];
+  edges: unknown[];
+} {
+  return (
+    isRecord(value) &&
+    typeof value.nodeCount === "number" &&
+    typeof value.edgeCount === "number" &&
+    Array.isArray(value.detectors) &&
+    isRecord(value.relationKindCounts) &&
+    Array.isArray(value.nodes) &&
+    Array.isArray(value.edges)
+  );
+}
+
+async function graphJsonShapeCheck(cwd: string): Promise<DoctorCheck> {
+  const relativePath = ".krn/graph/repo-graph.json";
+  const parsed = await parseJsonFile(path.join(cwd, relativePath));
+
+  if (parsed.status === "missing") {
+    return {
+      name: "graph-json-shape",
+      status: "warn",
+      detail: `${relativePath} is missing; graph shape not checked`,
+    };
+  }
+
+  if (parsed.status === "malformed") {
+    return {
+      name: "graph-json-shape",
+      status: "fail",
+      detail: `${relativePath} is malformed`,
+    };
+  }
+
+  if (!isGraphArtifact(parsed.value)) {
+    return {
+      name: "graph-json-shape",
+      status: "fail",
+      detail: `${relativePath} is incomplete`,
+    };
+  }
+
+  if (parsed.value.nodeCount !== parsed.value.nodes.length) {
+    return {
+      name: "graph-json-shape",
+      status: "fail",
+      detail: `${relativePath} nodeCount does not match nodes length`,
+    };
+  }
+
+  if (parsed.value.edgeCount !== parsed.value.edges.length) {
+    return {
+      name: "graph-json-shape",
+      status: "fail",
+      detail: `${relativePath} edgeCount does not match edges length`,
+    };
+  }
+
+  return {
+    name: "graph-json-shape",
+    status: "pass",
+    detail: `${relativePath} has ${parsed.value.nodeCount} node(s) and ${parsed.value.edgeCount} edge(s)`,
+  };
+}
+
+async function graphSummaryCheck(cwd: string): Promise<DoctorCheck> {
+  const relativePath = ".krn/graph/repo-graph.json";
+  const parsed = await parseJsonFile(path.join(cwd, relativePath));
+
+  if (parsed.status === "missing") {
+    return {
+      name: "graph-summary",
+      status: "warn",
+      detail: `${relativePath} is missing; graph summary not checked`,
+    };
+  }
+
+  if (parsed.status === "malformed" || !isGraphArtifact(parsed.value)) {
+    return {
+      name: "graph-summary",
+      status: "fail",
+      detail: `${relativePath} summary fields are unavailable`,
+    };
+  }
+
+  return {
+    name: "graph-summary",
+    status: parsed.value.detectors.length > 0 ? "pass" : "warn",
+    detail:
+      parsed.value.detectors.length > 0
+        ? `${parsed.value.detectors.length} detector(s), ${Object.keys(parsed.value.relationKindCounts).length} relation kind(s)`
+        : "No graph detectors are recorded",
+  };
+}
+
 function isCurrentRunPointer(value: unknown): value is {
   schemaVersion: number;
   taskId: string;
@@ -90,6 +211,19 @@ function isCurrentRunPointer(value: unknown): value is {
 
   return (
     candidate.schemaVersion === 1 && stringKeys.every((key) => typeof candidate[key] === "string")
+  );
+}
+
+function isRunMetadata(value: unknown, taskId: string): boolean {
+  return (
+    isRecord(value) &&
+    value.schemaVersion === 1 &&
+    value.taskId === taskId &&
+    typeof value.startedAt === "string" &&
+    typeof value.lastEventAt === "string" &&
+    Array.isArray(value.events) &&
+    isRecord(value.artifactPaths) &&
+    value.current === true
   );
 }
 
@@ -140,6 +274,62 @@ async function currentRunCheck(cwd: string): Promise<DoctorCheck> {
     name: "current-run",
     status: "pass",
     detail: `${relativePath} points to ${pointer.runDir}`,
+  };
+}
+
+async function runTraceCheck(cwd: string): Promise<DoctorCheck> {
+  const taskContract = await readJson<{ id?: string }>(
+    path.join(cwd, ".krn", "current", "task-contract.json"),
+  );
+
+  if (!taskContract?.id) {
+    return {
+      name: "run-trace",
+      status: "pass",
+      detail: "No current task; run trace check skipped",
+    };
+  }
+
+  const traceRelativePath = `.krn/runs/${taskContract.id}/trace.jsonl`;
+  const metadataRelativePath = `.krn/runs/${taskContract.id}/run.json`;
+  const parsedMetadata = await parseJsonFile(path.join(cwd, metadataRelativePath));
+
+  if (parsedMetadata.status === "malformed") {
+    return {
+      name: "run-trace",
+      status: "fail",
+      detail: `${metadataRelativePath} is malformed`,
+    };
+  }
+
+  if (parsedMetadata.status === "parsed" && !isRunMetadata(parsedMetadata.value, taskContract.id)) {
+    return {
+      name: "run-trace",
+      status: "fail",
+      detail: `${metadataRelativePath} is incomplete`,
+    };
+  }
+
+  if (!(await pathExists(path.join(cwd, traceRelativePath)))) {
+    return {
+      name: "run-trace",
+      status: "warn",
+      detail: `${traceRelativePath} is missing`,
+    };
+  }
+
+  if (parsedMetadata.status === "missing") {
+    return {
+      name: "run-trace",
+      status: "warn",
+      detail: `${metadataRelativePath} is missing`,
+    };
+  }
+
+  return {
+    name: "run-trace",
+    status: "pass",
+    detail: `${traceRelativePath} is present`,
   };
 }
 
@@ -233,6 +423,18 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
       await pathExists(path.join(currentDir, "handoff.md")),
       ".krn/current/handoff.md",
     ),
+    artifactCheck(
+      "graph-json",
+      await pathExists(path.join(cwd, ".krn", "graph", "repo-graph.json")),
+      ".krn/graph/repo-graph.json",
+    ),
+    artifactCheck(
+      "graph-markdown",
+      await pathExists(path.join(cwd, ".krn", "graph", "repo-graph.md")),
+      ".krn/graph/repo-graph.md",
+    ),
+    await graphJsonShapeCheck(cwd),
+    await graphSummaryCheck(cwd),
     artifactCheck("downstream-agents", await pathExists(path.join(cwd, "AGENTS.md")), "AGENTS.md"),
     artifactCheck(
       "downstream-runtime-skill",
@@ -261,7 +463,8 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
         ".agents/skills/handoff/SKILL.md",
       ],
     }),
-    artifactCheck("trace", await pathExists(tracePath), ".krn/traces/trace.jsonl"),
+    await runTraceCheck(cwd),
+    artifactCheck("global-trace", await pathExists(tracePath), ".krn/traces/trace.jsonl"),
   ];
 
   return {

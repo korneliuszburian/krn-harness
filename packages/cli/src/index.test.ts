@@ -650,6 +650,7 @@ describe("krn CLI", () => {
     const start = await runInTemp(["start", "goal", "4", "smoke", "task"]);
     expect(start.code).toBe(0);
 
+    await expect(runInCwd(start.cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
     await expect(runInCwd(start.cwd, ["context"])).resolves.toMatchObject({ code: 0 });
     await expect(runInCwd(start.cwd, ["verify"])).resolves.toMatchObject({ code: 0 });
     await expect(runInCwd(start.cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
@@ -691,12 +692,17 @@ describe("krn CLI", () => {
       "context-stop",
       "current-verify-result",
       "current-handoff",
+      "graph-json",
+      "graph-markdown",
+      "graph-json-shape",
+      "graph-summary",
       "downstream-agents",
       "downstream-runtime-skill",
       "downstream-hooks-template",
       "adapter-templates",
       "build-time-skills",
-      "trace",
+      "run-trace",
+      "global-trace",
     ]);
     expect(doctorMarkdown).toContain("Status: warn");
 
@@ -717,10 +723,11 @@ describe("krn CLI", () => {
 
     await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
       { name: "task.started", taskId: "task-a39f90427522" },
+      { name: "graph.built", taskId: "task-a39f90427522" },
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 13 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 18 } },
       {
         name: "eval.ran",
         data: { status: "pass", fixtures: 3, passCount: 10, failCount: 0 },
