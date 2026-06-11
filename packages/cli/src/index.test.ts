@@ -204,6 +204,7 @@ describe("krn CLI", () => {
           status: "installed",
           created: 7,
           skipped: 0,
+          reason: null,
           actions: [
             { path: ".krn/current", kind: "directory", status: "created" },
             { path: ".krn/graph", kind: "directory", status: "created" },
@@ -225,6 +226,31 @@ describe("krn CLI", () => {
     expect(secondInstall).toMatchObject({ code: 0 });
     expect(secondInstall.stdout).toContain("created: 0");
     expect(secondInstall.stdout).toContain("skipped: 7");
+    await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
+      { name: "install.ran" },
+      {
+        name: "install.ran",
+        data: {
+          status: "installed",
+          created: 0,
+          skipped: 7,
+          reason: null,
+          actions: [
+            { path: ".krn/current", kind: "directory", status: "skipped" },
+            { path: ".krn/graph", kind: "directory", status: "skipped" },
+            { path: ".krn/traces", kind: "directory", status: "skipped" },
+            { path: "krn.config.json", kind: "file", status: "skipped" },
+            { path: "AGENTS.md", kind: "file", status: "skipped" },
+            { path: ".codex/hooks.json", kind: "file", status: "skipped" },
+            {
+              path: ".agents/skills/krn-harness/SKILL.md",
+              kind: "file",
+              status: "skipped",
+            },
+          ],
+        },
+      },
+    ]);
 
     const doctor = await runInCwd(install.cwd, ["doctor"]);
     expect(doctor).toMatchObject({ code: 0 });
@@ -322,26 +348,33 @@ describe("krn CLI", () => {
       {
         name: "hook.received",
         data: {
+          provider: "codex",
           event: "SessionStart",
           supported: true,
           status: "ok",
+          payloadSource: "placeholder",
+          detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
         },
       },
       ...supportedP0CodexHookEvents.map((event) => ({
         name: "hook.received",
         data: {
+          provider: "codex",
           event,
           supported: true,
           status: "ok",
+          payloadSource: "placeholder",
           detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
         },
       })),
       {
         name: "hook.received",
         data: {
+          provider: "codex",
           event: "UnknownEvent",
           supported: false,
           status: "ignored",
+          payloadSource: "placeholder",
           detail: "Unsupported Codex hook event ignored by P0 hook skeleton",
         },
       },

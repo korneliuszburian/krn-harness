@@ -37,3 +37,5 @@ Minimal run metadata:
 - `current`
 
 `krn hook codex <event>` and `krn install` remain global-only P0 events. Run traces are local evidence only and do not claim production observability.
+
+`install.ran` records status, created/skipped counts, optional reason, and compact action summaries with path/kind/status only. `hook.received` records provider, event, support status, result status, payload source, and skeleton detail.
