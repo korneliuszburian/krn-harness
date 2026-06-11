@@ -20,6 +20,7 @@
 - Config validity or missing default-config state.
 - Verify config policy: configured profiles must use allowed command forms before execution can be considered.
 - Current task, current run, context, verify, and handoff artifact presence.
+- Current verify result shape, not-runnable warning state, pass/command consistency, execute exit-code presence, and compact output budget.
 - Governed memory store presence, shape, status separation, and manual approval/deprecation timestamps.
 - Memory context gate: memory-sourced context must be reference-only, backed by approved store records, carry approved provenance, avoid broad single-term task matches, and honor English and Polish explicit opt-out.
 - Graph JSON/Markdown artifact presence, graph JSON shape, and graph summary fields.

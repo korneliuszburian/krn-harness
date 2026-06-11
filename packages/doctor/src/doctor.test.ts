@@ -143,6 +143,131 @@ describe("doctor result", () => {
     });
   });
 
+  it("warns when the current verify result is not-runnable", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "verify-result.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: "2026-06-03T00:00:00.000Z",
+        profileName: "generic",
+        mode: "record-only",
+        status: "not-runnable",
+        configSource: "default",
+        contextStop: false,
+        summary: {
+          totalCommands: 0,
+          allowedCommands: 0,
+          blockedCommands: 0,
+          executedCommands: 0,
+        },
+        limits: { timeoutMs: 120000, maxOutputBytes: 12000 },
+        commands: [],
+      })}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "current-verify-result",
+      status: "warn",
+      detail:
+        "Current verify result is not-runnable; configure or select a runnable verify profile",
+    });
+    expect(result.nextActions).toContain(
+      "Configure an allowed verify profile or run `krn verify --profile <name>`.",
+    );
+  });
+
+  it("fails inconsistent current verify pass results", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "verify-result.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: "2026-06-03T00:00:00.000Z",
+        profileName: "unit",
+        mode: "execute",
+        status: "pass",
+        configSource: "file",
+        contextStop: false,
+        summary: {
+          totalCommands: 1,
+          allowedCommands: 1,
+          blockedCommands: 0,
+          executedCommands: 1,
+        },
+        limits: { timeoutMs: 120000, maxOutputBytes: 12000 },
+        commands: [
+          {
+            command: { command: "node", args: ["fail.cjs"] },
+            commandText: "node fail.cjs",
+            allowed: true,
+            status: "failed",
+            exitCode: 1,
+          },
+        ],
+      })}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "current-verify-result",
+      status: "fail",
+      detail: "Verify result status is pass but at least one command did not pass",
+    });
+  });
+
+  it("fails current verify output that exceeds the recorded byte budget", async () => {
+    const cwd = await tempRepo();
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "verify-result.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: "2026-06-03T00:00:00.000Z",
+        profileName: "unit",
+        mode: "execute",
+        status: "fail",
+        configSource: "file",
+        contextStop: false,
+        summary: {
+          totalCommands: 1,
+          allowedCommands: 1,
+          blockedCommands: 0,
+          executedCommands: 1,
+        },
+        limits: { timeoutMs: 120000, maxOutputBytes: 4 },
+        commands: [
+          {
+            command: { command: "node", args: ["noisy.cjs"] },
+            commandText: "node noisy.cjs",
+            allowed: true,
+            status: "failed",
+            exitCode: 1,
+            stdoutTail: "12345",
+          },
+        ],
+      })}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "current-verify-result",
+      status: "fail",
+      detail: "node noisy.cjs output exceeds verify maxOutputBytes",
+    });
+  });
+
   it("fails malformed downstream hook and runtime skill artifacts", async () => {
     const cwd = await tempRepo();
     await mkdir(path.join(cwd, ".codex"), { recursive: true });

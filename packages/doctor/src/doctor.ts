@@ -7,6 +7,7 @@ import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
 import { readTraceLines, type TraceEvent } from "../../trace/src/index.js";
 import {
   resolveVerifyProfile,
+  type VerifyCommandResult,
   verifyCommandPolicy,
   verifyCommandText,
 } from "../../verify/src/index.js";
@@ -66,7 +67,10 @@ function nextActionsFor(checks: DoctorCheck[]): string[] {
     actions.push("Run `krn context` to generate the current context package.");
   }
 
-  if (byName.get("current-verify-result")?.status === "warn") {
+  const verifyCheck = byName.get("current-verify-result");
+  if (verifyCheck?.status === "warn" && verifyCheck.detail.includes("not-runnable")) {
+    actions.push("Configure an allowed verify profile or run `krn verify --profile <name>`.");
+  } else if (verifyCheck?.status === "warn") {
     actions.push("Run `krn verify` to record P0 verification state.");
   }
 
@@ -1140,6 +1144,125 @@ async function verifyConfigPolicyCheck(cwd: string): Promise<DoctorCheck> {
   }
 }
 
+function isVerifyCommandResult(value: unknown): value is VerifyCommandResult {
+  return (
+    isRecord(value) &&
+    isRecord(value.command) &&
+    typeof value.command.command === "string" &&
+    Array.isArray(value.command.args) &&
+    value.command.args.every((arg) => typeof arg === "string") &&
+    typeof value.commandText === "string" &&
+    typeof value.allowed === "boolean" &&
+    typeof value.status === "string"
+  );
+}
+
+async function currentVerifyResultCheck(cwd: string): Promise<DoctorCheck> {
+  const relativePath = ".krn/current/verify-result.json";
+  const parsed = await parseJsonFile(path.join(cwd, relativePath));
+
+  if (parsed.status === "missing") {
+    return {
+      name: "current-verify-result",
+      status: "warn",
+      detail: `${relativePath} is missing`,
+    };
+  }
+
+  if (parsed.status === "malformed") {
+    return {
+      name: "current-verify-result",
+      status: "fail",
+      detail: `${relativePath} is malformed`,
+    };
+  }
+
+  const value = parsed.value;
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    typeof value.generatedAt !== "string" ||
+    typeof value.profileName !== "string" ||
+    (value.mode !== "record-only" && value.mode !== "execute") ||
+    !["pass", "warn", "fail", "blocked", "not-runnable"].includes(String(value.status)) ||
+    (value.configSource !== "file" && value.configSource !== "default") ||
+    typeof value.contextStop !== "boolean" ||
+    !isRecord(value.summary) ||
+    typeof value.summary.totalCommands !== "number" ||
+    typeof value.summary.allowedCommands !== "number" ||
+    typeof value.summary.blockedCommands !== "number" ||
+    typeof value.summary.executedCommands !== "number" ||
+    !isRecord(value.limits) ||
+    typeof value.limits.maxOutputBytes !== "number" ||
+    typeof value.limits.timeoutMs !== "number" ||
+    !Array.isArray(value.commands) ||
+    !value.commands.every(isVerifyCommandResult)
+  ) {
+    return {
+      name: "current-verify-result",
+      status: "fail",
+      detail: `${relativePath} is missing required verify result fields`,
+    };
+  }
+
+  const commands = value.commands as VerifyCommandResult[];
+  const maxOutputBytes = value.limits.maxOutputBytes;
+  const commandWithOversizedOutput = commands.find((command) => {
+    const stdoutBytes = Buffer.byteLength(command.stdoutTail ?? "", "utf8");
+    const stderrBytes = Buffer.byteLength(command.stderrTail ?? "", "utf8");
+    return stdoutBytes + stderrBytes > maxOutputBytes;
+  });
+
+  if (commandWithOversizedOutput) {
+    return {
+      name: "current-verify-result",
+      status: "fail",
+      detail: `${commandWithOversizedOutput.commandText} output exceeds verify maxOutputBytes`,
+    };
+  }
+
+  if (
+    value.status === "pass" &&
+    commands.some((command) => command.status !== "passed" || command.exitCode !== 0)
+  ) {
+    return {
+      name: "current-verify-result",
+      status: "fail",
+      detail: "Verify result status is pass but at least one command did not pass",
+    };
+  }
+
+  if (
+    value.mode === "execute" &&
+    commands.some(
+      (command) =>
+        (command.status === "passed" || command.status === "failed") &&
+        typeof command.exitCode !== "number",
+    )
+  ) {
+    return {
+      name: "current-verify-result",
+      status: "fail",
+      detail: "Executed verify command result is missing exitCode",
+    };
+  }
+
+  if (value.status === "not-runnable") {
+    return {
+      name: "current-verify-result",
+      status: "warn",
+      detail:
+        "Current verify result is not-runnable; configure or select a runnable verify profile",
+    };
+  }
+
+  return {
+    name: "current-verify-result",
+    status: "pass",
+    detail: `${relativePath} is valid with status ${String(value.status)}`,
+  };
+}
+
 async function sourceTreeCheck(
   cwd: string,
   input: { name: string; paths: string[] },
@@ -1202,11 +1325,7 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
             ? (contextPackage.stopReason ?? "Current context package reports STOP")
             : "Current context package does not report STOP",
     },
-    artifactCheck(
-      "current-verify-result",
-      await pathExists(path.join(currentDir, "verify-result.json")),
-      ".krn/current/verify-result.json",
-    ),
+    await currentVerifyResultCheck(cwd),
     artifactCheck(
       "current-handoff",
       await pathExists(path.join(currentDir, "handoff.md")),

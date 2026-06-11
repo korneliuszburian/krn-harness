@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import type { ContextPackage } from "../../context/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import {
@@ -58,7 +59,7 @@ export interface VerifyCommandResult {
   command: VerifyProfileCommand;
   commandText: string;
   allowed: boolean;
-  status: "recorded" | "blocked" | "not-run";
+  status: "recorded" | "blocked" | "not-run" | "passed" | "failed" | "timed-out";
   reason?: string | undefined;
   exitCode?: number | undefined;
   signal?: string | undefined;
@@ -66,6 +67,8 @@ export interface VerifyCommandResult {
   timedOut?: boolean | undefined;
   stdoutTail?: string | undefined;
   stderrTail?: string | undefined;
+  stdoutTruncated?: boolean | undefined;
+  stderrTruncated?: boolean | undefined;
 }
 
 export interface VerifySummary {
@@ -99,12 +102,19 @@ export interface VerifyResult {
 export interface BuildVerifyResultInput {
   profile?: VerifyProfile | undefined;
   profileIssue?: string | undefined;
+  commandResults?: VerifyCommandResult[] | undefined;
   taskContract?: TaskContract | undefined;
   contextPackage?: ContextPackage | undefined;
   graphArtifactPresent?: boolean | undefined;
   currentRunTracePresent?: boolean | undefined;
   configSource?: VerifyConfigSource | undefined;
   generatedAt?: string | undefined;
+}
+
+export interface RunVerifyCommandInput {
+  cwd: string;
+  limits: VerifyLimits;
+  nowMs?: (() => number) | undefined;
 }
 
 const defaultVerifyLimits: VerifyLimits = {
@@ -204,11 +214,158 @@ function commandResultsFor(profile: VerifyProfile): VerifyCommandResult[] {
   });
 }
 
+function trimOutputTail(value: string, maxBytes: number): { value: string; truncated: boolean } {
+  if (Buffer.byteLength(value, "utf8") <= maxBytes) {
+    return { value, truncated: false };
+  }
+
+  return {
+    value: Buffer.from(value, "utf8").subarray(-maxBytes).toString("utf8"),
+    truncated: true,
+  };
+}
+
+function appendOutputTail(
+  current: string,
+  chunk: Buffer,
+  maxBytes: number,
+): {
+  value: string;
+  truncated: boolean;
+} {
+  return trimOutputTail(`${current}${chunk.toString("utf8")}`, maxBytes);
+}
+
+function executedStatus(command: VerifyCommandResult): boolean {
+  return (
+    command.status === "passed" || command.status === "failed" || command.status === "timed-out"
+  );
+}
+
+export async function runVerifyCommand(
+  command: VerifyProfileCommand,
+  input: RunVerifyCommandInput,
+): Promise<VerifyCommandResult> {
+  const policy = verifyCommandPolicy(command);
+  const commandText = verifyCommandText(command);
+
+  if (!policy.allowed) {
+    return {
+      command,
+      commandText,
+      allowed: false,
+      status: "blocked",
+      reason: policy.reason,
+    };
+  }
+
+  const streamLimit = Math.max(1, Math.floor(input.limits.maxOutputBytes / 2));
+  const nowMs = input.nowMs ?? (() => Date.now());
+  const startedAt = nowMs();
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let stdoutTail = "";
+    let stderrTail = "";
+    let stdoutTruncated = false;
+    let stderrTruncated = false;
+    let timedOut = false;
+    const child = spawn(command.command, command.args, {
+      cwd: input.cwd,
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+    }, input.limits.timeoutMs);
+
+    const finish = (result: Omit<VerifyCommandResult, "command" | "commandText" | "allowed">) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timeout);
+      resolve({
+        command,
+        commandText,
+        allowed: true,
+        durationMs: Math.max(0, nowMs() - startedAt),
+        ...(stdoutTail ? { stdoutTail } : {}),
+        ...(stderrTail ? { stderrTail } : {}),
+        ...(stdoutTruncated ? { stdoutTruncated } : {}),
+        ...(stderrTruncated ? { stderrTruncated } : {}),
+        ...result,
+      });
+    };
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      const next = appendOutputTail(stdoutTail, chunk, streamLimit);
+      stdoutTail = next.value;
+      stdoutTruncated = stdoutTruncated || next.truncated;
+    });
+
+    child.stderr?.on("data", (chunk: Buffer) => {
+      const next = appendOutputTail(stderrTail, chunk, streamLimit);
+      stderrTail = next.value;
+      stderrTruncated = stderrTruncated || next.truncated;
+    });
+
+    child.on("error", (error) => {
+      finish({
+        status: "failed",
+        reason: error.message,
+      });
+    });
+
+    child.on("close", (exitCode, signal) => {
+      finish({
+        status: timedOut ? "timed-out" : exitCode === 0 ? "passed" : "failed",
+        exitCode: exitCode ?? undefined,
+        signal: signal ?? undefined,
+        timedOut,
+      });
+    });
+  });
+}
+
+export async function runVerifyCommands(
+  profile: VerifyProfile,
+  input: RunVerifyCommandInput,
+): Promise<VerifyCommandResult[]> {
+  const policyResults = commandResultsFor(profile);
+  const blockedCommands = policyResults.filter((command) => !command.allowed);
+
+  if (blockedCommands.length > 0) {
+    return policyResults.map((command) =>
+      command.allowed
+        ? {
+            ...command,
+            status: "not-run",
+            reason: "profile contains blocked command",
+          }
+        : command,
+    );
+  }
+
+  const results: VerifyCommandResult[] = [];
+  for (const command of profile.commands) {
+    results.push(await runVerifyCommand(command, input));
+  }
+
+  return results;
+}
+
 export function buildVerifyResult(input: BuildVerifyResultInput = {}): VerifyResult {
   const profile = input.profile ?? defaultVerifyProfile;
   const contextStop = input.contextPackage?.stop ?? false;
-  const commands = commandResultsFor(profile);
+  const commands = input.commandResults ?? commandResultsFor(profile);
   const blockedCommands = commands.filter((command) => !command.allowed);
+  const failedCommands = commands.filter(
+    (command) => command.status === "failed" || command.status === "timed-out",
+  );
+  const executedCommands = commands.filter(executedStatus);
   const checks: VerifyCheck[] = [];
 
   let status: VerifyStatus = "warn";
@@ -262,13 +419,32 @@ export function buildVerifyResult(input: BuildVerifyResultInput = {}): VerifyRes
     checks.push({
       name: "configured-commands",
       status: "pass",
-      detail: `${profile.commands.length} command(s) configured and allowed; ${profile.mode} mode does not execute commands yet`,
+      detail:
+        profile.mode === "execute" && input.commandResults
+          ? `${profile.commands.length} command(s) configured and allowed; execute mode ran ${executedCommands.length} command(s)`
+          : `${profile.commands.length} command(s) configured and allowed; ${profile.mode} mode does not execute commands yet`,
     });
   }
 
-  if (profile.mode === "execute" && status !== "blocked") {
+  if (profile.mode === "execute" && status !== "blocked" && input.commandResults) {
+    if (failedCommands.length > 0) {
+      status = "fail";
+      checks.push({
+        name: "execution-results",
+        status: "fail",
+        detail: `${failedCommands.length} verify command(s) failed`,
+      });
+    } else if (profile.commands.length > 0) {
+      status = "pass";
+      checks.push({
+        name: "execution-results",
+        status: "pass",
+        detail: `${executedCommands.length} verify command(s) passed`,
+      });
+    }
+  } else if (profile.mode === "execute" && status !== "blocked") {
     status = "not-runnable";
-    notRunnableReason = "Execute mode is configured, but the execution engine is not implemented";
+    notRunnableReason = "Execute mode is configured, but command results were not provided";
     checks.push({
       name: "execution-engine",
       status: "warn",
@@ -300,7 +476,7 @@ export function buildVerifyResult(input: BuildVerifyResultInput = {}): VerifyRes
     totalCommands: commands.length,
     allowedCommands: commands.filter((command) => command.allowed).length,
     blockedCommands: blockedCommands.length,
-    executedCommands: 0,
+    executedCommands: executedCommands.length,
   };
   const taskId = input.taskContract?.id ?? input.contextPackage?.taskId;
   const result: VerifyResult = {
@@ -318,7 +494,7 @@ export function buildVerifyResult(input: BuildVerifyResultInput = {}): VerifyRes
     currentRunTracePresent: input.currentRunTracePresent ?? false,
     commands,
     configuredCommands: commands.map((command) => command.commandText),
-    executedCommands: [],
+    executedCommands: executedCommands.map((command) => command.commandText),
     checks,
   };
 
@@ -381,7 +557,25 @@ export function renderVerifyResultMarkdown(result: VerifyResult): string {
   lines.push("", "## Results", "");
   lines.push(
     ...(result.commands.length > 0
-      ? result.commands.map((command) => `- ${command.commandText}: ${command.status}`)
+      ? result.commands.map((command) => {
+          const parts = [`- ${command.commandText}: ${command.status}`];
+          if (command.exitCode !== undefined) {
+            parts.push(`exit=${command.exitCode}`);
+          }
+          if (command.signal) {
+            parts.push(`signal=${command.signal}`);
+          }
+          if (command.durationMs !== undefined) {
+            parts.push(`duration=${command.durationMs}ms`);
+          }
+          if (command.stdoutTail) {
+            parts.push(`stdout=${JSON.stringify(command.stdoutTail)}`);
+          }
+          if (command.stderrTail) {
+            parts.push(`stderr=${JSON.stringify(command.stderrTail)}`);
+          }
+          return parts.join(" ");
+        })
       : ["- none"]),
   );
 
@@ -399,6 +593,8 @@ export function renderVerifyResultMarkdown(result: VerifyResult): string {
     lines.push("- Configure an allowed verify profile or keep the explicit not-runnable evidence.");
   } else if (result.status === "blocked") {
     lines.push("- Resolve blocked verify checks before claiming completion.");
+  } else if (result.status === "fail") {
+    lines.push("- Fix failing verify commands before claiming completion.");
   } else {
     lines.push("- Review verify evidence before handoff.");
   }

@@ -45,4 +45,4 @@ The hook grader is harness-only. It loads the deterministic guardrail matrix and
 
 The downstream acceptance grader is harness-only. It checks fixture shape and generated AGENTS/hooks/runtime skill template contracts without installing into the source checkout, invoking Codex, or running downstream project commands.
 
-The verify grader is harness-only. It checks safe record-only profile behavior, unsafe command blocking, output limits, and explicit no-engine behavior for `execute` mode without running project commands.
+The verify grader is harness-only. It checks safe record-only profile behavior, unsafe command blocking, output limits, and deterministic `execute` behavior using a tiny local node fixture. It does not run downstream project commands.

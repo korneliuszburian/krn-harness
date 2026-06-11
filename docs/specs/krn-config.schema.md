@@ -49,3 +49,4 @@
 - `verify.mode` may be `record-only` or `execute`; P0 defaults to `record-only`.
 - `verify.timeoutMs` and `verify.maxOutputBytes` are positive integers.
 - Commands may be strings for simple allowlisted commands or exact `{ command, args, label }` objects.
+- `execute` mode still uses the narrow verify allowlist and never uses shell mode.

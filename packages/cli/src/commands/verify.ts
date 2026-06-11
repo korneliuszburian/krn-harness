@@ -5,6 +5,7 @@ import {
   buildVerifyResult,
   renderVerifyResultMarkdown,
   resolveVerifyProfile,
+  runVerifyCommands,
 } from "../../../verify/src/index.js";
 import {
   readCurrentContextPackage,
@@ -24,16 +25,31 @@ async function pathExists(filePath: string): Promise<boolean> {
   }
 }
 
-function parseVerifyArgs(args: string[]): { profileName?: string | undefined; error?: string } {
-  if (args.length === 0) {
-    return {};
+function parseVerifyArgs(args: string[]): {
+  profileName?: string | undefined;
+  execute?: boolean | undefined;
+  error?: string;
+} {
+  const parsed: { profileName?: string | undefined; execute?: boolean | undefined } = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--profile" && args[index + 1]) {
+      parsed.profileName = args[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--execute") {
+      parsed.execute = true;
+      continue;
+    }
+
+    return { error: "KRN verify: expected `krn verify [--profile <name>] [--execute]`" };
   }
 
-  if (args[0] === "--profile" && args[1] && args.length === 2) {
-    return { profileName: args[1] };
-  }
-
-  return { error: "KRN verify: expected `krn verify [--profile <name>]`" };
+  return parsed;
 }
 
 export async function verifyCommand(args: string[], runtime: CliRuntime): Promise<number> {
@@ -49,11 +65,23 @@ export async function verifyCommand(args: string[], runtime: CliRuntime): Promis
     loadConfig(runtime.cwd),
   ]);
   const resolvedProfile = resolveVerifyProfile(loadedConfig.config.verify, parsedArgs.profileName);
+  const profile = parsedArgs.execute
+    ? { ...resolvedProfile.profile, mode: "execute" as const }
+    : resolvedProfile.profile;
+  const commandResults =
+    profile.mode === "execute" && !resolvedProfile.issue && !contextPackage?.stop
+      ? await runVerifyCommands(profile, {
+          cwd: runtime.cwd,
+          limits: profile.limits,
+          nowMs: () => (runtime.now?.() ?? new Date()).getTime(),
+        })
+      : undefined;
   const result = buildVerifyResult({
     taskContract,
     contextPackage,
-    profile: resolvedProfile.profile,
+    profile,
     profileIssue: resolvedProfile.issue,
+    commandResults,
     configSource: loadedConfig.source,
     generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
     graphArtifactPresent: await pathExists(
@@ -94,6 +122,7 @@ export async function verifyCommand(args: string[], runtime: CliRuntime): Promis
 profile: ${result.profileName}
 mode: ${result.mode}
 commands: ${result.summary.totalCommands}
+executed: ${result.summary.executedCommands}
 result: .krn/current/verify-result.md
 `);
 

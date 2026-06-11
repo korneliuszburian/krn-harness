@@ -114,7 +114,7 @@ describe("krn CLI", () => {
       'krn start "<task>"',
       "krn graph",
       "krn context",
-      "krn verify [--profile <name>]",
+      "krn verify [--profile <name>] [--execute]",
       "krn handoff",
       "krn doctor",
       "krn eval",
@@ -1802,6 +1802,76 @@ markdown: .krn/graph/repo-graph.md
     });
   });
 
+  it("runs allowlisted verify commands only when execute mode is explicit", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "pass.cjs"), 'process.stdout.write("cli-pass\\n");\n', "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: [{ command: "node", args: ["pass.cjs"], label: "unit smoke" }],
+                timeoutMs: 5000,
+                maxOutputBytes: 100,
+              },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    await expect(runInCwd(cwd, ["start", "execute", "verify", "task"])).resolves.toMatchObject({
+      code: 0,
+    });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const recordOnly = await runInCwd(cwd, ["verify", "--profile", "unit"]);
+    expect(recordOnly.stdout).toContain("KRN verify: warn");
+    expect(recordOnly.stdout).toContain("mode: record-only");
+    expect(recordOnly.stdout).toContain("executed: 0");
+
+    const executed = await runInCwd(cwd, ["verify", "--profile", "unit", "--execute"]);
+    expect(executed).toMatchObject({ code: 0 });
+    expect(executed.stdout).toContain("KRN verify: pass");
+    expect(executed.stdout).toContain("mode: execute");
+    expect(executed.stdout).toContain("executed: 1");
+
+    const result = await readJson<{
+      status: string;
+      mode: string;
+      summary: { executedCommands: number };
+      executedCommands: string[];
+      commands: Array<{ status: string; exitCode: number; stdoutTail: string }>;
+    }>(cwd, ".krn/current/verify-result.json");
+    expect(result).toMatchObject({
+      status: "pass",
+      mode: "execute",
+      summary: { executedCommands: 1 },
+      executedCommands: ["node pass.cjs"],
+      commands: [{ status: "passed", exitCode: 0, stdoutTail: "cli-pass\n" }],
+    });
+
+    await expect(readTraceEvents(cwd)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "verify.ran",
+          data: expect.objectContaining({
+            mode: "execute",
+            status: "pass",
+            executedCommands: 1,
+          }),
+        }),
+      ]),
+    );
+  });
+
   it("writes STOP-aware verify and handoff artifacts", async () => {
     const start = await runInTemp([
       "start",
@@ -1916,7 +1986,9 @@ markdown: .krn/graph/repo-graph.md
       "global-trace",
     ]);
     expect(doctorMarkdown).toContain("Status: warn");
-    expect(doctorJson.nextActions).toEqual([]);
+    expect(doctorJson.nextActions).toEqual([
+      "Configure an allowed verify profile or run `krn verify --profile <name>`.",
+    ]);
     expect(verifyJson).toMatchObject({
       graphArtifactPresent: true,
       currentRunTracePresent: true,

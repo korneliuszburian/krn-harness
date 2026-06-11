@@ -33,7 +33,11 @@ import {
 } from "../../memory/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { defaultTracePath, readTraceLines } from "../../trace/src/index.js";
-import { buildVerifyResult, resolveVerifyProfile } from "../../verify/src/index.js";
+import {
+  buildVerifyResult,
+  resolveVerifyProfile,
+  runVerifyCommands,
+} from "../../verify/src/index.js";
 import { harnessFixtures, loadEvalTaskFixture } from "./fixtures.js";
 import { gradeContextCoverage } from "./graders/context-coverage.js";
 import { gradeStaleDocLeakage } from "./graders/stale-doc-leakage.js";
@@ -674,7 +678,7 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
   };
 }
 
-async function gradeVerifyProfiles(cwd: string): Promise<EvalGrade> {
+async function gradeVerifyProfiles(cwd: string, fixtureRoot: string): Promise<EvalGrade> {
   const failures: string[] = [];
   const safeProfile = resolveVerifyProfile({
     commands: ["pnpm lint", "pnpm typecheck", "pnpm test"],
@@ -685,12 +689,20 @@ async function gradeVerifyProfiles(cwd: string): Promise<EvalGrade> {
     commands: ["pnpm test && rm -rf .krn"],
   }).profile;
   const executeProfile = resolveVerifyProfile({
-    commands: ["pnpm test"],
+    commands: [{ command: "node", args: ["fixtures/verify/pass.cjs"] }],
     mode: "execute",
   }).profile;
   const safeResult = buildVerifyResult({ profile: safeProfile });
   const unsafeResult = buildVerifyResult({ profile: unsafeProfile });
-  const executeResult = buildVerifyResult({ profile: executeProfile });
+  const executeCommandResults = await runVerifyCommands(executeProfile, {
+    cwd: fixtureRoot,
+    limits: executeProfile.limits,
+    nowMs: () => 0,
+  });
+  const executeResult = buildVerifyResult({
+    profile: executeProfile,
+    commandResults: executeCommandResults,
+  });
 
   if (
     safeResult.status !== "warn" ||
@@ -707,12 +719,12 @@ async function gradeVerifyProfiles(cwd: string): Promise<EvalGrade> {
   }
 
   if (
-    executeResult.status !== "not-runnable" ||
-    executeResult.executedCommands.length !== 0 ||
-    executeResult.notRunnableReason !==
-      "Execute mode is configured, but the execution engine is not implemented"
+    executeResult.status !== "pass" ||
+    executeResult.summary.executedCommands !== 1 ||
+    executeResult.commands[0]?.status !== "passed" ||
+    executeResult.commands[0]?.stdoutTail !== "verify fixture pass\n"
   ) {
-    failures.push("execute mode did not remain explicitly not-runnable without engine support");
+    failures.push("execute mode did not run the deterministic node fixture successfully");
   }
 
   try {
@@ -755,7 +767,7 @@ async function gradeVerifyProfiles(cwd: string): Promise<EvalGrade> {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? "verify profiles cover safe record-only commands, unsafe command blocking, output limits, and explicit no-engine execute behavior"
+        ? "verify profiles cover safe record-only commands, unsafe command blocking, output limits, and deterministic execute behavior"
         : failures.join("; "),
   };
 }
@@ -804,7 +816,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   });
   const graphArtifact = await gradeGraphArtifact(cwd);
   const memory = gradeMemoryGovernance();
-  const verify = await gradeVerifyProfiles(cwd);
+  const verify = await gradeVerifyProfiles(cwd, fixtureRoot);
   const hooks = await gradeHookGuardrails(fixtureRoot);
   const downstream = await gradeDownstreamAcceptance(fixtureRoot);
   const allGrades = [

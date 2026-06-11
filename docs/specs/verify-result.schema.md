@@ -26,13 +26,15 @@
 - `currentRunTracePresent`: whether the current run trace was present when verify ran.
 - `commands`: command policy results with command text, allow/block status, and reason when blocked.
 - `configuredCommands`: validation commands from `krn.config.json`.
-- `executedCommands`: commands actually run by KRN; empty in P0.
+- `executedCommands`: commands actually run by KRN in `execute` mode.
 - `notRunnableReason`: reason when verification is blocked or not runnable.
 - `checks`: deterministic P0 checks and details.
 
 ## P0 Rule
 
-P0 resolves verify profiles and blocks unsafe commands before execution. Record-only mode is the default and does not execute commands. Execute mode is recognized as config, but remains `not-runnable` until the execution engine is implemented.
+P0 resolves verify profiles and blocks unsafe commands before execution. Record-only mode is the default and does not execute commands. Execute mode runs only allowlisted command/args through `child_process.spawn` with `shell: false`, a timeout, and compact stdout/stderr tails.
+
+Before execute mode runs, the whole profile is policy-checked. If any command is blocked, no command in the profile is executed.
 
 Allowed P0 command forms are intentionally narrow:
 
@@ -44,3 +46,5 @@ Allowed P0 command forms are intentionally narrow:
 - `node <relative-file>`
 
 Shell syntax, redirects, pipes, destructive git commands, `rm`, `scp`, `curl`, `wget`, and unknown commands are blocked.
+
+Verify artifacts never store environment variables or full command output.

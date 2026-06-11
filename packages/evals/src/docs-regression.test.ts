@@ -43,8 +43,9 @@ describe("P0 docs anti-regression", () => {
     const configSpec = await readDoc("docs/specs/krn-config.schema.md");
 
     expect(verifySpec).toContain("record-only");
-    expect(verifySpec).toContain("Execute mode is recognized as config");
+    expect(verifySpec).toContain("Execute mode runs only allowlisted command/args");
     expect(verifySpec).toContain("Shell syntax, redirects, pipes");
+    expect(verifySpec).toContain("never store environment variables");
     expect(configSpec).toContain("verify.profiles");
     expect(configSpec).toContain("verify.defaultProfile");
   });

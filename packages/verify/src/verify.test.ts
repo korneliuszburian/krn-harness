@@ -1,8 +1,17 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ContextPackage } from "../../context/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { parseVerifyCommandString, verifyCommandPolicy } from "./command-policy.js";
-import { buildVerifyResult, renderVerifyResultMarkdown, resolveVerifyProfile } from "./verify.js";
+import {
+  buildVerifyResult,
+  renderVerifyResultMarkdown,
+  resolveVerifyProfile,
+  runVerifyCommand,
+  runVerifyCommands,
+} from "./verify.js";
 
 describe("verify result", () => {
   it("records not-runnable when no commands are configured", () => {
@@ -170,7 +179,7 @@ describe("verify result", () => {
     ]);
   });
 
-  it("supports execute mode as configured but does not execute before the engine exists", () => {
+  it("records not-runnable when execute mode is built without command results", () => {
     const profile = resolveVerifyProfile({
       commands: ["pnpm test"],
       mode: "execute",
@@ -180,9 +189,159 @@ describe("verify result", () => {
     expect(result).toMatchObject({
       mode: "execute",
       status: "not-runnable",
-      notRunnableReason: "Execute mode is configured, but the execution engine is not implemented",
+      notRunnableReason: "Execute mode is configured, but command results were not provided",
       executedCommands: [],
     });
+  });
+
+  it("records passed execute command results", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(path.join(cwd, "pass.cjs"), 'process.stdout.write("pass\\n");\n');
+    const profile = resolveVerifyProfile({
+      commands: [{ command: "node", args: ["pass.cjs"] }],
+      mode: "execute",
+      timeoutMs: 5000,
+      maxOutputBytes: 100,
+    }).profile;
+    const results = await runVerifyCommands(profile, {
+      cwd,
+      limits: profile.limits,
+      nowMs: (() => {
+        const values = [100, 125];
+        return () => values.shift() ?? 125;
+      })(),
+    });
+    const result = buildVerifyResult({ profile, commandResults: results });
+
+    expect(result).toMatchObject({
+      mode: "execute",
+      status: "pass",
+      summary: {
+        totalCommands: 1,
+        allowedCommands: 1,
+        blockedCommands: 0,
+        executedCommands: 1,
+      },
+      executedCommands: ["node pass.cjs"],
+    });
+    expect(result.commands[0]).toMatchObject({
+      status: "passed",
+      exitCode: 0,
+      durationMs: 25,
+      stdoutTail: "pass\n",
+    });
+    expect(renderVerifyResultMarkdown(result)).toContain('stdout="pass\\n"');
+  });
+
+  it("records failing execute command results", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(
+      path.join(cwd, "fail.cjs"),
+      'process.stderr.write("fail\\n"); process.exit(2);\n',
+    );
+    const profile = resolveVerifyProfile({
+      commands: [{ command: "node", args: ["fail.cjs"] }],
+      mode: "execute",
+    }).profile;
+    const results = await runVerifyCommands(profile, {
+      cwd,
+      limits: profile.limits,
+      nowMs: () => 0,
+    });
+    const result = buildVerifyResult({ profile, commandResults: results });
+
+    expect(result.status).toBe("fail");
+    expect(result.notRunnableReason).toBeUndefined();
+    expect(result.commands[0]).toMatchObject({
+      status: "failed",
+      exitCode: 2,
+      stderrTail: "fail\n",
+    });
+  });
+
+  it("records timeout results", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(path.join(cwd, "slow.cjs"), "setTimeout(() => {}, 1000);\n");
+    const result = await runVerifyCommand(
+      { command: "node", args: ["slow.cjs"] },
+      {
+        cwd,
+        limits: { timeoutMs: 50, maxOutputBytes: 8 },
+        nowMs: (() => {
+          const values = [0, 20];
+          return () => values.shift() ?? 20;
+        })(),
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "timed-out",
+      timedOut: true,
+      durationMs: 20,
+    });
+  });
+
+  it("records compact output tails", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(path.join(cwd, "noisy.cjs"), 'process.stdout.write("0123456789abcdef");\n');
+    const result = await runVerifyCommand(
+      { command: "node", args: ["noisy.cjs"] },
+      {
+        cwd,
+        limits: { timeoutMs: 5000, maxOutputBytes: 8 },
+        nowMs: () => 0,
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "passed",
+      stdoutTail: "cdef",
+      stdoutTruncated: true,
+    });
+  });
+
+  it("does not execute any profile command when one command is blocked", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(path.join(cwd, "pass.cjs"), 'process.stdout.write("should-not-run\\n");\n');
+    const profile = resolveVerifyProfile({
+      commands: [{ command: "node", args: ["pass.cjs"] }, "pnpm test && rm -rf .krn"],
+      mode: "execute",
+    }).profile;
+    const results = await runVerifyCommands(profile, {
+      cwd,
+      limits: profile.limits,
+      nowMs: () => 0,
+    });
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        commandText: "node pass.cjs",
+        status: "not-run",
+        reason: "profile contains blocked command",
+      }),
+      expect.objectContaining({
+        commandText: "pnpm test && rm -rf .krn",
+        status: "blocked",
+        reason: "shell syntax is not allowed",
+      }),
+    ]);
+    expect(buildVerifyResult({ profile, commandResults: results }).status).toBe("blocked");
+  });
+
+  it("records missing node fixture as a failed command", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    const result = await runVerifyCommand(
+      { command: "node", args: ["missing.cjs"] },
+      {
+        cwd,
+        limits: { timeoutMs: 5000, maxOutputBytes: 2000 },
+        nowMs: () => 0,
+      },
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderrTail).toContain("missing.cjs");
   });
 
   it("records graph artifact and current run trace evidence when provided", () => {

@@ -19,7 +19,7 @@ Usage:
   krn start "<task>"
   krn graph
   krn context
-  krn verify [--profile <name>]
+  krn verify [--profile <name>] [--execute]
   krn handoff
   krn doctor
   krn eval
