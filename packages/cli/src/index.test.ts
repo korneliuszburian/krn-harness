@@ -85,9 +85,28 @@ describe("krn CLI", () => {
     const result = await runInTemp(["--help"]);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain("krn status");
-    expect(result.stdout).toContain("krn graph");
-    expect(result.stdout).toContain("krn install");
+    for (const command of [
+      "krn status",
+      'krn start "<task>"',
+      "krn graph",
+      "krn context",
+      "krn verify",
+      "krn handoff",
+      "krn doctor",
+      "krn eval",
+      "krn install",
+      "krn hook codex <event>",
+    ]) {
+      expect(result.stdout).toContain(command);
+    }
+  });
+
+  it("prints helpful output for unknown commands", async () => {
+    const result = await runInTemp(["unknown-command"]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("Unknown command: unknown-command");
+    expect(result.stdout).toContain("KRN Harness CLI");
     expect(result.stdout).toContain("krn hook codex <event>");
   });
 
