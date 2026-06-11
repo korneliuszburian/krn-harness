@@ -12,9 +12,10 @@
 
 - Task id and task summary.
 - Context STOP state and reason when present.
-- Verify status.
+- Verify status, profile, mode, and command summary.
 - Graph artifact status and node/edge counts when available.
-- Current run trace path when available.
+- Current run trace path and global trace path when available.
+- Install summary from the latest `install.ran` trace event when available.
 - Doctor, eval, and downstream acceptance status when available.
 - Artifact pointers for current task, context, graph, verify, doctor, eval, and run trace evidence.
 - Changed files when available from local git status.

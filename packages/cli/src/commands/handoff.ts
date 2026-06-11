@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import {
@@ -24,8 +24,19 @@ interface CurrentRunSummary {
   tracePath?: string | undefined;
 }
 
+interface GlobalTraceSummary {
+  status: "present" | "missing";
+  tracePath: string;
+}
+
 interface ArtifactStatusSummary {
   status: string;
+}
+
+interface InstallSummary {
+  status: "present" | "missing";
+  created?: number | undefined;
+  skipped?: number | undefined;
 }
 
 interface EvalStatusSummary extends ArtifactStatusSummary {
@@ -60,6 +71,15 @@ async function changedFiles(cwd: string): Promise<string[]> {
     ].sort();
   } catch {
     return [];
+  }
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -102,6 +122,15 @@ async function currentRunSummary(cwd: string): Promise<CurrentRunSummary> {
   };
 }
 
+async function globalTraceSummary(cwd: string): Promise<GlobalTraceSummary> {
+  const tracePath = ".krn/traces/trace.jsonl";
+
+  return {
+    status: (await pathExists(path.join(cwd, tracePath))) ? "present" : "missing",
+    tracePath,
+  };
+}
+
 async function artifactStatus(cwd: string, relativePath: string): Promise<ArtifactStatusSummary> {
   const artifact = await readJson<{ status?: unknown }>(path.join(cwd, relativePath));
 
@@ -122,14 +151,60 @@ async function evalStatus(cwd: string): Promise<EvalStatusSummary> {
   };
 }
 
+async function installSummary(cwd: string): Promise<InstallSummary> {
+  try {
+    const rawTrace = await readFile(path.join(cwd, ".krn", "traces", "trace.jsonl"), "utf8");
+    const installEvent = rawTrace
+      .trim()
+      .split("\n")
+      .reverse()
+      .map((line) => {
+        try {
+          return JSON.parse(line) as {
+            name?: unknown;
+            data?: { created?: unknown; skipped?: unknown };
+          };
+        } catch {
+          return undefined;
+        }
+      })
+      .find((event) => event?.name === "install.ran");
+
+    if (!installEvent) {
+      return { status: "missing" };
+    }
+
+    return {
+      status: "present",
+      created:
+        typeof installEvent.data?.created === "number" ? installEvent.data.created : undefined,
+      skipped:
+        typeof installEvent.data?.skipped === "number" ? installEvent.data.skipped : undefined,
+    };
+  } catch {
+    return { status: "missing" };
+  }
+}
+
+function verifyCount(value: number | undefined): string {
+  return value === undefined ? "missing" : String(value);
+}
+
 function renderHandoffMarkdown(input: {
   taskId?: string | undefined;
   taskSummary: string;
   contextStop: boolean;
   contextStopReason?: string | undefined;
   verifyStatus: string;
+  verifyProfile?: string | undefined;
+  verifyMode?: string | undefined;
+  verifyTotalCommands?: number | undefined;
+  verifyBlockedCommands?: number | undefined;
+  verifyExecutedCommands?: number | undefined;
   graph: GraphSummary;
   run: CurrentRunSummary;
+  globalTrace: GlobalTraceSummary;
+  install: InstallSummary;
   doctorStatus: string;
   evalStatus: string;
   downstreamEvalStatus?: string | undefined;
@@ -147,7 +222,17 @@ function renderHandoffMarkdown(input: {
     lines.push(`STOP reason: ${input.contextStopReason}`);
   }
 
-  lines.push("", "## Verify", "", `Status: ${input.verifyStatus}`);
+  lines.push(
+    "",
+    "## Verify",
+    "",
+    `Status: ${input.verifyStatus}`,
+    `Profile: ${input.verifyProfile ?? "missing"}`,
+    `Mode: ${input.verifyMode ?? "missing"}`,
+    `Commands: total ${verifyCount(input.verifyTotalCommands)}, blocked ${verifyCount(
+      input.verifyBlockedCommands,
+    )}, executed ${verifyCount(input.verifyExecutedCommands)}`,
+  );
   lines.push(
     "",
     "## Graph",
@@ -159,6 +244,13 @@ function renderHandoffMarkdown(input: {
     "## Trace",
     "",
     `Current run trace: ${input.run.tracePath ?? "missing"}`,
+    `Global trace: ${input.globalTrace.status === "present" ? input.globalTrace.tracePath : "missing"}`,
+    "",
+    "## Install",
+    "",
+    `Status: ${input.install.status}`,
+    `Created: ${verifyCount(input.install.created)}`,
+    `Skipped: ${verifyCount(input.install.skipped)}`,
     "",
     "## Doctor",
     "",
@@ -195,7 +287,7 @@ function renderHandoffMarkdown(input: {
     "",
     "## Residual Risks",
     "",
-    "- Verification commands are recorded, not executed by the P0 verifier.",
+    "- Verify evidence is local; command output tails are compact and not production proof.",
     "",
     "## Next Safe Action",
     "",
@@ -207,17 +299,29 @@ function renderHandoffMarkdown(input: {
 }
 
 export async function handoffCommand(runtime: CliRuntime): Promise<number> {
-  const [taskContract, contextPackage, verifyResult, graph, run, doctor, evalResult, files] =
-    await Promise.all([
-      readCurrentTaskContract(runtime.cwd),
-      readCurrentContextPackage(runtime.cwd),
-      readCurrentVerifyResult(runtime.cwd),
-      graphSummary(runtime.cwd),
-      currentRunSummary(runtime.cwd),
-      artifactStatus(runtime.cwd, ".krn/current/doctor-result.json"),
-      evalStatus(runtime.cwd),
-      changedFiles(runtime.cwd),
-    ]);
+  const [
+    taskContract,
+    contextPackage,
+    verifyResult,
+    graph,
+    run,
+    globalTrace,
+    install,
+    doctor,
+    evalResult,
+    files,
+  ] = await Promise.all([
+    readCurrentTaskContract(runtime.cwd),
+    readCurrentContextPackage(runtime.cwd),
+    readCurrentVerifyResult(runtime.cwd),
+    graphSummary(runtime.cwd),
+    currentRunSummary(runtime.cwd),
+    globalTraceSummary(runtime.cwd),
+    installSummary(runtime.cwd),
+    artifactStatus(runtime.cwd, ".krn/current/doctor-result.json"),
+    evalStatus(runtime.cwd),
+    changedFiles(runtime.cwd),
+  ]);
   const taskId = taskContract?.id ?? contextPackage?.taskId ?? verifyResult?.taskId;
   const contextStop = contextPackage?.stop ?? false;
   const markdown = renderHandoffMarkdown({
@@ -226,8 +330,15 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
     contextStop,
     contextStopReason: contextPackage?.stopReason,
     verifyStatus: verifyResult?.status ?? "missing",
+    verifyProfile: verifyResult?.profileName,
+    verifyMode: verifyResult?.mode,
+    verifyTotalCommands: verifyResult?.summary.totalCommands,
+    verifyBlockedCommands: verifyResult?.summary.blockedCommands,
+    verifyExecutedCommands: verifyResult?.summary.executedCommands,
     graph,
     run,
+    globalTrace,
+    install,
     doctorStatus: doctor.status,
     evalStatus: evalResult.status,
     downstreamEvalStatus: evalResult.downstreamStatus,

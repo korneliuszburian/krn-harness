@@ -511,6 +511,11 @@ markdown: .krn/graph/repo-graph.md
 
     expect(doctor).toMatchObject({ code: 0 });
     expect(evalResult).toMatchObject({ code: 0 });
+    const handoffMarkdown = await readFile(path.join(cwd, ".krn/current/handoff.md"), "utf8");
+    expect(handoffMarkdown).toContain("## Install\n\nStatus: present");
+    expect(handoffMarkdown).toContain("Profile: unit");
+    expect(handoffMarkdown).toContain("Mode: execute");
+    expect(handoffMarkdown).toContain("Commands: total 1, blocked 0, executed 1");
     await expectFile(cwd, "krn.config.json");
     await expectFile(cwd, "AGENTS.md");
     await expectFile(cwd, ".codex/hooks.json");
@@ -1737,9 +1742,14 @@ markdown: .krn/graph/repo-graph.md
     expect(handoffMarkdown).toContain("Task ID: task-d62ea4fbc009");
     expect(handoffMarkdown).toContain("Context STOP: false");
     expect(handoffMarkdown).toContain("Status: not-runnable");
+    expect(handoffMarkdown).toContain("Profile: generic");
+    expect(handoffMarkdown).toContain("Mode: record-only");
+    expect(handoffMarkdown).toContain("Commands: total 0, blocked 0, executed 0");
     expect(handoffMarkdown).toContain("## Graph");
     expect(handoffMarkdown).toContain("Nodes: missing");
     expect(handoffMarkdown).toContain("Current run trace: .krn/runs/task-d62ea4fbc009/trace.jsonl");
+    expect(handoffMarkdown).toContain("Global trace: .krn/traces/trace.jsonl");
+    expect(handoffMarkdown).toContain("## Install\n\nStatus: missing");
     expect(handoffMarkdown).toContain("## Artifact Pointers");
     expect(handoffMarkdown).toContain("- Task contract: .krn/current/task-contract.json");
 
@@ -2068,6 +2078,7 @@ markdown: .krn/graph/repo-graph.md
     expect(handoffMarkdown).toContain("## Doctor\n\nStatus: warn");
     expect(handoffMarkdown).toContain("## Eval\n\nStatus: pass");
     expect(handoffMarkdown).toContain("Downstream acceptance: pass");
+    expect(handoffMarkdown).toContain("Global trace: .krn/traces/trace.jsonl");
     expect(handoffMarkdown).toContain("## Artifact Pointers");
     expect(handoffMarkdown).toContain("- Task contract: .krn/current/task-contract.json");
     expect(handoffMarkdown).toContain("- Graph JSON: .krn/graph/repo-graph.json");
