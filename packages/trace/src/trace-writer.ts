@@ -1,6 +1,6 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import type { TraceEvent } from "./schema.js";
+import { isTraceEventName, type TraceEvent } from "./schema.js";
 
 export function defaultTracePath(cwd = process.cwd()): string {
   return path.join(cwd, ".krn", "traces", "trace.jsonl");
@@ -15,5 +15,13 @@ export async function readTraceLines(raw: string): Promise<TraceEvent[]> {
   return raw
     .split("\n")
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as TraceEvent);
+    .map((line) => {
+      const event = JSON.parse(line) as TraceEvent;
+
+      if (!isTraceEventName(event.name)) {
+        throw new Error(`Invalid trace event name: ${String(event.name)}`);
+      }
+
+      return event;
+    });
 }

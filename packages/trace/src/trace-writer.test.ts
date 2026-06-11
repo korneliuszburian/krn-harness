@@ -60,4 +60,34 @@ describe("trace determinism", () => {
     expect(raw.endsWith("\n")).toBe(true);
     await expect(readTraceLines(raw)).resolves.toEqual([first, second]);
   });
+
+  it("ignores empty JSONL lines when reading traces", async () => {
+    await expect(
+      readTraceLines(
+        `${JSON.stringify({
+          id: "trace-one",
+          timestamp: "2026-06-04T00:00:00.000Z",
+          name: "cli.status",
+        })}\n\n`,
+      ),
+    ).resolves.toEqual([
+      {
+        id: "trace-one",
+        timestamp: "2026-06-04T00:00:00.000Z",
+        name: "cli.status",
+      },
+    ]);
+  });
+
+  it("rejects unknown trace event names", async () => {
+    await expect(
+      readTraceLines(
+        `${JSON.stringify({
+          id: "trace-one",
+          timestamp: "2026-06-04T00:00:00.000Z",
+          name: "unknown.event",
+        })}\n`,
+      ),
+    ).rejects.toThrow("Invalid trace event name: unknown.event");
+  });
 });
