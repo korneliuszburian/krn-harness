@@ -13,6 +13,7 @@
 
 - `status`: `pass`, `warn`, or `fail`.
 - `checks`: ordered health findings with `name`, `status`, and `detail`.
+- `nextActions`: deterministic operator suggestions for missing graph, context, verify, or handoff artifacts.
 
 ## P0 Checks
 

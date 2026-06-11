@@ -39,7 +39,13 @@ describe("doctor result", () => {
       status: "warn",
       detail: "krn.config.json is missing; default config is active",
     });
-    expect(renderDoctorResultMarkdown(result)).toContain("Status: warn");
+    expect(result.nextActions).toEqual([
+      "Run `krn graph` to generate graph artifacts.",
+      "Run `krn context` to generate the current context package.",
+      "Run `krn verify` to record P0 verification state.",
+      "Run `krn handoff` to generate the current handoff.",
+    ]);
+    expect(renderDoctorResultMarkdown(result)).toContain("## Next Actions");
   });
 
   it("reports invalid config as a failure without throwing", async () => {

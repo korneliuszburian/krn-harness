@@ -829,6 +829,7 @@ markdown: .krn/graph/repo-graph.md
     const doctorJson = await readJson<{
       status: string;
       checks: Array<{ name: string; status: string }>;
+      nextActions: string[];
     }>(start.cwd, ".krn/current/doctor-result.json");
     const verifyJson = await readJson<{
       graphArtifactPresent: boolean;
@@ -876,6 +877,7 @@ markdown: .krn/graph/repo-graph.md
       "global-trace",
     ]);
     expect(doctorMarkdown).toContain("Status: warn");
+    expect(doctorJson.nextActions).toEqual([]);
     expect(verifyJson).toMatchObject({
       graphArtifactPresent: true,
       currentRunTracePresent: true,

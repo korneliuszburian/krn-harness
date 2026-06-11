@@ -13,6 +13,7 @@ export type DoctorStatus = "pass" | "warn" | "fail";
 export interface DoctorResult {
   status: DoctorStatus;
   checks: DoctorCheck[];
+  nextActions: string[];
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -42,6 +43,29 @@ function deriveStatus(checks: DoctorCheck[]): DoctorStatus {
   }
 
   return "pass";
+}
+
+function nextActionsFor(checks: DoctorCheck[]): string[] {
+  const byName = new Map(checks.map((check) => [check.name, check]));
+  const actions: string[] = [];
+
+  if (byName.get("graph-json")?.status === "warn") {
+    actions.push("Run `krn graph` to generate graph artifacts.");
+  }
+
+  if (byName.get("current-context-package")?.status === "warn") {
+    actions.push("Run `krn context` to generate the current context package.");
+  }
+
+  if (byName.get("current-verify-result")?.status === "warn") {
+    actions.push("Run `krn verify` to record P0 verification state.");
+  }
+
+  if (byName.get("current-handoff")?.status === "warn") {
+    actions.push("Run `krn handoff` to generate the current handoff.");
+  }
+
+  return actions;
 }
 
 async function isHarnessSource(cwd: string): Promise<boolean> {
@@ -470,6 +494,7 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
   return {
     status: deriveStatus(checks),
     checks,
+    nextActions: nextActionsFor(checks),
   };
 }
 
@@ -479,6 +504,13 @@ export function renderDoctorResultMarkdown(result: DoctorResult): string {
   for (const check of result.checks) {
     lines.push(`- ${check.name}: ${check.status} - ${check.detail}`);
   }
+
+  lines.push("", "## Next Actions", "");
+  lines.push(
+    ...(result.nextActions.length > 0
+      ? result.nextActions.map((action) => `- ${action}`)
+      : ["- none"]),
+  );
 
   lines.push("");
   return lines.join("\n");
