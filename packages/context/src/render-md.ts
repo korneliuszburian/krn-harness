@@ -42,7 +42,11 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
     }
 
     for (const item of items) {
-      lines.push(`- ${item.path} (${item.status}, ${item.priority}): ${item.reason}`);
+      const provenance =
+        item.source || item.selector
+          ? ` [source: ${item.source ?? "unknown"}, selector: ${item.selector ?? "none"}]`
+          : "";
+      lines.push(`- ${item.path} (${item.status}, ${item.priority}): ${item.reason}${provenance}`);
     }
   }
 

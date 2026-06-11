@@ -527,6 +527,8 @@ describe("krn CLI", () => {
         priority: 100,
         bucket: "missing-context",
         status: "missing",
+        source: "task-policy",
+        selector: "missing-context-policy",
       },
     ]);
     expect(markdown).toContain("## Missing Context");

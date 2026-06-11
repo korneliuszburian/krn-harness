@@ -37,6 +37,10 @@ function item(
   reason: string,
   priority: number,
   status: ContextItem["status"] = "available",
+  explainability: Pick<
+    ContextItem,
+    "source" | "selector" | "matchedTerms" | "relationKind" | "sourceNode" | "targetNode"
+  > = {},
 ): ContextItem {
   return {
     path,
@@ -44,23 +48,37 @@ function item(
     priority,
     bucket,
     status,
+    ...explainability,
   };
 }
 
 function baseItems(): ContextItem[] {
   return [
-    item("must-read", "AGENTS.md", "Repo-level operating contract", 100),
+    item("must-read", "AGENTS.md", "Repo-level operating contract", 100, "available", {
+      source: "base",
+      selector: "repo-agents",
+    }),
     item(
       "should-read",
       "docs/architecture/architecture-spec-v0.1.md",
       "P0 architecture canon when present",
       80,
+      "available",
+      {
+        source: "base",
+        selector: "architecture-canon",
+      },
     ),
     item(
       "reference-only",
       "docs/specs/context-package.schema.md",
       "Context package schema reference",
       40,
+      "available",
+      {
+        source: "base",
+        selector: "context-schema",
+      },
     ),
   ];
 }
@@ -76,9 +94,9 @@ function taskTermsFor(task: string): string[] {
   ].sort((left, right) => left.localeCompare(right));
 }
 
-function textMatchesTerms(text: string, terms: string[]): boolean {
+function matchedTermsForText(text: string, terms: string[]): string[] {
   const normalized = text.toLowerCase();
-  return terms.some((term) => normalized.includes(term));
+  return terms.filter((term) => normalized.includes(term));
 }
 
 function graphNodeText(node: { label: string; evidencePath: string } | undefined): string {
@@ -96,6 +114,10 @@ function taskPolicyItems(task: string): ContextItem[] {
         "Required context is absent",
         100,
         "missing",
+        {
+          source: "task-policy",
+          selector: "missing-context-policy",
+        },
       ),
     ];
   }
@@ -121,47 +143,90 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
     const to = nodeById.get(edge.to);
     const relationText = `${edge.evidencePath} ${graphNodeText(from)} ${graphNodeText(to)}`;
 
-    if (!textMatchesTerms(relationText, taskTerms)) {
+    const matchedTerms = matchedTermsForText(relationText, taskTerms);
+    if (matchedTerms.length === 0) {
       continue;
     }
 
     items.push(
-      item("must-read", edge.evidencePath, "Graph-lite style relation matched task terms", 98),
+      item(
+        "must-read",
+        edge.evidencePath,
+        "Graph-lite style relation matched task terms",
+        98,
+        "available",
+        {
+          source: "graph",
+          selector: "style-related-to",
+          matchedTerms,
+          relationKind: edge.kind,
+          sourceNode: edge.from,
+          targetNode: edge.to,
+        },
+      ),
     );
 
     if (to?.evidencePath) {
       items.push(
-        item("must-read", to.evidencePath, "Graph-lite related stylesheet matched task terms", 97),
+        item(
+          "must-read",
+          to.evidencePath,
+          "Graph-lite related stylesheet matched task terms",
+          97,
+          "available",
+          {
+            source: "graph",
+            selector: "style-related-to-target",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
       );
     }
   }
 
   for (const node of graph.nodes) {
-    if (
-      node.kind === "acf-group" &&
-      textMatchesTerms(graphNodeText(node), taskTerms) &&
-      node.status !== "deprecated"
-    ) {
+    const matchedTerms = matchedTermsForText(graphNodeText(node), taskTerms);
+
+    if (node.kind === "acf-group" && matchedTerms.length > 0 && node.status !== "deprecated") {
       items.push(
-        item("must-read", node.evidencePath, "Graph-lite ACF contract matched task terms", 96),
+        item(
+          "must-read",
+          node.evidencePath,
+          "Graph-lite ACF contract matched task terms",
+          96,
+          "available",
+          {
+            source: "graph",
+            selector: "acf-group",
+            matchedTerms,
+            sourceNode: node.id,
+          },
+        ),
       );
     }
 
-    if (
-      node.kind === "doc" &&
-      node.status !== "deprecated" &&
-      textMatchesTerms(graphNodeText(node), taskTerms)
-    ) {
+    if (node.kind === "doc" && node.status !== "deprecated" && matchedTerms.length > 0) {
       items.push(
-        item("reference-only", node.evidencePath, "Graph-lite doc matched task terms", 30),
+        item(
+          "reference-only",
+          node.evidencePath,
+          "Graph-lite doc matched task terms",
+          30,
+          "available",
+          {
+            source: "graph",
+            selector: "doc-match",
+            matchedTerms,
+            sourceNode: node.id,
+          },
+        ),
       );
     }
 
-    if (
-      node.kind === "doc" &&
-      node.status === "deprecated" &&
-      textMatchesTerms(graphNodeText(node), taskTerms)
-    ) {
+    if (node.kind === "doc" && node.status === "deprecated" && matchedTerms.length > 0) {
       items.push(
         item(
           "do-not-use",
@@ -169,6 +234,12 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
           "Graph-lite marked this document deprecated",
           100,
           "deprecated",
+          {
+            source: "graph",
+            selector: "deprecated-doc-status",
+            matchedTerms,
+            sourceNode: node.id,
+          },
         ),
       );
     }

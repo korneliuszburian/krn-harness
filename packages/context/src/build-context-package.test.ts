@@ -66,8 +66,50 @@ describe("context package", () => {
     expect(pkg.stop).toBe(fixture.expected.stop);
     expect(pkg.taskId).toBe("task-9eddfd5aa2d1");
     expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(fixture.expected.mustRead);
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "AGENTS.md",
+        source: "base",
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/theme/templates/section.php",
+        source: "graph",
+        selector: "style-related-to",
+        matchedTerms: ["frontend", "section"],
+        relationKind: "style-related-to",
+        sourceNode: "file:fixtures/repos/frontend-section-context/theme/templates/section.php",
+        targetNode: "file:fixtures/repos/frontend-section-context/theme/assets/section.css",
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/theme/assets/section.css",
+        source: "graph",
+        selector: "style-related-to-target",
+        matchedTerms: ["frontend", "section"],
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/acf-json/section.json",
+        source: "graph",
+        selector: "acf-group",
+        matchedTerms: ["frontend", "section"],
+        sourceNode: "acf-group:group_fixture_section",
+      }),
+    );
     expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual(
       expect.arrayContaining(fixture.expected.referenceOnly ?? []),
+    );
+    expect(pkg.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/frontend-section-context/README.md",
+        source: "graph",
+        selector: "doc-match",
+        matchedTerms: ["frontend", "section"],
+      }),
     );
     expect(pkg.coverage).toEqual({
       required: 4,
@@ -124,6 +166,30 @@ describe("context package", () => {
       "docs/specs/context-package.schema.md",
       "apps/site/README.md",
     ]);
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "apps/site/theme/templates/hero-section.php",
+        source: "graph",
+        selector: "style-related-to",
+        matchedTerms: ["hero", "section"],
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "apps/site/theme/assets/hero-section.css",
+        source: "graph",
+        selector: "style-related-to-target",
+        matchedTerms: ["hero", "section"],
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "apps/site/acf-json/hero-section.json",
+        source: "graph",
+        selector: "acf-group",
+        matchedTerms: ["hero", "section"],
+      }),
+    );
   });
 
   it("does not inject frontend fixture files when graph evidence is absent", () => {
@@ -148,18 +214,24 @@ describe("context package", () => {
       expect.objectContaining({
         path: "fixtures/repos/frontend-section-context/theme/templates/section.php",
         reason: "Graph-lite style relation matched task terms",
+        source: "graph",
+        selector: "style-related-to",
       }),
     );
     expect(pkg.buckets.mustRead).toContainEqual(
       expect.objectContaining({
         path: "fixtures/repos/frontend-section-context/theme/assets/section.css",
         reason: "Graph-lite related stylesheet matched task terms",
+        source: "graph",
+        selector: "style-related-to-target",
       }),
     );
     expect(pkg.buckets.mustRead).toContainEqual(
       expect.objectContaining({
         path: "fixtures/repos/frontend-section-context/acf-json/section.json",
         reason: "Graph-lite ACF contract matched task terms",
+        source: "graph",
+        selector: "acf-group",
       }),
     );
   });
@@ -191,6 +263,10 @@ describe("context package", () => {
         priority: 100,
         bucket: "do-not-use",
         status: "deprecated",
+        source: "graph",
+        selector: "deprecated-doc-status",
+        matchedTerms: ["stale"],
+        sourceNode: `doc:${staleDoc}`,
       },
     ]);
   });
@@ -210,6 +286,8 @@ describe("context package", () => {
         priority: 100,
         bucket: "missing-context",
         status: "missing",
+        source: "task-policy",
+        selector: "missing-context-policy",
       },
     ]);
     expect(pkg.coverage.confidence).toBe("low");
@@ -224,5 +302,6 @@ describe("context package", () => {
     expect(markdown).toContain("STOP: true");
     expect(markdown).toContain("Coverage: 1/2 required present");
     expect(markdown).toContain("docs/required-context.md");
+    expect(markdown).toContain("source: task-policy, selector: missing-context-policy");
   });
 });
