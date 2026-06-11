@@ -592,6 +592,9 @@ describe("krn CLI", () => {
     expect(handoffMarkdown).toContain("Task ID: task-d62ea4fbc009");
     expect(handoffMarkdown).toContain("Context STOP: false");
     expect(handoffMarkdown).toContain("Status: not-runnable");
+    expect(handoffMarkdown).toContain("## Graph");
+    expect(handoffMarkdown).toContain("Nodes: missing");
+    expect(handoffMarkdown).toContain("Current run trace: .krn/runs/task-d62ea4fbc009/trace.jsonl");
 
     await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
       { name: "task.started", taskId: "task-d62ea4fbc009" },
@@ -663,6 +666,9 @@ describe("krn CLI", () => {
     expect(evalResult).toMatchObject({ code: 0 });
     expect(evalResult.stdout).toContain("KRN eval: pass");
 
+    const finalHandoff = await runInCwd(start.cwd, ["handoff"]);
+    expect(finalHandoff).toMatchObject({ code: 0 });
+
     const doctorJson = await readJson<{
       status: string;
       checks: Array<{ name: string; status: string }>;
@@ -685,6 +691,7 @@ describe("krn CLI", () => {
       path.join(start.cwd, ".krn/current/eval-result.md"),
       "utf8",
     );
+    const handoffMarkdown = await readFile(path.join(start.cwd, ".krn/current/handoff.md"), "utf8");
 
     expect(doctorJson.status).toBe("warn");
     expect(doctorJson.checks.map((check) => check.name)).toEqual([
@@ -726,6 +733,13 @@ describe("krn CLI", () => {
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
     expect(evalMarkdown).toContain("## Trace");
+    expect(handoffMarkdown).toContain("## Graph");
+    expect(handoffMarkdown).toContain("Status: present");
+    expect(handoffMarkdown).toContain("Nodes:");
+    expect(handoffMarkdown).toContain("Edges:");
+    expect(handoffMarkdown).toContain("Current run trace: .krn/runs/task-a39f90427522/trace.jsonl");
+    expect(handoffMarkdown).toContain("## Doctor\n\nStatus: warn");
+    expect(handoffMarkdown).toContain("## Eval\n\nStatus: pass");
 
     await expect(readTraceEvents(start.cwd)).resolves.toMatchObject([
       { name: "task.started", taskId: "task-a39f90427522" },
@@ -737,6 +751,11 @@ describe("krn CLI", () => {
       {
         name: "eval.ran",
         data: { status: "pass", fixtures: 3, passCount: 12, failCount: 0 },
+      },
+      {
+        name: "handoff.created",
+        taskId: "task-a39f90427522",
+        data: { contextStop: false, verifyStatus: "not-runnable" },
       },
     ]);
   });

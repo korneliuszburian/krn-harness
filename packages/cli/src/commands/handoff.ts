@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { promisify } from "node:util";
 import {
   readCurrentContextPackage,
@@ -10,6 +12,21 @@ import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 const execFileAsync = promisify(execFile);
+
+interface GraphSummary {
+  status: "present" | "missing";
+  nodeCount?: number | undefined;
+  edgeCount?: number | undefined;
+}
+
+interface CurrentRunSummary {
+  status: "present" | "missing";
+  tracePath?: string | undefined;
+}
+
+interface ArtifactStatusSummary {
+  status: string;
+}
 
 export function parseGitStatusPath(line: string): string | undefined {
   const rawPath = line.slice(3).trim();
@@ -42,12 +59,63 @@ async function changedFiles(cwd: string): Promise<string[]> {
   }
 }
 
+async function readJson<T>(filePath: string): Promise<T | undefined> {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8")) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+async function graphSummary(cwd: string): Promise<GraphSummary> {
+  const graph = await readJson<{ nodeCount?: unknown; edgeCount?: unknown }>(
+    path.join(cwd, ".krn", "graph", "repo-graph.json"),
+  );
+
+  if (!graph || typeof graph.nodeCount !== "number" || typeof graph.edgeCount !== "number") {
+    return { status: "missing" };
+  }
+
+  return {
+    status: "present",
+    nodeCount: graph.nodeCount,
+    edgeCount: graph.edgeCount,
+  };
+}
+
+async function currentRunSummary(cwd: string): Promise<CurrentRunSummary> {
+  const run = await readJson<{ tracePath?: unknown }>(
+    path.join(cwd, ".krn", "current", "run.json"),
+  );
+
+  if (!run || typeof run.tracePath !== "string") {
+    return { status: "missing" };
+  }
+
+  return {
+    status: "present",
+    tracePath: run.tracePath,
+  };
+}
+
+async function artifactStatus(cwd: string, relativePath: string): Promise<ArtifactStatusSummary> {
+  const artifact = await readJson<{ status?: unknown }>(path.join(cwd, relativePath));
+
+  return {
+    status: typeof artifact?.status === "string" ? artifact.status : "missing",
+  };
+}
+
 function renderHandoffMarkdown(input: {
   taskId?: string | undefined;
   taskSummary: string;
   contextStop: boolean;
   contextStopReason?: string | undefined;
   verifyStatus: string;
+  graph: GraphSummary;
+  run: CurrentRunSummary;
+  doctorStatus: string;
+  evalStatus: string;
   changedFiles: string[];
 }): string {
   const lines = [
@@ -62,7 +130,30 @@ function renderHandoffMarkdown(input: {
     lines.push(`STOP reason: ${input.contextStopReason}`);
   }
 
-  lines.push("", "## Verify", "", `Status: ${input.verifyStatus}`, "", "## Changed Files", "");
+  lines.push("", "## Verify", "", `Status: ${input.verifyStatus}`);
+  lines.push(
+    "",
+    "## Graph",
+    "",
+    `Status: ${input.graph.status}`,
+    `Nodes: ${input.graph.nodeCount ?? "missing"}`,
+    `Edges: ${input.graph.edgeCount ?? "missing"}`,
+    "",
+    "## Trace",
+    "",
+    `Current run trace: ${input.run.tracePath ?? "missing"}`,
+    "",
+    "## Doctor",
+    "",
+    `Status: ${input.doctorStatus}`,
+    "",
+    "## Eval",
+    "",
+    `Status: ${input.evalStatus}`,
+    "",
+    "## Changed Files",
+    "",
+  );
   lines.push(
     ...(input.changedFiles.length > 0 ? input.changedFiles.map((file) => `- ${file}`) : ["- none"]),
   );
@@ -87,12 +178,17 @@ function renderHandoffMarkdown(input: {
 }
 
 export async function handoffCommand(runtime: CliRuntime): Promise<number> {
-  const [taskContract, contextPackage, verifyResult, files] = await Promise.all([
-    readCurrentTaskContract(runtime.cwd),
-    readCurrentContextPackage(runtime.cwd),
-    readCurrentVerifyResult(runtime.cwd),
-    changedFiles(runtime.cwd),
-  ]);
+  const [taskContract, contextPackage, verifyResult, graph, run, doctor, evalResult, files] =
+    await Promise.all([
+      readCurrentTaskContract(runtime.cwd),
+      readCurrentContextPackage(runtime.cwd),
+      readCurrentVerifyResult(runtime.cwd),
+      graphSummary(runtime.cwd),
+      currentRunSummary(runtime.cwd),
+      artifactStatus(runtime.cwd, ".krn/current/doctor-result.json"),
+      artifactStatus(runtime.cwd, ".krn/current/eval-result.json"),
+      changedFiles(runtime.cwd),
+    ]);
   const taskId = taskContract?.id ?? contextPackage?.taskId ?? verifyResult?.taskId;
   const contextStop = contextPackage?.stop ?? false;
   const markdown = renderHandoffMarkdown({
@@ -101,6 +197,10 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
     contextStop,
     contextStopReason: contextPackage?.stopReason,
     verifyStatus: verifyResult?.status ?? "missing",
+    graph,
+    run,
+    doctorStatus: doctor.status,
+    evalStatus: evalResult.status,
     changedFiles: files,
   });
 

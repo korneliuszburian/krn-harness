@@ -13,6 +13,9 @@
 - Task id and task summary.
 - Context STOP state and reason when present.
 - Verify status.
+- Graph artifact status and node/edge counts when available.
+- Current run trace path when available.
+- Doctor and eval status when available.
 - Changed files when available from local git status.
 - Known gaps, residual risks, and next safe action placeholders.
 
