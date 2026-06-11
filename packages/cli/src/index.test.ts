@@ -461,7 +461,18 @@ markdown: .krn/graph/repo-graph.md
     );
     await expect(runInCwd(cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
     await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+    await expect(readJson(cwd, ".krn/current/context-package.json")).resolves.toMatchObject({
+      stop: false,
+    });
 
+    const sessionStart = await runInCwd(cwd, ["hook", "codex", "SessionStart"]);
+    expect(sessionStart).toMatchObject({ code: 0 });
+    expect(JSON.parse(sessionStart.stdout)).toMatchObject({
+      event: "SessionStart",
+      decision: "allow",
+      status: "ok",
+      enforced: false,
+    });
     const hook = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
       stdin: JSON.stringify({ tool: "Read", filePath: "src/index.ts" }),
     });
@@ -472,8 +483,28 @@ markdown: .krn/graph/repo-graph.md
       status: "ok",
       enforced: false,
     });
+    const outOfScopeHook = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({ toolName: "Write", filePath: "src/out-of-scope.ts" }),
+    });
+    expect(outOfScopeHook).toMatchObject({ code: 0 });
+    expect(JSON.parse(outOfScopeHook.stdout)).toMatchObject({
+      event: "PreToolUse",
+      decision: "block",
+      status: "blocked",
+      enforced: false,
+      findings: [expect.objectContaining({ code: "out-of-scope-edit" })],
+    });
 
     await expect(runInCwd(cwd, ["verify"])).resolves.toMatchObject({ code: 0 });
+    const executeVerify = await runInCwd(cwd, ["verify", "--execute"]);
+    expect(executeVerify).toMatchObject({ code: 0 });
+    expect(executeVerify.stdout).toContain("KRN verify: pass");
+    await expect(readJson(cwd, ".krn/current/verify-result.json")).resolves.toMatchObject({
+      status: "pass",
+      mode: "execute",
+      summary: { executedCommands: 1 },
+      executedCommands: ["node src/index.test.ts"],
+    });
     await expect(runInCwd(cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
     const doctor = await runInCwd(cwd, ["doctor"]);
     const evalResult = await runInCwd(cwd, ["eval"]);
@@ -487,7 +518,11 @@ markdown: .krn/graph/repo-graph.md
     await expectFile(cwd, ".krn/current/handoff.md");
     await expectFile(cwd, ".krn/current/doctor-result.json");
     await expectFile(cwd, ".krn/current/eval-result.json");
+    await expectFile(cwd, ".krn/current/verify-result.json");
+    await expectFile(cwd, ".krn/graph/repo-graph.json");
+    await expectFile(cwd, ".krn/traces/trace.jsonl");
     await expectFile(cwd, `.krn/runs/${contract.id}/trace.jsonl`);
+    await expectFile(cwd, `.krn/runs/${contract.id}/run.json`);
 
     const doctorJson = await readJson<{
       checks: Array<{ name: string; status: string; detail: string }>;
@@ -516,6 +551,9 @@ markdown: .krn/graph/repo-graph.md
       "graph.built",
       "context.built",
       "hook.received",
+      "hook.received",
+      "hook.received",
+      "verify.ran",
       "verify.ran",
       "handoff.created",
       "doctor.ran",
@@ -525,6 +563,7 @@ markdown: .krn/graph/repo-graph.md
       "task.started",
       "graph.built",
       "context.built",
+      "verify.ran",
       "verify.ran",
       "handoff.created",
       "doctor.ran",

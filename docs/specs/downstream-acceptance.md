@@ -31,6 +31,7 @@ krn context
 krn hook codex SessionStart
 krn hook codex PreToolUse
 krn verify
+krn verify --execute
 krn handoff
 krn doctor
 krn eval
@@ -38,7 +39,7 @@ krn eval
 
 The loop is local-only evidence. It does not claim CI, sandbox, hosted, or production enforcement.
 
-`fixtures/repos/downstream-basic/krn.config.json` includes a safe record-only `node src/index.test.ts` verify profile for dogfood checks. P0 policy-checks and records that command; it does not execute it.
+`fixtures/repos/downstream-basic/krn.config.json` includes a safe record-only `node src/index.test.ts` verify profile for dogfood checks. `krn verify` policy-checks and records that command. `krn verify --execute` runs it through the P0 no-shell execution path.
 
 ## Template Expectations
 

@@ -618,6 +618,7 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     "src/index.ts",
     "src/index.test.ts",
     "docs/overview.md",
+    "docs/stale.md",
   ];
   const failures: string[] = [];
 
@@ -625,6 +626,22 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     if (!(await pathExists(path.join(fixtureRootPath, relativePath)))) {
       failures.push(`missing fixtures/repos/downstream-basic/${relativePath}`);
     }
+  }
+
+  try {
+    const readme = await readFile(path.join(fixtureRootPath, "README.md"), "utf8");
+    for (const expected of [
+      "krn verify --execute",
+      ".krn/current/verify-result.json",
+      ".krn/runs/<task_id>/trace.jsonl",
+      "does not launch Codex",
+    ]) {
+      if (!readme.includes(expected)) {
+        failures.push(`downstream-basic README is missing ${expected}`);
+      }
+    }
+  } catch {
+    failures.push("downstream-basic README could not be read");
   }
 
   const agents = generateAgentsAdapter();
