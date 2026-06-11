@@ -72,6 +72,13 @@ async function expectDirectory(cwd: string, relativePath: string): Promise<void>
   expect((await stat(path.join(cwd, relativePath))).isDirectory()).toBe(true);
 }
 
+async function expectFile(cwd: string, relativePath: string): Promise<void> {
+  await expect(stat(path.join(cwd, relativePath))).resolves.toMatchObject({
+    isFile: expect.any(Function),
+  });
+  expect((await stat(path.join(cwd, relativePath))).isFile()).toBe(true);
+}
+
 describe("krn CLI", () => {
   it("parses git status paths for handoff changed files", () => {
     expect(parseGitStatusPath(" M packages/cli/src/commands/handoff.ts")).toBe(
@@ -116,6 +123,68 @@ describe("krn CLI", () => {
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("KRN status: ready");
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([{ name: "cli.status" }]);
+  });
+
+  it("runs the full P0 local loop and writes current graph trace artifacts", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+
+    for (const args of [
+      ["status"],
+      ["start", "Update", "a", "frontend", "section", "using", "only", "relevant", "context"],
+      ["graph"],
+      ["context"],
+      ["verify"],
+      ["handoff"],
+      ["doctor"],
+      ["eval"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const contract = await readJson<{ id: string }>(cwd, ".krn/current/task-contract.json");
+    const expectedFiles = [
+      ".krn/current/task-contract.json",
+      ".krn/current/task-contract.md",
+      ".krn/current/run.json",
+      ".krn/graph/repo-graph.json",
+      ".krn/graph/repo-graph.md",
+      ".krn/current/context-package.json",
+      ".krn/current/context-package.md",
+      ".krn/current/verify-result.json",
+      ".krn/current/verify-result.md",
+      ".krn/current/handoff.md",
+      ".krn/current/doctor-result.json",
+      ".krn/current/doctor-result.md",
+      ".krn/current/eval-result.json",
+      ".krn/current/eval-result.md",
+      ".krn/traces/trace.jsonl",
+      `.krn/runs/${contract.id}/trace.jsonl`,
+      `.krn/runs/${contract.id}/run.json`,
+    ];
+
+    for (const file of expectedFiles) {
+      await expectFile(cwd, file);
+    }
+
+    expect((await readTraceEvents(cwd)).map((event) => event.name)).toEqual([
+      "cli.status",
+      "task.started",
+      "graph.built",
+      "context.built",
+      "verify.ran",
+      "handoff.created",
+      "doctor.ran",
+      "eval.ran",
+    ]);
+    expect((await readRunTraceEvents(cwd, contract.id)).map((event) => event.name)).toEqual([
+      "task.started",
+      "graph.built",
+      "context.built",
+      "verify.ran",
+      "handoff.created",
+      "doctor.ran",
+      "eval.ran",
+    ]);
   });
 
   it("runs graph and writes deterministic graph artifacts", async () => {
