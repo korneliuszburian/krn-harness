@@ -1,12 +1,32 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { helpText } from "../../cli/src/index.js";
 
 async function readDoc(relativePath: string): Promise<string> {
   return readFile(path.join(process.cwd(), relativePath), "utf8");
 }
 
 describe("P0 docs anti-regression", () => {
+  it("keeps README command examples aligned with CLI help", async () => {
+    const readme = await readDoc("README.md");
+    const helpCommands = helpText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("krn "));
+
+    for (const command of helpCommands) {
+      const commandPrefix = command
+        .replace(' "<task>"', "")
+        .replace(" [--profile <name>] [--execute]", "")
+        .replace(" <command>", "")
+        .replace(" <event>", "");
+      expect(readme).toContain(`pnpm --silent ${commandPrefix}`);
+    }
+
+    expect(readme).toContain("pnpm --silent krn verify --execute");
+  });
+
   it("keeps downstream acceptance and eval scope explicit", async () => {
     const evalSpec = await readDoc("docs/specs/eval-result.schema.md");
     const downstreamSpec = await readDoc("docs/specs/downstream-acceptance.md");
@@ -87,5 +107,29 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("Do not publish from P0");
     expect(checklist).toContain("Do not add GitHub Actions");
     expect(checklist).toContain("Codex CLI CI dependency");
+  });
+
+  it("keeps P0 non-goals and memory approval boundaries explicit", async () => {
+    const readme = await readDoc("README.md");
+    const architecture = await readDoc("docs/architecture/architecture-spec-v0.1.md");
+    const memorySpec = await readDoc("docs/specs/memory.schema.md");
+
+    for (const phrase of [
+      "dashboard",
+      "MCP server",
+      "multi-agent orchestrator",
+      "vector DB",
+      "semantic embeddings",
+      "Tree-sitter",
+      "GitHub Action",
+      "plugin distribution",
+      "auto-approved memory",
+    ]) {
+      expect(readme).toContain(phrase);
+      expect(architecture).toContain(phrase);
+    }
+
+    expect(memorySpec).toContain("P0 never auto-approves memory");
+    expect(memorySpec).toContain("Pending and deprecated records are not active memory");
   });
 });

@@ -37,6 +37,10 @@ describe("Codex adapter generation", () => {
     expect(output).toContain(".krn/current/context-package.md");
     expect(output).toContain("320-480px");
     expect(output).toContain("1280-1440px");
+    expect(output.length).toBeLessThan(2200);
+    expect(output).not.toContain("dashboard");
+    expect(output).not.toContain("MCP server");
+    expect(output).not.toContain("policy engine");
   });
 
   it("generates a hooks template with all expected lifecycle events", () => {
