@@ -162,6 +162,12 @@ describe("context package", () => {
       "apps/site/theme/assets/hero-section.css",
       "apps/site/acf-json/hero-section.json",
     ]);
+    expect(pkg.buckets.mustRead.map((item) => item.reason)).toEqual([
+      "Repo-level operating contract",
+      "Graph-lite style relation matched task terms",
+      "Graph-lite related stylesheet matched task terms",
+      "Graph-lite ACF contract matched task terms",
+    ]);
     expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual([
       "docs/specs/context-package.schema.md",
       "apps/site/README.md",
@@ -244,6 +250,92 @@ describe("context package", () => {
         matchedTerms: ["billing"],
       }),
     );
+  });
+
+  it("does not select frontend section files for support docs tasks", () => {
+    const contract = buildTaskContract("Update support docs");
+    const graph = {
+      nodes: [
+        {
+          id: "file:fixtures/repos/frontend-section-context/theme/assets/section.css",
+          kind: "stylesheet",
+          label: "fixtures/repos/frontend-section-context/theme/assets/section.css",
+          evidencePath: "fixtures/repos/frontend-section-context/theme/assets/section.css",
+        },
+        {
+          id: "acf-group:group_fixture_section",
+          kind: "acf-group",
+          label: "Fixture Section",
+          evidencePath: "fixtures/repos/frontend-section-context/acf-json/section.json",
+        },
+        {
+          id: "doc:docs/support.md",
+          kind: "doc",
+          label: "Support docs",
+          evidencePath: "docs/support.md",
+          status: "available",
+        },
+      ],
+      edges: [
+        {
+          from: "file:fixtures/repos/frontend-section-context/theme/templates/section.php",
+          to: "file:fixtures/repos/frontend-section-context/theme/assets/section.css",
+          kind: "style-related-to",
+          evidencePath: "fixtures/repos/frontend-section-context/theme/templates/section.php",
+        },
+      ],
+    } satisfies GraphLite;
+
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(["AGENTS.md"]);
+    expect(pkg.buckets.mustRead.map((item) => item.path)).not.toEqual(
+      expect.arrayContaining([
+        "fixtures/repos/frontend-section-context/theme/templates/section.php",
+        "fixtures/repos/frontend-section-context/theme/assets/section.css",
+        "fixtures/repos/frontend-section-context/acf-json/section.json",
+      ]),
+    );
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual([
+      "docs/specs/context-package.schema.md",
+      "docs/support.md",
+    ]);
+  });
+
+  it("does not select active frontend files for stale-doc tasks", () => {
+    const fixture = readTaskFixture("stale-doc-trap");
+    const contract = buildTaskContract(fixture.task);
+    const staleDoc = fixture.expected.doNotUse?.[0] ?? "";
+    const graph = {
+      nodes: [
+        {
+          id: "file:fixtures/repos/frontend-section-context/theme/assets/section.css",
+          kind: "stylesheet",
+          label: "fixtures/repos/frontend-section-context/theme/assets/section.css",
+          evidencePath: "fixtures/repos/frontend-section-context/theme/assets/section.css",
+        },
+        {
+          id: `doc:${staleDoc}`,
+          kind: "doc",
+          label: staleDoc,
+          evidencePath: staleDoc,
+          status: "deprecated",
+        },
+      ],
+      edges: [
+        {
+          from: "file:fixtures/repos/frontend-section-context/theme/templates/section.php",
+          to: "file:fixtures/repos/frontend-section-context/theme/assets/section.css",
+          kind: "style-related-to",
+          evidencePath: "fixtures/repos/frontend-section-context/theme/templates/section.php",
+        },
+      ],
+    } satisfies GraphLite;
+
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(["AGENTS.md"]);
+    expect(pkg.buckets.doNotUse.map((item) => item.path)).toEqual([staleDoc]);
   });
 
   it("does not inject frontend fixture files when graph evidence is absent", () => {
