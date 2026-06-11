@@ -1,0 +1,8 @@
+{
+  "id": "memory-explicit-opt-out",
+  "task": "Harden graph selector behavior without approved memory",
+  "expected": {
+    "stop": false,
+    "referenceOnly": ["docs/specs/context-package.schema.md"]
+  }
+}

@@ -123,6 +123,8 @@ describe("harness-only eval", () => {
       "stale-doc-trap",
       "missing-context-stop",
     ]);
+    expect(result.memory.detail).toContain("broad-term");
+    expect(result.memory.detail).toContain("opt-out");
     expect(result.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
 
     const markdown = renderEvalResultMarkdown(result);

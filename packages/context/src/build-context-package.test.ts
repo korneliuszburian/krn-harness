@@ -475,6 +475,42 @@ describe("context package", () => {
     expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
   });
 
+  it("does not surface approved memory for broad single-term matches", () => {
+    const fixture = readTaskFixture("memory-broad-term-negative");
+    const contract = buildTaskContract(fixture.task);
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.stop).toBe(fixture.expected.stop);
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual(
+      fixture.expected.referenceOnly,
+    );
+    expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
+  });
+
+  it("honors explicit memory opt-out even when approved memory is task-relevant", () => {
+    const fixture = readTaskFixture("memory-explicit-opt-out");
+    const contract = buildTaskContract(fixture.task);
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.stop).toBe(fixture.expected.stop);
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual(
+      fixture.expected.referenceOnly,
+    );
+    expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
+  });
+
   it("surfaces task-relevant approved memory only as reference-only with provenance", () => {
     const contract = buildTaskContract("Harden graph selector behavior");
     const memory = approvedMemory(

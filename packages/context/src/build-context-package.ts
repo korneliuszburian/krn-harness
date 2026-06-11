@@ -1,6 +1,11 @@
 import type { GraphLite } from "../../graph/src/index.js";
 import type { MemoryRecord } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
+import {
+  explicitlyRequestsMemory,
+  hasExplicitMemoryOptOut,
+  isTaskRelevantMemoryMatch,
+} from "./memory-gate.js";
 import { rankContext } from "./rank-context.js";
 import type {
   ContextBucket,
@@ -68,18 +73,6 @@ function item(
     status,
     ...explainability,
   };
-}
-
-function explicitlyRequestsMemory(task: string): boolean {
-  const normalized = task.toLowerCase();
-
-  if (/\b(without|do not use|don't use|no)\s+(approved\s+)?memor(y|ies)\b/.test(normalized)) {
-    return false;
-  }
-
-  return /\b(memory|memories|remembered|approved memory|prior decision|previous decision)\b/.test(
-    normalized,
-  );
 }
 
 function baseItems(): ContextItem[] {
@@ -279,6 +272,10 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
 }
 
 function memoryItemsForTask(task: string, approvedMemory: MemoryRecord[] = []): ContextItem[] {
+  if (hasExplicitMemoryOptOut(task)) {
+    return [];
+  }
+
   const explicit = explicitlyRequestsMemory(task);
   const taskTerms = taskTermsFor(task);
   const items: ContextItem[] = [];
@@ -291,7 +288,7 @@ function memoryItemsForTask(task: string, approvedMemory: MemoryRecord[] = []): 
     const memoryText = `${record.summary} ${record.evidencePath ?? ""}`;
     const matchedTerms = matchedTermsForText(memoryText, taskTerms);
 
-    if (!explicit && matchedTerms.length === 0) {
+    if (!explicit && !isTaskRelevantMemoryMatch(matchedTerms)) {
       continue;
     }
 

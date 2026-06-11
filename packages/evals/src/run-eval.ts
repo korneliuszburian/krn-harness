@@ -241,6 +241,20 @@ function gradeMemoryGovernance(): EvalGrade {
       approvedMemory: [approved],
     },
   );
+  const broadTermContext = buildContextPackage(
+    buildTaskContract("Harden graph behavior"),
+    undefined,
+    {
+      approvedMemory: [approved],
+    },
+  );
+  const optOutContext = buildContextPackage(
+    buildTaskContract("Harden graph selector behavior without approved memory"),
+    undefined,
+    {
+      approvedMemory: [approved],
+    },
+  );
   const relevantMemoryItems = relevantContext.items.filter((item) => item.source === "memory");
   const explicitMemoryItems = explicitContext.items.filter((item) => item.source === "memory");
   const failures = [];
@@ -263,6 +277,14 @@ function gradeMemoryGovernance(): EvalGrade {
 
   if (unrelatedContext.items.some((item) => item.source === "memory")) {
     failures.push("unrelated approved memory leaked into context");
+  }
+
+  if (broadTermContext.items.some((item) => item.source === "memory")) {
+    failures.push("broad single-term memory match leaked into context");
+  }
+
+  if (optOutContext.items.some((item) => item.source === "memory")) {
+    failures.push("explicit memory opt-out leaked memory into context");
   }
 
   if (
@@ -298,7 +320,7 @@ function gradeMemoryGovernance(): EvalGrade {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? "Approved memory is gated to reference-only context with provenance; pending, deprecated, and unrelated memory are excluded"
+        ? "Approved memory is gated to reference-only context with provenance; pending, deprecated, unrelated, broad-term, and opt-out memory are excluded"
         : failures.join("; "),
   };
 }

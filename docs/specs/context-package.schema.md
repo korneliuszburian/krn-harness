@@ -35,4 +35,6 @@ P0 writes `.krn/current/context-package.md` and `.krn/current/context-package.js
 
 Graph selector matching is shallow and deterministic. Generic terms such as `section` are treated as too broad for graph promotion. P0 does not normalize Polish morphology or perform semantic search.
 
-Approved memory may appear only in `referenceOnly` context. It is selected only when the task explicitly asks for memory or the approved memory summary/evidence path matches task terms. Pending and deprecated memory must not appear in context.
+Approved memory may appear only in `referenceOnly` context. It is selected only when the task explicitly asks for memory or the approved memory summary/evidence path matches at least two non-broad task terms. Explicit opt-out phrases such as `without approved memory`, `no memory`, or `do not use prior decisions` suppress memory context even when terms match. Pending and deprecated memory must not appear in context.
+
+P0 memory matching is deterministic string matching only. It is not semantic retrieval.

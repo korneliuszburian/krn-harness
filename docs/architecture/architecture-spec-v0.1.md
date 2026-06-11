@@ -58,7 +58,7 @@ Verify is a skeleton profile runner. P0 evidence is local validation only and mu
 
 ## Memory
 
-Memory records are pending, approved, or deprecated. P0 does not approve memory autonomously, and approved memory can enter context only as reference-only material through explicit-request or task-relevance gates.
+Memory records are pending, approved, or deprecated. P0 does not approve memory autonomously, and approved memory can enter context only as reference-only material through explicit-request or task-relevance gates with broad-term and opt-out guards.
 
 ## Doctor
 

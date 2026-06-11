@@ -1,6 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "../../config/src/index.js";
+import { hasExplicitMemoryOptOut, isTaskRelevantMemoryMatch } from "../../context/src/index.js";
 import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
 
 export interface DoctorCheck {
@@ -342,6 +343,10 @@ function contextItemsFrom(value: unknown): Record<string, unknown>[] {
 async function memoryContextGateCheck(cwd: string): Promise<DoctorCheck> {
   const relativePath = ".krn/current/context-package.json";
   const parsedContext = await parseJsonFile(path.join(cwd, relativePath));
+  const taskContract = await readJson<{ task?: string }>(
+    path.join(cwd, ".krn", "current", "task-contract.json"),
+  );
+  const taskOptsOut = hasExplicitMemoryOptOut(taskContract?.task ?? "");
 
   if (parsedContext.status === "missing") {
     return {
@@ -379,6 +384,14 @@ async function memoryContextGateCheck(cwd: string): Promise<DoctorCheck> {
       continue;
     }
     seen.set(checkKey, item);
+
+    if (taskOptsOut) {
+      return {
+        name: "memory-context-gate",
+        status: "fail",
+        detail: `Current task explicitly opts out of memory but ${memoryId ?? pathValue} is surfaced`,
+      };
+    }
 
     if (!memoryId) {
       return {
@@ -433,6 +446,20 @@ async function memoryContextGateCheck(cwd: string): Promise<DoctorCheck> {
         status: "fail",
         detail: `Memory ${memoryId} is missing approved provenance`,
       };
+    }
+
+    if (item.selector === "approved-memory-task-match") {
+      const matchedTerms = Array.isArray(item.matchedTerms)
+        ? item.matchedTerms.filter((term) => typeof term === "string")
+        : [];
+
+      if (!isTaskRelevantMemoryMatch(matchedTerms)) {
+        return {
+          name: "memory-context-gate",
+          status: "fail",
+          detail: `Memory ${memoryId} task match is too broad`,
+        };
+      }
     }
 
     if (

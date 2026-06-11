@@ -17,6 +17,7 @@ Memory transitions are manual:
 - proposed memory starts in the pending local store;
 - approved memory becomes active only after an explicit approval command;
 - approved memory may be surfaced into context only as reference-only material when explicitly requested or task-relevant, with provenance;
+- task relevance uses deterministic string matching with broad-term guards; explicit opt-out suppresses memory context;
 - deprecated memory is excluded from active memory and context.
 
 ## Consequences

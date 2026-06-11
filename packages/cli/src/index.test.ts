@@ -697,6 +697,53 @@ markdown: .krn/graph/repo-graph.md
     expect(markdown).toContain("source: memory, selector: approved-memory-task-match");
   });
 
+  it("honors memory opt-out when building current context from approved memory", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const proposed = await runInCwd(cwd, [
+      "memory",
+      "propose",
+      "Graph",
+      "selector",
+      "should",
+      "stay",
+      "generic",
+      "--evidence",
+      "docs/specs/graph-lite.md",
+    ]);
+    expect(proposed).toMatchObject({ code: 0 });
+
+    const pending = await readJson<{ records: Array<{ id: string }> }>(
+      cwd,
+      ".krn/memory/pending.json",
+    );
+    const memoryId = pending.records[0]?.id ?? "";
+
+    await expect(runInCwd(cwd, ["memory", "approve", memoryId])).resolves.toMatchObject({
+      code: 0,
+    });
+    await expect(
+      runInCwd(cwd, [
+        "start",
+        "Harden",
+        "graph",
+        "selector",
+        "behavior",
+        "without",
+        "approved",
+        "memory",
+      ]),
+    ).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const context = await readJson<{
+      items: Array<{ source?: string; memoryId?: string }>;
+      buckets: { referenceOnly: Array<{ source?: string; memoryId?: string }> };
+    }>(cwd, ".krn/current/context-package.json");
+
+    expect(context.items.some((item) => item.source === "memory")).toBe(false);
+    expect(context.buckets.referenceOnly.some((item) => item.memoryId === memoryId)).toBe(false);
+  });
+
   it("runs start and context with task trace behavior", async () => {
     const result = await runInTemp(["start", "Implement", "a", "slice"]);
     expect(result.code).toBe(0);
