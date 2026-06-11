@@ -10,6 +10,7 @@ describe("P0 docs anti-regression", () => {
   it("keeps downstream acceptance and eval scope explicit", async () => {
     const evalSpec = await readDoc("docs/specs/eval-result.schema.md");
     const downstreamSpec = await readDoc("docs/specs/downstream-acceptance.md");
+    const demo = await readDoc("docs/demo/downstream-basic-demo.md");
 
     expect(evalSpec).toContain("Downstream Acceptance");
     expect(evalSpec).toContain("without installing into the source checkout");
@@ -18,6 +19,22 @@ describe("P0 docs anti-regression", () => {
     expect(downstreamSpec).toContain(
       "does not claim CI, sandbox, hosted, or production enforcement",
     );
+    for (const command of [
+      "krn install",
+      "krn status",
+      "krn start",
+      "krn graph",
+      "krn context",
+      "krn verify",
+      "krn verify --execute",
+      "krn handoff",
+      "krn doctor",
+      "krn eval",
+    ]) {
+      expect(demo).toContain(command);
+    }
+    expect(demo).toContain("does not launch Codex");
+    expect(demo).toContain("Hooks are guardrails and trace points, not a sandbox");
   });
 
   it("keeps hook trace and sandbox boundaries explicit", async () => {

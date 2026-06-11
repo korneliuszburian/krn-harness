@@ -39,6 +39,10 @@ pnpm --silent krn doctor
 pnpm --silent krn eval
 ```
 
+## Demo
+
+See `docs/demo/downstream-basic-demo.md` for a local downstream onboarding smoke using `fixtures/repos/downstream-basic`.
+
 ## P0 Non-Goals
 
 No dashboard, MCP server, multi-agent orchestrator, vector DB, semantic embeddings, full Tree-sitter graph, production WordPress detector, browser evidence layer, GitHub Action, plugin distribution, autonomous researcher, or auto-approved memory is implemented in P0.
