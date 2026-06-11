@@ -27,4 +27,4 @@ No P0 code should:
 
 ## Safe Next Slice
 
-A future P1/P2 slice can add a dry-run wrapper only after an ADR defines auth, sandbox, timeout, trace, and mutation policy.
+A future P1/P2 slice can add a dry-run wrapper only after `docs/adr/ADR-0012-future-codex-exec-wrapper.md` is accepted with concrete auth, sandbox, timeout, trace, protected-data, and mutation policy.

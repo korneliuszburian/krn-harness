@@ -32,10 +32,15 @@ describe("P0 docs anti-regression", () => {
 
   it("keeps Codex non-interactive feasibility separate from implemented evals", async () => {
     const feasibility = await readDoc("docs/specs/codex-noninteractive-feasibility.md");
+    const adr = await readDoc("docs/adr/ADR-0012-future-codex-exec-wrapper.md");
 
     expect(feasibility).toContain("does not implement a Codex runner");
     expect(feasibility).toContain("must not claim a working non-interactive eval runner");
     expect(feasibility).toContain("launch Codex non-interactively");
+    expect(adr).toContain("Proposed.");
+    expect(adr).toContain("Do not implement a Codex exec wrapper in P0");
+    expect(adr).toContain("local dry-run/no-mutation");
+    expect(adr).toContain("no CI dependency on Codex CLI availability");
   });
 
   it("keeps verify profile docs explicit about policy and non-execution", async () => {
