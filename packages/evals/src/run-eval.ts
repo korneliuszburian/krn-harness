@@ -247,6 +247,8 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
   const lines = [
     "# KRN Eval Result",
     "",
+    "## Summary",
+    "",
     `Status: ${result.status}`,
     `Pass count: ${result.passCount}`,
     `Fail count: ${result.failCount}`,
@@ -273,6 +275,11 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     "## Trace",
     "",
     `- ${result.trace.name}: ${result.trace.status} - ${result.trace.detail}`,
+    "",
+    "## Known P0 Limits",
+    "",
+    "- Eval uses harness-only fixtures and local traces.",
+    "- Eval does not invoke Codex, external services, or project commands.",
     "",
   );
   return lines.join("\n");

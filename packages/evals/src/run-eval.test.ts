@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { runEval } from "./run-eval.js";
+import { renderEvalResultMarkdown, runEval } from "./run-eval.js";
 
 async function writeTrace(cwd: string, names: string[]): Promise<string> {
   const tracePath = path.join(cwd, ".krn", "traces", "trace.jsonl");
@@ -120,6 +120,13 @@ describe("harness-only eval", () => {
       "missing-context-stop",
     ]);
     expect(result.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
+
+    const markdown = renderEvalResultMarkdown(result);
+    expect(markdown).toContain("## Summary");
+    expect(markdown).toContain("## Fixtures");
+    expect(markdown).toContain("## Graph");
+    expect(markdown).toContain("## Trace");
+    expect(markdown).toContain("## Known P0 Limits");
   });
 
   it("reports missing trace events deterministically", async () => {

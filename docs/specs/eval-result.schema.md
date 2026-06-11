@@ -9,6 +9,8 @@
 - `.krn/current/eval-result.json`
 - `.krn/current/eval-result.md`
 
+The Markdown artifact contains Summary, Fixtures, Graph, Trace, and Known P0 Limits sections.
+
 ## Fields
 
 - `status`: `pass` or `fail`.
