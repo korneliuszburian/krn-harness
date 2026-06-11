@@ -20,6 +20,9 @@ export async function evalCommand(runtime: CliRuntime): Promise<number> {
       fixtures: result.fixtures.length,
       passCount: result.passCount,
       failCount: result.failCount,
+      graphStatus: result.graph.status,
+      graphArtifactStatus: result.graphArtifact.status,
+      runTraceMode: result.runTraceMode,
     },
   });
 

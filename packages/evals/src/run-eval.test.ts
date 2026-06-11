@@ -24,6 +24,66 @@ async function writeTrace(cwd: string, names: string[]): Promise<string> {
   return tracePath;
 }
 
+async function writeRunTrace(cwd: string, names: string[]): Promise<void> {
+  const taskId = "task-run-trace";
+  const tracePath = path.join(cwd, ".krn", "runs", taskId, "trace.jsonl");
+  await mkdir(path.dirname(tracePath), { recursive: true });
+  await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+  await writeFile(
+    path.join(cwd, ".krn", "current", "run.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        taskId,
+        runDir: `.krn/runs/${taskId}`,
+        tracePath: `.krn/runs/${taskId}/trace.jsonl`,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+  await writeFile(
+    tracePath,
+    names
+      .map((name, index) =>
+        JSON.stringify({
+          id: `trace-${index}`,
+          timestamp: "2026-06-03T00:00:00.000Z",
+          name,
+        }),
+      )
+      .join("\n")
+      .concat("\n"),
+    "utf8",
+  );
+}
+
+async function writeGraphArtifact(cwd: string, input: { nodeCount: number; edgeCount: number }) {
+  const graphPath = path.join(cwd, ".krn", "graph", "repo-graph.json");
+  await mkdir(path.dirname(graphPath), { recursive: true });
+  await writeFile(
+    graphPath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        generatedAt: "2026-06-03T00:00:00.000Z",
+        nodeCount: input.nodeCount,
+        edgeCount: input.edgeCount,
+        detectors: ["filesystem"],
+        relationKindCounts: {},
+        nodeKindCounts: {},
+        statusCounts: {},
+        nodes: [],
+        edges: [],
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+}
+
 describe("harness-only eval", () => {
   it("passes deterministic P0 fixture graders when trace is complete", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-eval-"));
@@ -38,12 +98,21 @@ describe("harness-only eval", () => {
 
     expect(result).toMatchObject({
       status: "pass",
-      passCount: 10,
+      passCount: 12,
       failCount: 0,
+      graph: {
+        name: "graph-behavior",
+        status: "pass",
+      },
+      graphArtifact: {
+        name: "graph-artifact-shape",
+        status: "pass",
+      },
       trace: {
         name: "trace-completeness",
         status: "pass",
       },
+      runTraceMode: "global",
     });
     expect(result.fixtures.map((fixture) => fixture.name)).toEqual([
       "frontend-section-context",
@@ -64,6 +133,32 @@ describe("harness-only eval", () => {
       name: "trace-completeness",
       status: "fail",
       detail: "Missing trace event(s): context.built, verify.ran, handoff.created",
+    });
+    expect(result.runTraceMode).toBe("global");
+  });
+
+  it("prefers run-scoped trace when a current run exists", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-eval-"));
+    await writeRunTrace(cwd, ["task.started", "context.built", "verify.ran", "handoff.created"]);
+
+    const result = await runEval({ cwd });
+
+    expect(result.runTraceMode).toBe("run-scoped");
+    expect(result.trace.status).toBe("pass");
+  });
+
+  it("fails generated graph artifacts with mismatched summary counts", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-eval-"));
+    await writeTrace(cwd, ["task.started", "context.built", "verify.ran", "handoff.created"]);
+    await writeGraphArtifact(cwd, { nodeCount: 1, edgeCount: 0 });
+
+    const result = await runEval({ cwd });
+
+    expect(result.status).toBe("fail");
+    expect(result.graphArtifact).toEqual({
+      name: "graph-artifact-shape",
+      status: "fail",
+      detail: ".krn/graph/repo-graph.json count fields do not match arrays",
     });
   });
 });

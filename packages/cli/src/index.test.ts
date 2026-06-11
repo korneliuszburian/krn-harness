@@ -676,7 +676,10 @@ describe("krn CLI", () => {
       passCount: number;
       failCount: number;
       fixtures: Array<{ name: string; status: string }>;
+      graph: { status: string };
+      graphArtifact: { status: string };
       trace: { status: string };
+      runTraceMode: string;
     }>(start.cwd, ".krn/current/eval-result.json");
     const evalMarkdown = await readFile(
       path.join(start.cwd, ".krn/current/eval-result.md"),
@@ -708,9 +711,12 @@ describe("krn CLI", () => {
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 10,
+      passCount: 12,
       failCount: 0,
+      graph: { status: "pass" },
+      graphArtifact: { status: "pass" },
       trace: { status: "pass" },
+      runTraceMode: "run-scoped",
     });
     expect(evalJson.fixtures.map((fixture) => fixture.name)).toEqual([
       "frontend-section-context",
@@ -730,7 +736,7 @@ describe("krn CLI", () => {
       { name: "doctor.ran", data: { status: "warn", checks: 18 } },
       {
         name: "eval.ran",
-        data: { status: "pass", fixtures: 3, passCount: 10, failCount: 0 },
+        data: { status: "pass", fixtures: 3, passCount: 12, failCount: 0 },
       },
     ]);
   });

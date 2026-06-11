@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildContextPackage } from "../../context/src/index.js";
-import { buildGraph } from "../../graph/src/index.js";
+import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
+import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { defaultTracePath, readTraceLines } from "../../trace/src/index.js";
 import { harnessFixtures, loadEvalTaskFixture } from "./fixtures.js";
@@ -24,13 +24,21 @@ export interface EvalResult {
   passCount: number;
   failCount: number;
   fixtures: EvalFixtureResult[];
+  graph: EvalGrade;
+  graphArtifact: EvalGrade;
   trace: EvalGrade;
+  runTraceMode: "run-scoped" | "global" | "missing";
 }
 
 export interface RunEvalInput {
   cwd?: string;
   fixtureRoot?: string;
   tracePath?: string;
+}
+
+interface TraceReadResult {
+  names: string[];
+  mode: EvalResult["runTraceMode"];
 }
 
 function repoRootFromModule(): string {
@@ -46,16 +54,151 @@ async function readTraceEventNames(tracePath: string): Promise<string[]> {
   }
 }
 
+async function readTrace(cwd: string, explicitTracePath?: string): Promise<TraceReadResult> {
+  try {
+    const currentRun = JSON.parse(
+      await readFile(path.join(cwd, ".krn", "current", "run.json"), "utf8"),
+    ) as { tracePath?: string };
+
+    if (typeof currentRun.tracePath === "string") {
+      const names = await readTraceEventNames(path.join(cwd, currentRun.tracePath));
+
+      if (names.length > 0) {
+        return { names, mode: "run-scoped" };
+      }
+    }
+  } catch {
+    // Fall through to global trace.
+  }
+
+  const names = await readTraceEventNames(explicitTracePath ?? defaultTracePath(cwd));
+  return {
+    names,
+    mode: names.length > 0 ? "global" : "missing",
+  };
+}
+
+function gradeGraphBehavior(input: {
+  graph: GraphLite;
+  frontendWithGraph?: ContextPackage | undefined;
+  frontendWithoutGraph?: ContextPackage | undefined;
+  expectedMustRead?: string[] | undefined;
+}): EvalGrade {
+  const nodeKinds = new Set(input.graph.nodes.map((node) => node.kind));
+  const relationKinds = new Set(input.graph.edges.map((edge) => edge.kind));
+  const requiredNodeKinds = ["stylesheet", "acf-group", "doc"];
+  const requiredRelationKinds = ["style-related-to", "declares-acf-field", "has-acf-json"];
+  const expectedGraphPaths = (input.expectedMustRead ?? []).filter((item) => item !== "AGENTS.md");
+  const withGraphPaths = input.frontendWithGraph?.buckets.mustRead.map((item) => item.path) ?? [];
+  const withoutGraphPaths =
+    input.frontendWithoutGraph?.buckets.mustRead.map((item) => item.path) ?? [];
+  const missingNodeKinds = requiredNodeKinds.filter((kind) => !nodeKinds.has(kind));
+  const missingRelationKinds = requiredRelationKinds.filter((kind) => !relationKinds.has(kind));
+  const missingGraphContext = expectedGraphPaths.filter((item) => !withGraphPaths.includes(item));
+  const leakedWithoutGraph = expectedGraphPaths.filter((item) => withoutGraphPaths.includes(item));
+  const failures = [
+    ...missingNodeKinds.map((kind) => `missing node kind ${kind}`),
+    ...missingRelationKinds.map((kind) => `missing relation kind ${kind}`),
+    ...missingGraphContext.map((item) => `missing graph-fed context ${item}`),
+    ...leakedWithoutGraph.map((item) => `leaked without graph ${item}`),
+  ];
+
+  return {
+    name: "graph-behavior",
+    status: failures.length === 0 ? "pass" : "fail",
+    detail:
+      failures.length === 0
+        ? "Graph-lite kinds and graph-fed context behavior are present"
+        : failures.join("; "),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isGraphArtifact(value: unknown): value is {
+  nodeCount: number;
+  edgeCount: number;
+  detectors: unknown[];
+  relationKindCounts: Record<string, unknown>;
+  nodeKindCounts: Record<string, unknown>;
+  statusCounts: Record<string, unknown>;
+  nodes: unknown[];
+  edges: unknown[];
+} {
+  return (
+    isRecord(value) &&
+    typeof value.nodeCount === "number" &&
+    typeof value.edgeCount === "number" &&
+    Array.isArray(value.detectors) &&
+    isRecord(value.relationKindCounts) &&
+    isRecord(value.nodeKindCounts) &&
+    isRecord(value.statusCounts) &&
+    Array.isArray(value.nodes) &&
+    Array.isArray(value.edges)
+  );
+}
+
+async function gradeGraphArtifact(cwd: string): Promise<EvalGrade> {
+  const graphPath = path.join(cwd, ".krn", "graph", "repo-graph.json");
+
+  try {
+    const artifact = JSON.parse(await readFile(graphPath, "utf8")) as unknown;
+
+    if (!isGraphArtifact(artifact)) {
+      return {
+        name: "graph-artifact-shape",
+        status: "fail",
+        detail: ".krn/graph/repo-graph.json is missing expected summary fields",
+      };
+    }
+
+    if (
+      artifact.nodeCount !== artifact.nodes.length ||
+      artifact.edgeCount !== artifact.edges.length
+    ) {
+      return {
+        name: "graph-artifact-shape",
+        status: "fail",
+        detail: ".krn/graph/repo-graph.json count fields do not match arrays",
+      };
+    }
+
+    return {
+      name: "graph-artifact-shape",
+      status: "pass",
+      detail: ".krn/graph/repo-graph.json summary fields are valid",
+    };
+  } catch {
+    return {
+      name: "graph-artifact-shape",
+      status: "pass",
+      detail: "No graph artifact generated; shape check skipped",
+    };
+  }
+}
+
 export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const cwd = input.cwd ?? process.cwd();
   const fixtureRoot = input.fixtureRoot ?? repoRootFromModule();
   const graph = await buildGraph(fixtureRoot);
   const fixtures: EvalFixtureResult[] = [];
+  let frontendWithGraph: ContextPackage | undefined;
+  let frontendWithoutGraph: ContextPackage | undefined;
+  let frontendExpectedMustRead: string[] | undefined;
 
   for (const fixture of harnessFixtures) {
     const taskFixture = await loadEvalTaskFixture(fixture, fixtureRoot);
     const contract = buildTaskContract(taskFixture.task);
     const contextPackage = buildContextPackage(contract, graph);
+
+    if (fixture.name === "frontend-section-context") {
+      frontendWithGraph = contextPackage;
+      frontendWithoutGraph = buildContextPackage(contract);
+      frontendExpectedMustRead = taskFixture.expected.mustRead;
+    }
+
     const grades = [
       gradeContextCoverage(fixture.name, contextPackage, taskFixture.expected),
       gradeStaleDocLeakage(fixture.name, contextPackage, taskFixture.expected),
@@ -70,10 +213,21 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     });
   }
 
-  const trace = gradeTraceCompleteness(
-    await readTraceEventNames(input.tracePath ?? defaultTracePath(cwd)),
-  );
-  const allGrades = [...fixtures.flatMap((fixture) => fixture.grades), trace];
+  const traceRead = await readTrace(cwd, input.tracePath);
+  const trace = gradeTraceCompleteness(traceRead.names);
+  const graphGrade = gradeGraphBehavior({
+    graph,
+    frontendWithGraph,
+    frontendWithoutGraph,
+    expectedMustRead: frontendExpectedMustRead,
+  });
+  const graphArtifact = await gradeGraphArtifact(cwd);
+  const allGrades = [
+    ...fixtures.flatMap((fixture) => fixture.grades),
+    graphGrade,
+    graphArtifact,
+    trace,
+  ];
   const passCount = allGrades.filter((grade) => grade.status === "pass").length;
   const failCount = allGrades.filter((grade) => grade.status === "fail").length;
 
@@ -82,7 +236,10 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     passCount,
     failCount,
     fixtures,
+    graph: graphGrade,
+    graphArtifact,
     trace,
+    runTraceMode: traceRead.mode,
   };
 }
 
@@ -93,6 +250,12 @@ export function renderEvalResultMarkdown(result: EvalResult): string {
     `Status: ${result.status}`,
     `Pass count: ${result.passCount}`,
     `Fail count: ${result.failCount}`,
+    `Run trace mode: ${result.runTraceMode}`,
+    "",
+    "## Graph",
+    "",
+    `- ${result.graph.name}: ${result.graph.status} - ${result.graph.detail}`,
+    `- ${result.graphArtifact.name}: ${result.graphArtifact.status} - ${result.graphArtifact.detail}`,
     "",
     "## Fixtures",
     "",

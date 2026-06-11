@@ -15,7 +15,10 @@
 - `passCount`: number of passing grader results.
 - `failCount`: number of failing grader results.
 - `fixtures`: per-fixture task, status, and grader results.
+- `graph`: graph behavior grader result.
+- `graphArtifact`: generated graph artifact shape grader result.
 - `trace`: local trace completeness grader result.
+- `runTraceMode`: `run-scoped`, `global`, or `missing`.
 
 ## P0 Fixtures
 
