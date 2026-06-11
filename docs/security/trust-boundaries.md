@@ -5,7 +5,7 @@
 - User prompt: intent, constraints, and approvals.
 - Repository files: checked-in source truth.
 - `.krn/`: local runtime state and trace evidence.
-- Hooks: guardrails and trace points, not a sandbox.
+- Hooks: guardrail decisions and trace points, not a sandbox.
 - Generated `AGENTS.md`: downstream guidance, not enforcement.
 - Generated hooks template: local command execution that requires repo-owner review.
 - Generated runtime skill: workflow adapter, not the product brain.

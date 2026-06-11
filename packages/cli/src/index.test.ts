@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -12,19 +12,29 @@ async function runInTemp(args: string[]) {
   return { cwd, ...result };
 }
 
-async function runInCwd(cwd: string, args: string[]) {
+async function runInCwd(cwd: string, args: string[], input: { stdin?: string } = {}) {
   let stdout = "";
   let stderr = "";
-  const code = await runCli(args, {
+  const runtime = {
     cwd,
-    stdout: (text) => {
+    stdout: (text: string) => {
       stdout += text;
     },
-    stderr: (text) => {
+    stderr: (text: string) => {
       stderr += text;
     },
     now: () => new Date("2026-06-03T00:00:00.000Z"),
-  });
+  };
+
+  const code = await runCli(
+    args,
+    input.stdin === undefined
+      ? runtime
+      : {
+          ...runtime,
+          stdin: async () => input.stdin ?? "",
+        },
+  );
 
   return { stdout, stderr, code };
 }
@@ -412,8 +422,11 @@ markdown: .krn/graph/repo-graph.md
       event: "SessionStart",
       supported: true,
       status: "ok",
+      decision: "allow",
+      enforced: false,
       payloadSource: "placeholder",
-      detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
+      findings: [],
+      detail: "P0 hook guardrails passed; hooks remain guardrails and trace points, not a sandbox",
     });
 
     for (const event of supportedP0CodexHookEvents) {
@@ -423,8 +436,10 @@ markdown: .krn/graph/repo-graph.md
         provider: "codex",
         event,
         supported: true,
-        status: "ok",
+        decision: expect.any(String),
+        enforced: false,
         payloadSource: "placeholder",
+        findings: expect.any(Array),
       });
     }
 
@@ -435,7 +450,10 @@ markdown: .krn/graph/repo-graph.md
       event: "UnknownEvent",
       supported: false,
       status: "ignored",
+      decision: "allow",
+      enforced: false,
       payloadSource: "placeholder",
+      findings: [],
     });
 
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
@@ -446,8 +464,12 @@ markdown: .krn/graph/repo-graph.md
           event: "SessionStart",
           supported: true,
           status: "ok",
+          decision: "allow",
+          enforced: false,
           payloadSource: "placeholder",
-          detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
+          detail:
+            "P0 hook guardrails passed; hooks remain guardrails and trace points, not a sandbox",
+          findingCodes: [],
         },
       },
       ...supportedP0CodexHookEvents.map((event) => ({
@@ -456,9 +478,11 @@ markdown: .krn/graph/repo-graph.md
           provider: "codex",
           event,
           supported: true,
-          status: "ok",
+          status: expect.any(String),
+          decision: expect.any(String),
+          enforced: false,
           payloadSource: "placeholder",
-          detail: "P0 hook entrypoint received event; no policy enforcement is implemented",
+          findingCodes: expect.any(Array),
         },
       })),
       {
@@ -468,8 +492,116 @@ markdown: .krn/graph/repo-graph.md
           event: "UnknownEvent",
           supported: false,
           status: "ignored",
+          decision: "allow",
+          enforced: false,
           payloadSource: "placeholder",
-          detail: "Unsupported Codex hook event ignored by P0 hook skeleton",
+          detail: "Unsupported Codex hook event ignored by P0 hook guardrail",
+          findingCodes: [],
+        },
+      },
+    ]);
+  });
+
+  it("records missing current-state guardrail decisions from hook events", async () => {
+    const result = await runInTemp(["hook", "codex", "PreToolUse"]);
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      provider: "codex",
+      event: "PreToolUse",
+      supported: true,
+      status: "blocked",
+      decision: "block",
+      enforced: false,
+      findings: [
+        expect.objectContaining({ code: "missing-task-contract", severity: "block" }),
+        expect.objectContaining({ code: "missing-context-package", severity: "block" }),
+      ],
+    });
+
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
+          status: "blocked",
+          decision: "block",
+          enforced: false,
+          findingCodes: ["missing-task-contract", "missing-context-package"],
+        },
+      },
+    ]);
+  });
+
+  it("records out-of-scope edit guardrail decisions from stdin payload", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "task-contract.json"),
+      '{"id":"task-hook","task":"Edit scoped file"}\n',
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          taskId: "task-hook",
+          items: [],
+          buckets: {
+            mustRead: [
+              {
+                path: "src/in-scope.ts",
+                reason: "In scope",
+                priority: 10,
+                bucket: "must-read",
+                status: "available",
+              },
+            ],
+            shouldRead: [],
+            referenceOnly: [],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 1, present: 1, missing: 0, confidence: "high" },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["hook", "codex", "PreToolUse"], {
+      stdin: JSON.stringify({
+        tool: "apply_patch",
+        arguments: {
+          patch:
+            "*** Begin Patch\n*** Update File: src/out-of-scope.ts\n@@\n+test\n*** End Patch\n",
+        },
+      }),
+    });
+
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      status: "blocked",
+      decision: "block",
+      payloadSource: "stdin-json",
+      findings: [
+        expect.objectContaining({
+          code: "out-of-scope-edit",
+          path: "src/out-of-scope.ts",
+        }),
+      ],
+    });
+    await expect(readTraceEvents(cwd)).resolves.toMatchObject([
+      {
+        name: "hook.received",
+        data: {
+          event: "PreToolUse",
+          status: "blocked",
+          decision: "block",
+          payloadSource: "stdin-json",
+          findingCodes: ["out-of-scope-edit"],
         },
       },
     ]);

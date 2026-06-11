@@ -34,7 +34,7 @@ The downstream runtime skill is a short instruction-only template that routes Co
 
 ## Hook Pack
 
-The hook template covers `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, and `Stop`. Hooks are trace/guardrail entrypoints, not a complete sandbox.
+The hook template covers `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, and `Stop`. Hooks return deterministic `allow`, `warn`, or `block` guardrail decisions for current-state issues, STOP state, out-of-scope edits, and final verify/handoff readiness. They are trace/guardrail entrypoints, not a complete sandbox.
 
 ## Task Contract
 

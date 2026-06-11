@@ -14,7 +14,7 @@ Use Codex hooks as guardrails and trace entrypoints, not as a sandbox or full po
 
 ## Consequences
 
-P0 ships a hooks template and hook CLI entrypoint. It documents limitations instead of overstating enforcement.
+P0 ships a hooks template and hook CLI entrypoint. It returns deterministic `allow`, `warn`, or `block` decisions for local guardrail evidence, and it documents limitations instead of overstating enforcement. The hook result includes `enforced: false` because the P0 hook is not a sandbox or full policy engine.
 
 ## Alternatives Considered
 

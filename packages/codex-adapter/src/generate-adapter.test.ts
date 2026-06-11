@@ -55,6 +55,8 @@ describe("Codex adapter generation", () => {
         command: `krn hook codex ${event}`,
       });
     }
+    expect(output).toContain("KRN pre-tool guardrail");
+    expect(output).toContain("KRN final guardrail");
   });
 
   it("generates a short runtime skill that routes through the KRN CLI", () => {
