@@ -14,6 +14,8 @@ export interface VerifyResult {
   status: VerifyStatus;
   taskId?: string;
   contextStop: boolean;
+  graphArtifactPresent: boolean;
+  currentRunTracePresent: boolean;
   configuredCommands: string[];
   executedCommands: string[];
   notRunnableReason?: string;
@@ -25,6 +27,8 @@ export interface BuildVerifyResultInput {
   taskContract?: TaskContract | undefined;
   contextPackage?: ContextPackage | undefined;
   configuredCommands?: string[];
+  graphArtifactPresent?: boolean | undefined;
+  currentRunTracePresent?: boolean | undefined;
 }
 
 export function buildVerifyResult(input: BuildVerifyResultInput = {}): VerifyResult {
@@ -59,10 +63,32 @@ export function buildVerifyResult(input: BuildVerifyResultInput = {}): VerifyRes
     });
   }
 
+  if (input.graphArtifactPresent !== undefined) {
+    checks.push({
+      name: "graph-artifact",
+      status: input.graphArtifactPresent ? "pass" : "warn",
+      detail: input.graphArtifactPresent
+        ? ".krn/graph/repo-graph.json is present"
+        : ".krn/graph/repo-graph.json is missing",
+    });
+  }
+
+  if (input.currentRunTracePresent !== undefined) {
+    checks.push({
+      name: "current-run-trace",
+      status: input.currentRunTracePresent ? "pass" : "warn",
+      detail: input.currentRunTracePresent
+        ? "Current run trace is present"
+        : "Current run trace is missing",
+    });
+  }
+
   const result: VerifyResult = {
     profile: input.profile ?? "generic",
     status,
     contextStop,
+    graphArtifactPresent: input.graphArtifactPresent ?? false,
+    currentRunTracePresent: input.currentRunTracePresent ?? false,
     configuredCommands,
     executedCommands: [],
     checks,
@@ -88,6 +114,8 @@ export function renderVerifyResultMarkdown(result: VerifyResult): string {
     `Profile: ${result.profile}`,
     `Task ID: ${result.taskId ?? "none"}`,
     `Context STOP: ${result.contextStop ? "true" : "false"}`,
+    `Graph artifact present: ${result.graphArtifactPresent ? "true" : "false"}`,
+    `Current run trace present: ${result.currentRunTracePresent ? "true" : "false"}`,
     "",
     "## Configured Commands",
     "",

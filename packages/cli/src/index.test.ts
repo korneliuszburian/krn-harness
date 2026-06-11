@@ -562,6 +562,8 @@ describe("krn CLI", () => {
       status: string;
       taskId: string;
       contextStop: boolean;
+      graphArtifactPresent: boolean;
+      currentRunTracePresent: boolean;
       configuredCommands: string[];
       executedCommands: string[];
       notRunnableReason: string;
@@ -577,6 +579,8 @@ describe("krn CLI", () => {
       status: "not-runnable",
       taskId: "task-d62ea4fbc009",
       contextStop: false,
+      graphArtifactPresent: false,
+      currentRunTracePresent: true,
       configuredCommands: [],
       executedCommands: [],
       notRunnableReason: "No verify commands are configured",
@@ -585,6 +589,16 @@ describe("krn CLI", () => {
           name: "configured-commands",
           status: "warn",
           detail: "No verify commands are configured",
+        },
+        {
+          name: "graph-artifact",
+          status: "warn",
+          detail: ".krn/graph/repo-graph.json is missing",
+        },
+        {
+          name: "current-run-trace",
+          status: "pass",
+          detail: "Current run trace is present",
         },
       ],
     });
@@ -602,7 +616,13 @@ describe("krn CLI", () => {
       {
         name: "verify.ran",
         taskId: "task-d62ea4fbc009",
-        data: { status: "not-runnable", contextStop: false, configuredCommands: 0 },
+        data: {
+          status: "not-runnable",
+          contextStop: false,
+          graphArtifactPresent: false,
+          currentRunTracePresent: true,
+          configuredCommands: 0,
+        },
       },
       {
         name: "handoff.created",
@@ -673,6 +693,10 @@ describe("krn CLI", () => {
       status: string;
       checks: Array<{ name: string; status: string }>;
     }>(start.cwd, ".krn/current/doctor-result.json");
+    const verifyJson = await readJson<{
+      graphArtifactPresent: boolean;
+      currentRunTracePresent: boolean;
+    }>(start.cwd, ".krn/current/verify-result.json");
     const doctorMarkdown = await readFile(
       path.join(start.cwd, ".krn/current/doctor-result.md"),
       "utf8",
@@ -715,6 +739,10 @@ describe("krn CLI", () => {
       "global-trace",
     ]);
     expect(doctorMarkdown).toContain("Status: warn");
+    expect(verifyJson).toMatchObject({
+      graphArtifactPresent: true,
+      currentRunTracePresent: true,
+    });
 
     expect(evalJson).toMatchObject({
       status: "pass",

@@ -60,4 +60,36 @@ describe("verify result", () => {
       },
     ]);
   });
+
+  it("records graph artifact and current run trace evidence when provided", () => {
+    const result = buildVerifyResult({
+      taskContract: buildTaskContract("Update docs"),
+      configuredCommands: [],
+      graphArtifactPresent: true,
+      currentRunTracePresent: false,
+    });
+
+    expect(result).toMatchObject({
+      graphArtifactPresent: true,
+      currentRunTracePresent: false,
+    });
+    expect(result.checks).toEqual([
+      {
+        name: "configured-commands",
+        status: "warn",
+        detail: "No verify commands are configured",
+      },
+      {
+        name: "graph-artifact",
+        status: "pass",
+        detail: ".krn/graph/repo-graph.json is present",
+      },
+      {
+        name: "current-run-trace",
+        status: "warn",
+        detail: "Current run trace is missing",
+      },
+    ]);
+    expect(renderVerifyResultMarkdown(result)).toContain("Graph artifact present: true");
+  });
 });
