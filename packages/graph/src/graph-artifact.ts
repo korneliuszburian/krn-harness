@@ -61,7 +61,7 @@ export function buildGraphArtifact(
     detectors: [...input.detectors].sort((left, right) => left.localeCompare(right)),
     relationKindCounts: countBy(edges.map((edge) => edge.kind)),
     nodeKindCounts: countBy(nodes.map((node) => node.kind)),
-    statusCounts: countBy(nodes.map((node) => node.status ?? "unspecified")),
+    statusCounts: countBy(nodes.map((node) => node.status ?? "unknown")),
     nodes,
     edges,
   };
@@ -99,6 +99,21 @@ function renderEdgeExamples(edges: GraphEdge[]): string {
     .join("\n");
 }
 
+function renderDeprecatedDocs(nodes: GraphNode[]): string {
+  const deprecatedDocs = nodes.filter(
+    (node) => node.kind === "doc" && node.status === "deprecated",
+  );
+
+  if (deprecatedDocs.length === 0) {
+    return "- none";
+  }
+
+  return deprecatedDocs
+    .slice(0, selectedEvidenceLimit)
+    .map((node) => `- \`${node.evidencePath}\` (${node.id})`)
+    .join("\n");
+}
+
 export function renderGraphArtifactMarkdown(artifact: GraphArtifact): string {
   return `# Graph-Lite Repository Graph
 
@@ -127,6 +142,10 @@ ${renderCountList(artifact.relationKindCounts)}
 ## Status Counts
 
 ${renderCountList(artifact.statusCounts)}
+
+## Deprecated Docs
+
+${renderDeprecatedDocs(artifact.nodes)}
 
 ## Selected Evidence Examples
 
