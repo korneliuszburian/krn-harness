@@ -57,6 +57,92 @@ function artifactCheck(name: string, present: boolean, relativePath: string): Do
   };
 }
 
+function isCurrentRunPointer(value: unknown): value is {
+  schemaVersion: number;
+  taskId: string;
+  runDir: string;
+  tracePath: string;
+  taskContractPath: string;
+  contextPackagePath: string;
+  graphArtifactPath: string;
+  verifyResultPath: string;
+  handoffPath: string;
+  doctorResultPath: string;
+  evalResultPath: string;
+} {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const stringKeys = [
+    "taskId",
+    "runDir",
+    "tracePath",
+    "taskContractPath",
+    "contextPackagePath",
+    "graphArtifactPath",
+    "verifyResultPath",
+    "handoffPath",
+    "doctorResultPath",
+    "evalResultPath",
+  ];
+
+  return (
+    candidate.schemaVersion === 1 && stringKeys.every((key) => typeof candidate[key] === "string")
+  );
+}
+
+async function currentRunCheck(cwd: string): Promise<DoctorCheck> {
+  const relativePath = ".krn/current/run.json";
+  const filePath = path.join(cwd, relativePath);
+
+  if (!(await pathExists(filePath))) {
+    return {
+      name: "current-run",
+      status: "warn",
+      detail: `${relativePath} is missing`,
+    };
+  }
+
+  let pointer: unknown;
+  try {
+    pointer = JSON.parse(await readFile(filePath, "utf8")) as unknown;
+  } catch {
+    return {
+      name: "current-run",
+      status: "fail",
+      detail: `${relativePath} is malformed`,
+    };
+  }
+
+  if (!isCurrentRunPointer(pointer)) {
+    return {
+      name: "current-run",
+      status: "fail",
+      detail: `${relativePath} is incomplete`,
+    };
+  }
+
+  const taskContract = await readJson<{ id?: string }>(
+    path.join(cwd, ".krn", "current", "task-contract.json"),
+  );
+
+  if (taskContract?.id && pointer.taskId !== taskContract.id) {
+    return {
+      name: "current-run",
+      status: "fail",
+      detail: `${relativePath} taskId does not match current task contract`,
+    };
+  }
+
+  return {
+    name: "current-run",
+    status: "pass",
+    detail: `${relativePath} points to ${pointer.runDir}`,
+  };
+}
+
 async function configCheck(cwd: string): Promise<DoctorCheck> {
   try {
     const loaded = await loadConfig(cwd);
@@ -121,6 +207,7 @@ export async function runDoctor(cwd = process.cwd()): Promise<DoctorResult> {
       await pathExists(path.join(currentDir, "task-contract.json")),
       ".krn/current/task-contract.json",
     ),
+    await currentRunCheck(cwd),
     artifactCheck(
       "current-context-package",
       await pathExists(path.join(currentDir, "context-package.json")),

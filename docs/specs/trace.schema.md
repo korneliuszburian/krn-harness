@@ -24,6 +24,8 @@ P0 always writes the local global trace stream at `.krn/traces/trace.jsonl`.
 
 When a current task exists, P0 loop commands also append the same event to `.krn/runs/<task_id>/trace.jsonl` and update `.krn/runs/<task_id>/run.json`.
 
+The active run pointer is `.krn/current/run.json`. It records `taskId`, `runDir`, `tracePath`, `runMetadataPath`, and the current artifact paths for task contract, graph artifact, context package, verify result, handoff, doctor result, and eval result.
+
 Minimal run metadata:
 
 - `schemaVersion`

@@ -27,6 +27,21 @@ export interface RunMetadata {
   current: true;
 }
 
+export interface CurrentRunPointer {
+  schemaVersion: 1;
+  taskId: string;
+  runDir: string;
+  tracePath: string;
+  runMetadataPath: string;
+  taskContractPath: string;
+  contextPackagePath: string;
+  graphArtifactPath: string;
+  verifyResultPath: string;
+  handoffPath: string;
+  doctorResultPath: string;
+  evalResultPath: string;
+}
+
 export interface EmitCliTraceInput {
   taskId?: string | undefined;
   data?: Record<string, JsonValue> | undefined;
@@ -43,6 +58,10 @@ export function runTracePath(cwd: string, taskId: string): string {
 
 export function runMetadataPath(cwd: string, taskId: string): string {
   return path.join(runDirPath(cwd, taskId), "run.json");
+}
+
+function currentRunPath(cwd: string): string {
+  return path.join(cwd, ".krn", "current", "run.json");
 }
 
 function runArtifactPaths(taskId: string): Record<string, string> {
@@ -64,6 +83,32 @@ function runArtifactPaths(taskId: string): Record<string, string> {
     verifyResultJson: ".krn/current/verify-result.json",
     verifyResultMarkdown: ".krn/current/verify-result.md",
   };
+}
+
+function currentRunPointer(taskId: string): CurrentRunPointer {
+  return {
+    schemaVersion: 1,
+    taskId,
+    runDir: `.krn/runs/${taskId}`,
+    tracePath: `.krn/runs/${taskId}/trace.jsonl`,
+    runMetadataPath: `.krn/runs/${taskId}/run.json`,
+    taskContractPath: ".krn/current/task-contract.json",
+    contextPackagePath: ".krn/current/context-package.json",
+    graphArtifactPath: ".krn/graph/repo-graph.json",
+    verifyResultPath: ".krn/current/verify-result.json",
+    handoffPath: ".krn/current/handoff.md",
+    doctorResultPath: ".krn/current/doctor-result.json",
+    evalResultPath: ".krn/current/eval-result.json",
+  };
+}
+
+async function writeCurrentRunPointer(cwd: string, taskId: string): Promise<void> {
+  await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+  await writeFile(
+    currentRunPath(cwd),
+    `${JSON.stringify(currentRunPointer(taskId), null, 2)}\n`,
+    "utf8",
+  );
 }
 
 async function readRunMetadata(cwd: string, taskId: string): Promise<RunMetadata | undefined> {
@@ -123,6 +168,7 @@ export async function emitCliTrace(
   if (input.runScoped && event.taskId) {
     await writeTraceEvent(event, runTracePath(runtime.cwd, event.taskId));
     await updateRunMetadata(runtime.cwd, event);
+    await writeCurrentRunPointer(runtime.cwd, event.taskId);
   }
 
   return event;

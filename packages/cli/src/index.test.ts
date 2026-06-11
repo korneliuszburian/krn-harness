@@ -404,6 +404,13 @@ describe("krn CLI", () => {
       events: Array<{ name: string; timestamp: string }>;
       artifactPaths: Record<string, string>;
     }>(start.cwd, `.krn/runs/${contract.id}/run.json`);
+    const currentRun = await readJson<{
+      schemaVersion: number;
+      taskId: string;
+      runDir: string;
+      tracePath: string;
+      graphArtifactPath: string;
+    }>(start.cwd, ".krn/current/run.json");
 
     expect(globalEvents.map((event) => event.name)).toEqual(expectedNames);
     expect(runEvents.map((event) => event.name)).toEqual(expectedNames);
@@ -422,6 +429,13 @@ describe("krn CLI", () => {
       },
     });
     expect(runMetadata.events.map((event) => event.name)).toEqual(expectedNames);
+    expect(currentRun).toMatchObject({
+      schemaVersion: 1,
+      taskId: contract.id,
+      runDir: `.krn/runs/${contract.id}`,
+      tracePath: `.krn/runs/${contract.id}/trace.jsonl`,
+      graphArtifactPath: ".krn/graph/repo-graph.json",
+    });
   });
 
   it("writes deterministic task-contract current artifacts", async () => {
@@ -670,6 +684,7 @@ describe("krn CLI", () => {
     expect(doctorJson.checks.map((check) => check.name)).toEqual([
       "config",
       "current-task-contract",
+      "current-run",
       "current-context-package",
       "context-stop",
       "current-verify-result",
@@ -703,7 +718,7 @@ describe("krn CLI", () => {
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 12 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 13 } },
       {
         name: "eval.ran",
         data: { status: "pass", fixtures: 3, passCount: 10, failCount: 0 },

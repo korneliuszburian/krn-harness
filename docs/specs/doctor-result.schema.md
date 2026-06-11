@@ -17,11 +17,11 @@
 ## P0 Checks
 
 - Config validity or missing default-config state.
-- Current task, context, verify, and handoff artifact presence.
+- Current task, current run, context, verify, and handoff artifact presence.
 - Downstream `AGENTS.md`, runtime skill, and hooks template presence.
 - Current context STOP state when available.
 - Source checkout adapter template and build-time skill presence when applicable.
-- Trace file presence.
+- Trace file and current-run pointer presence/shape.
 
 ## P0 Rule
 
