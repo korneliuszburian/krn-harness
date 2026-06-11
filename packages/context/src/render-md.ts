@@ -42,10 +42,26 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
     }
 
     for (const item of items) {
-      const provenance =
-        item.source || item.selector
-          ? ` [source: ${item.source ?? "unknown"}, selector: ${item.selector ?? "none"}]`
-          : "";
+      const provenanceParts = [];
+
+      if (item.source || item.selector) {
+        provenanceParts.push(`source: ${item.source ?? "unknown"}`);
+        provenanceParts.push(`selector: ${item.selector ?? "none"}`);
+      }
+
+      if (item.memoryId) {
+        provenanceParts.push(`memory: ${item.memoryId}`);
+      }
+
+      if (item.approvedAt) {
+        provenanceParts.push(`approved: ${item.approvedAt}`);
+      }
+
+      if (item.evidencePath) {
+        provenanceParts.push(`evidence: ${item.evidencePath}`);
+      }
+
+      const provenance = provenanceParts.length > 0 ? ` [${provenanceParts.join(", ")}]` : "";
       lines.push(`- ${item.path} (${item.status}, ${item.priority}): ${item.reason}${provenance}`);
     }
   }

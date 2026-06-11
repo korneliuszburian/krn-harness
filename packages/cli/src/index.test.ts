@@ -622,6 +622,81 @@ markdown: .krn/graph/repo-graph.md
     expect(deprecated.stderr).toContain("KRN memory deprecate: memory not found: memory-missing");
   });
 
+  it("surfaces approved memory in context only after manual approval", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const proposed = await runInCwd(cwd, [
+      "memory",
+      "propose",
+      "Graph",
+      "selector",
+      "should",
+      "stay",
+      "generic",
+      "--evidence",
+      "docs/specs/graph-lite.md",
+    ]);
+    expect(proposed).toMatchObject({ code: 0 });
+
+    const pending = await readJson<{
+      records: Array<{ id: string }>;
+    }>(cwd, ".krn/memory/pending.json");
+    const memoryId = pending.records[0]?.id ?? "";
+
+    await expect(runInCwd(cwd, ["start", "Harden", "graph", "selector"])).resolves.toMatchObject({
+      code: 0,
+    });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const contextBeforeApproval = await readJson<{
+      buckets: { referenceOnly: Array<{ source?: string; memoryId?: string }> };
+    }>(cwd, ".krn/current/context-package.json");
+    expect(
+      contextBeforeApproval.buckets.referenceOnly.some((item) => item.source === "memory"),
+    ).toBe(false);
+
+    await expect(runInCwd(cwd, ["memory", "approve", memoryId])).resolves.toMatchObject({
+      code: 0,
+    });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const contextAfterApproval = await readJson<{
+      buckets: {
+        mustRead: Array<{ memoryId?: string }>;
+        shouldRead: Array<{ memoryId?: string }>;
+        referenceOnly: Array<{
+          path: string;
+          source?: string;
+          selector?: string;
+          memoryId?: string;
+          approvedAt?: string;
+          evidencePath?: string;
+          matchedTerms?: string[];
+        }>;
+      };
+    }>(cwd, ".krn/current/context-package.json");
+    const markdown = await readFile(path.join(cwd, ".krn/current/context-package.md"), "utf8");
+
+    expect(contextAfterApproval.buckets.mustRead.some((item) => item.memoryId === memoryId)).toBe(
+      false,
+    );
+    expect(contextAfterApproval.buckets.shouldRead.some((item) => item.memoryId === memoryId)).toBe(
+      false,
+    );
+    expect(contextAfterApproval.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: `.krn/memory/approved.json#${memoryId}`,
+        source: "memory",
+        selector: "approved-memory-task-match",
+        memoryId,
+        approvedAt: "2026-06-03T00:00:00.000Z",
+        evidencePath: "docs/specs/graph-lite.md",
+        matchedTerms: ["graph", "selector"],
+      }),
+    );
+    expect(markdown).toContain(`.krn/memory/approved.json#${memoryId}`);
+    expect(markdown).toContain("source: memory, selector: approved-memory-task-match");
+  });
+
   it("runs start and context with task trace behavior", async () => {
     const result = await runInTemp(["start", "Implement", "a", "slice"]);
     expect(result.code).toBe(0);
@@ -1015,6 +1090,7 @@ markdown: .krn/graph/repo-graph.md
       "current-verify-result",
       "current-handoff",
       "memory-stores",
+      "memory-context-gate",
       "graph-json",
       "graph-markdown",
       "graph-json-shape",
@@ -1073,7 +1149,7 @@ markdown: .krn/graph/repo-graph.md
       { name: "context.built", taskId: "task-a39f90427522" },
       { name: "verify.ran", taskId: "task-a39f90427522" },
       { name: "handoff.created", taskId: "task-a39f90427522" },
-      { name: "doctor.ran", data: { status: "warn", checks: 19 } },
+      { name: "doctor.ran", data: { status: "warn", checks: 20 } },
       {
         name: "eval.ran",
         data: {

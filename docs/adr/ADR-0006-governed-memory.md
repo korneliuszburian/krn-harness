@@ -16,11 +16,12 @@ Memory transitions are manual:
 
 - proposed memory starts in the pending local store;
 - approved memory becomes active only after an explicit approval command;
-- deprecated memory is excluded from active memory.
+- approved memory may be surfaced into context only as reference-only material when explicitly requested or task-relevant, with provenance;
+- deprecated memory is excluded from active memory and context.
 
 ## Consequences
 
-Memory has a schema, local store files, deterministic trace events, and doctor/eval coverage, but no autonomous approval path.
+Memory has a schema, local store files, deterministic trace events, context integration gates, and doctor/eval poisoning coverage, but no autonomous approval path.
 
 ## Alternatives Considered
 

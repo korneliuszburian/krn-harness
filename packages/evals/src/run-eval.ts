@@ -188,21 +188,29 @@ async function gradeGraphArtifact(cwd: string): Promise<EvalGrade> {
 
 function gradeMemoryGovernance(): EvalGrade {
   const pending = createPendingMemory({
-    summary: "Pending memory must not be active.",
+    summary: "Graph selector pending memory must not be active.",
     evidencePath: "docs/specs/memory.schema.md",
     now: new Date("2026-06-03T00:00:00.000Z"),
   });
   const approved = approveMemory(
     createPendingMemory({
-      summary: "Approved memory may be active.",
-      evidencePath: "docs/specs/memory.schema.md",
+      summary: "Graph selector should remain generic.",
+      evidencePath: "docs/specs/graph-lite.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    }),
+    new Date("2026-06-03T00:01:00.000Z"),
+  );
+  const explicitApproved = approveMemory(
+    createPendingMemory({
+      summary: "Prefer short handoff summaries.",
+      evidencePath: "docs/specs/handoff.md",
       now: new Date("2026-06-03T00:00:00.000Z"),
     }),
     new Date("2026-06-03T00:01:00.000Z"),
   );
   const deprecated = deprecateMemory(
     createPendingMemory({
-      summary: "Deprecated memory must not be active.",
+      summary: "Graph selector deprecated memory must not be active.",
       evidencePath: "docs/specs/memory.schema.md",
       now: new Date("2026-06-03T00:00:00.000Z"),
     }),
@@ -211,7 +219,30 @@ function gradeMemoryGovernance(): EvalGrade {
       now: new Date("2026-06-03T00:02:00.000Z"),
     },
   );
-  const active = compactMemory([pending, approved, deprecated]);
+  const active = compactMemory([pending, approved, explicitApproved, deprecated]);
+  const relevantContext = buildContextPackage(
+    buildTaskContract("Harden graph selector behavior"),
+    undefined,
+    {
+      approvedMemory: [pending, approved, deprecated],
+    },
+  );
+  const explicitContext = buildContextPackage(
+    buildTaskContract("Use approved memory for this task"),
+    undefined,
+    {
+      approvedMemory: [explicitApproved],
+    },
+  );
+  const unrelatedContext = buildContextPackage(
+    buildTaskContract("Update billing docs"),
+    undefined,
+    {
+      approvedMemory: [approved],
+    },
+  );
+  const relevantMemoryItems = relevantContext.items.filter((item) => item.source === "memory");
+  const explicitMemoryItems = explicitContext.items.filter((item) => item.source === "memory");
   const failures = [];
 
   if (pending.status !== "pending") {
@@ -230,12 +261,44 @@ function gradeMemoryGovernance(): EvalGrade {
     failures.push("deprecated record leaked into active memory");
   }
 
+  if (unrelatedContext.items.some((item) => item.source === "memory")) {
+    failures.push("unrelated approved memory leaked into context");
+  }
+
+  if (
+    relevantMemoryItems.length !== 1 ||
+    relevantMemoryItems[0]?.bucket !== "reference-only" ||
+    relevantMemoryItems[0]?.selector !== "approved-memory-task-match" ||
+    relevantMemoryItems[0]?.memoryId !== approved.id ||
+    relevantMemoryItems[0]?.approvedAt !== approved.approvedAt ||
+    relevantMemoryItems[0]?.evidencePath !== approved.evidencePath
+  ) {
+    failures.push("task-relevant approved memory was not gated as reference-only with provenance");
+  }
+
+  if (relevantContext.items.some((item) => item.memoryId === pending.id)) {
+    failures.push("pending memory leaked into context package");
+  }
+
+  if (relevantContext.items.some((item) => item.memoryId === deprecated.id)) {
+    failures.push("deprecated memory leaked into context package");
+  }
+
+  if (
+    explicitMemoryItems.length !== 1 ||
+    explicitMemoryItems[0]?.bucket !== "reference-only" ||
+    explicitMemoryItems[0]?.selector !== "approved-memory-explicit" ||
+    explicitMemoryItems[0]?.memoryId !== explicitApproved.id
+  ) {
+    failures.push("explicit approved memory request did not surface reference-only memory");
+  }
+
   return {
     name: "memory-governance",
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? "Pending memory is inactive, approved memory is active, deprecated memory is excluded"
+        ? "Approved memory is gated to reference-only context with provenance; pending, deprecated, and unrelated memory are excluded"
         : failures.join("; "),
   };
 }

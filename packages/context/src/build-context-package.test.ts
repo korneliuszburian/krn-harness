@@ -3,6 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
+import {
+  approveMemory,
+  createPendingMemory,
+  deprecateMemory,
+  type MemoryRecord,
+} from "../../memory/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { buildContextPackage } from "./build-context-package.js";
 import { renderContextPackageMarkdown } from "./render-md.js";
@@ -24,6 +30,20 @@ function readTaskFixture(name: string): ContextTaskFixture {
   return JSON.parse(
     readFileSync(path.join(repoRoot, "fixtures", "tasks", `${name}.json`), "utf8"),
   ) as ContextTaskFixture;
+}
+
+function approvedMemory(
+  summary: string,
+  evidencePath = "docs/specs/memory.schema.md",
+): MemoryRecord {
+  return approveMemory(
+    createPendingMemory({
+      summary,
+      evidencePath,
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    }),
+    new Date("2026-06-03T00:01:00.000Z"),
+  );
 }
 
 describe("context package", () => {
@@ -439,6 +459,91 @@ describe("context package", () => {
     expect(pkg.coverage.confidence).toBe("low");
   });
 
+  it("does not surface approved memory when it is neither requested nor task-relevant", () => {
+    const contract = buildTaskContract("Update billing docs");
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual([
+      "docs/specs/context-package.schema.md",
+    ]);
+    expect(pkg.items.some((item) => item.source === "memory")).toBe(false);
+  });
+
+  it("surfaces task-relevant approved memory only as reference-only with provenance", () => {
+    const contract = buildTaskContract("Harden graph selector behavior");
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(["AGENTS.md"]);
+    expect(pkg.buckets.shouldRead.map((item) => item.path)).not.toContain(
+      `.krn/memory/approved.json#${memory.id}`,
+    );
+    expect(pkg.buckets.referenceOnly).toContainEqual({
+      path: `.krn/memory/approved.json#${memory.id}`,
+      reason: "Approved governed memory reference: Graph selector should remain generic",
+      priority: 33,
+      bucket: "reference-only",
+      status: "available",
+      source: "memory",
+      selector: "approved-memory-task-match",
+      matchedTerms: ["graph", "selector"],
+      memoryId: memory.id,
+      memorySummary: "Graph selector should remain generic",
+      approvedAt: "2026-06-03T00:01:00.000Z",
+      evidencePath: "docs/specs/graph-lite.md",
+    });
+  });
+
+  it("surfaces approved memory on explicit memory request even without term overlap", () => {
+    const contract = buildTaskContract("Use approved memory for this task");
+    const memory = approvedMemory("Prefer short handoff summaries", "docs/specs/handoff.md");
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [memory],
+    });
+
+    expect(pkg.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: `.krn/memory/approved.json#${memory.id}`,
+        bucket: "reference-only",
+        source: "memory",
+        selector: "approved-memory-explicit",
+        memoryId: memory.id,
+        approvedAt: "2026-06-03T00:01:00.000Z",
+        evidencePath: "docs/specs/handoff.md",
+      }),
+    );
+  });
+
+  it("ignores pending and deprecated memory records even if passed to context builder", () => {
+    const contract = buildTaskContract("Harden graph selector behavior");
+    const pending = createPendingMemory({
+      summary: "Graph selector pending poison",
+      evidencePath: "docs/specs/graph-lite.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    });
+    const deprecated = deprecateMemory(approvedMemory("Graph selector deprecated poison"), {
+      reason: "Superseded",
+      now: new Date("2026-06-03T00:02:00.000Z"),
+    });
+    const pkg = buildContextPackage(contract, undefined, {
+      approvedMemory: [pending, deprecated],
+    });
+
+    expect(pkg.items.some((item) => item.memoryId === pending.id)).toBe(false);
+    expect(pkg.items.some((item) => item.memoryId === deprecated.id)).toBe(false);
+  });
+
   it("renders bucketed markdown for Codex-readable current state", () => {
     const contract = buildTaskContract("Stop when required context is missing");
     const markdown = renderContextPackageMarkdown(buildContextPackage(contract));
@@ -449,5 +554,25 @@ describe("context package", () => {
     expect(markdown).toContain("Coverage: 1/2 required present");
     expect(markdown).toContain("docs/required-context.md");
     expect(markdown).toContain("source: task-policy, selector: missing-context-policy");
+  });
+
+  it("renders approved memory provenance in markdown", () => {
+    const contract = buildTaskContract("Harden graph selector behavior");
+    const memory = approvedMemory(
+      "Graph selector should remain generic",
+      "docs/specs/graph-lite.md",
+    );
+    const markdown = renderContextPackageMarkdown(
+      buildContextPackage(contract, undefined, {
+        approvedMemory: [memory],
+      }),
+    );
+
+    expect(markdown).toContain("## Reference Only");
+    expect(markdown).toContain(`.krn/memory/approved.json#${memory.id}`);
+    expect(markdown).toContain("source: memory, selector: approved-memory-task-match");
+    expect(markdown).toContain(`memory: ${memory.id}`);
+    expect(markdown).toContain("approved: 2026-06-03T00:01:00.000Z");
+    expect(markdown).toContain("evidence: docs/specs/graph-lite.md");
   });
 });

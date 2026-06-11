@@ -1,4 +1,5 @@
 import type { GraphLite } from "../../graph/src/index.js";
+import type { MemoryRecord } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import { rankContext } from "./rank-context.js";
 import type {
@@ -10,12 +11,19 @@ import type {
 } from "./schema.js";
 import { shouldStop } from "./stop-policy.js";
 
+export interface BuildContextPackageOptions {
+  approvedMemory?: MemoryRecord[] | undefined;
+}
+
 const taskStopWords = new Set([
   "active",
   "avoid",
+  "approved",
   "context",
   "docs",
   "implement",
+  "memories",
+  "memory",
   "missing",
   "only",
   "relevant",
@@ -40,7 +48,16 @@ function item(
   status: ContextItem["status"] = "available",
   explainability: Pick<
     ContextItem,
-    "source" | "selector" | "matchedTerms" | "relationKind" | "sourceNode" | "targetNode"
+    | "source"
+    | "selector"
+    | "matchedTerms"
+    | "relationKind"
+    | "sourceNode"
+    | "targetNode"
+    | "memoryId"
+    | "memorySummary"
+    | "approvedAt"
+    | "evidencePath"
   > = {},
 ): ContextItem {
   return {
@@ -51,6 +68,18 @@ function item(
     status,
     ...explainability,
   };
+}
+
+function explicitlyRequestsMemory(task: string): boolean {
+  const normalized = task.toLowerCase();
+
+  if (/\b(without|do not use|don't use|no)\s+(approved\s+)?memor(y|ies)\b/.test(normalized)) {
+    return false;
+  }
+
+  return /\b(memory|memories|remembered|approved memory|prior decision|previous decision)\b/.test(
+    normalized,
+  );
 }
 
 function baseItems(): ContextItem[] {
@@ -249,6 +278,46 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
   return items;
 }
 
+function memoryItemsForTask(task: string, approvedMemory: MemoryRecord[] = []): ContextItem[] {
+  const explicit = explicitlyRequestsMemory(task);
+  const taskTerms = taskTermsFor(task);
+  const items: ContextItem[] = [];
+
+  for (const record of approvedMemory) {
+    if (record.status !== "approved" || !record.approvedAt) {
+      continue;
+    }
+
+    const memoryText = `${record.summary} ${record.evidencePath ?? ""}`;
+    const matchedTerms = matchedTermsForText(memoryText, taskTerms);
+
+    if (!explicit && matchedTerms.length === 0) {
+      continue;
+    }
+
+    items.push(
+      item(
+        "reference-only",
+        `.krn/memory/approved.json#${record.id}`,
+        `Approved governed memory reference: ${record.summary}`,
+        explicit ? 34 : 33,
+        "available",
+        {
+          source: "memory",
+          selector: explicit ? "approved-memory-explicit" : "approved-memory-task-match",
+          matchedTerms: matchedTerms.length > 0 ? matchedTerms : undefined,
+          memoryId: record.id,
+          memorySummary: record.summary,
+          approvedAt: record.approvedAt,
+          evidencePath: record.evidencePath,
+        },
+      ),
+    );
+  }
+
+  return items;
+}
+
 function dedupeItems(items: ContextItem[]): ContextItem[] {
   const byPathAndBucket = new Map<string, ContextItem>();
 
@@ -294,10 +363,19 @@ function coverageFor(buckets: ContextBuckets): ContextCoverage {
   };
 }
 
-export function buildContextPackage(contract?: TaskContract, graph?: GraphLite): ContextPackage {
+export function buildContextPackage(
+  contract?: TaskContract,
+  graph?: GraphLite,
+  options: BuildContextPackageOptions = {},
+): ContextPackage {
   const task = contract?.task ?? "";
   const items = rankContext(
-    dedupeItems([...baseItems(), ...taskPolicyItems(task), ...graphItemsForTask(task, graph)]),
+    dedupeItems([
+      ...baseItems(),
+      ...taskPolicyItems(task),
+      ...graphItemsForTask(task, graph),
+      ...memoryItemsForTask(task, options.approvedMemory),
+    ]),
   );
   const buckets = bucketItems(items);
   const stop = shouldStop(contract, buckets);

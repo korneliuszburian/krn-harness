@@ -39,3 +39,5 @@ Each store uses:
 ## Rule
 
 P0 never auto-approves memory. Pending and deprecated records are not active memory.
+
+Approved memory is still gated. `krn context` may surface approved records only as `referenceOnly` items, only when explicitly requested or task-relevant, and only with memory id, approval timestamp, summary, and evidence provenance.

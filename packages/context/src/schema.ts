@@ -13,12 +13,16 @@ export interface ContextItem {
   priority: number;
   bucket: ContextBucket;
   status: ContextItemStatus;
-  source?: "base" | "graph" | "task-policy" | undefined;
+  source?: "base" | "graph" | "memory" | "task-policy" | undefined;
   selector?: string | undefined;
   matchedTerms?: string[] | undefined;
   relationKind?: string | undefined;
   sourceNode?: string | undefined;
   targetNode?: string | undefined;
+  memoryId?: string | undefined;
+  memorySummary?: string | undefined;
+  approvedAt?: string | undefined;
+  evidencePath?: string | undefined;
 }
 
 export interface ContextBuckets {

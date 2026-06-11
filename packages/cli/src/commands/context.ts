@@ -1,5 +1,6 @@
 import { buildContextPackage, renderContextPackageMarkdown } from "../../../context/src/index.js";
 import { buildGraph } from "../../../graph/src/index.js";
+import { loadMemoryStore } from "../../../memory/src/index.js";
 import {
   readCurrentTaskContract,
   writeCurrentJson,
@@ -11,7 +12,10 @@ import type { CliRuntime } from "../runtime.js";
 export async function contextCommand(runtime: CliRuntime): Promise<number> {
   const contract = await readCurrentTaskContract(runtime.cwd);
   const graph = await buildGraph(runtime.cwd);
-  const pkg = buildContextPackage(contract, graph);
+  const approvedMemory = await loadMemoryStore(runtime.cwd, "approved");
+  const pkg = buildContextPackage(contract, graph, {
+    approvedMemory: approvedMemory.records,
+  });
   await writeCurrentMarkdown(runtime.cwd, "context-package.md", renderContextPackageMarkdown(pkg));
   await writeCurrentJson(runtime.cwd, "context-package.json", pkg);
 

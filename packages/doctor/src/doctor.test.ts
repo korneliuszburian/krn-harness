@@ -24,6 +24,7 @@ describe("doctor result", () => {
       "current-verify-result",
       "current-handoff",
       "memory-stores",
+      "memory-context-gate",
       "graph-json",
       "graph-markdown",
       "graph-json-shape",
@@ -45,6 +46,11 @@ describe("doctor result", () => {
       name: "memory-stores",
       status: "warn",
       detail: ".krn/memory stores are missing; governed memory has not been used",
+    });
+    expect(result.checks).toContainEqual({
+      name: "memory-context-gate",
+      status: "pass",
+      detail: "No current context package; memory context gate skipped",
     });
     expect(result.nextActions).toEqual([
       "Run `krn graph` to generate graph artifacts.",
@@ -221,6 +227,127 @@ describe("doctor result", () => {
       name: "memory-stores",
       status: "fail",
       detail: ".krn/memory/pending.json is malformed",
+    });
+  });
+
+  it("passes approved memory context only when reference-only with provenance", async () => {
+    const cwd = await tempRepo();
+    const created = await proposeMemory(cwd, {
+      summary: "Graph selector should remain generic.",
+      evidencePath: "docs/specs/graph-lite.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    });
+    const approved = await approveMemoryById(
+      cwd,
+      created.record?.id ?? "",
+      new Date("2026-06-03T00:01:00.000Z"),
+    );
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          items: [
+            {
+              path: `.krn/memory/approved.json#${approved.record?.id}`,
+              reason: "Approved governed memory reference: Graph selector should remain generic.",
+              priority: 33,
+              bucket: "reference-only",
+              status: "available",
+              source: "memory",
+              selector: "approved-memory-task-match",
+              memoryId: approved.record?.id,
+              memorySummary: "Graph selector should remain generic.",
+              approvedAt: "2026-06-03T00:01:00.000Z",
+              evidencePath: "docs/specs/graph-lite.md",
+            },
+          ],
+          buckets: {
+            mustRead: [],
+            shouldRead: [],
+            referenceOnly: [
+              {
+                path: `.krn/memory/approved.json#${approved.record?.id}`,
+                reason: "Approved governed memory reference: Graph selector should remain generic.",
+                priority: 33,
+                bucket: "reference-only",
+                status: "available",
+                source: "memory",
+                selector: "approved-memory-task-match",
+                memoryId: approved.record?.id,
+                memorySummary: "Graph selector should remain generic.",
+                approvedAt: "2026-06-03T00:01:00.000Z",
+                evidencePath: "docs/specs/graph-lite.md",
+              },
+            ],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 0, present: 0, missing: 0 },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.checks).toContainEqual({
+      name: "memory-context-gate",
+      status: "pass",
+      detail: "1 approved memory reference(s) are reference-only with provenance",
+    });
+  });
+
+  it("fails pending memory leakage in current context", async () => {
+    const cwd = await tempRepo();
+    const pending = await proposeMemory(cwd, {
+      summary: "Pending memory should not be active.",
+      evidencePath: "docs/specs/memory.schema.md",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    });
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          items: [
+            {
+              path: `.krn/memory/pending.json#${pending.record?.id}`,
+              reason: "Pending memory leaked",
+              priority: 99,
+              bucket: "reference-only",
+              status: "available",
+              source: "memory",
+              selector: "approved-memory-task-match",
+              memoryId: pending.record?.id,
+            },
+          ],
+          buckets: {
+            mustRead: [],
+            shouldRead: [],
+            referenceOnly: [],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 0, present: 0, missing: 0 },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runDoctor(cwd);
+
+    expect(result.status).toBe("fail");
+    expect(result.checks).toContainEqual({
+      name: "memory-context-gate",
+      status: "fail",
+      detail: `Pending memory ${pending.record?.id} leaked into context`,
     });
   });
 });

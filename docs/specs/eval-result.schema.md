@@ -33,4 +33,4 @@ The Markdown artifact contains Summary, Fixture Results, Graph Coverage, Memory 
 
 Eval uses fixture-built task contracts and context packages only. It is not a real non-interactive agent runner.
 
-The memory grader is harness-only. It verifies that pending memory is inactive, approved memory is active, and deprecated memory is excluded.
+The memory grader is harness-only. It verifies that pending memory is inactive, approved memory is active only through the context gate, deprecated memory is excluded, unrelated approved memory does not leak, and surfaced approved memory is reference-only with provenance.
