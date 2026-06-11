@@ -9,4 +9,5 @@ export * from "./detectors/js-selector.js";
 export * from "./detectors/package-json.js";
 export * from "./detectors/php-template-part.js";
 export * from "./detectors/wordpress-bedrock.js";
+export * from "./graph-artifact.js";
 export * from "./graph-types.js";

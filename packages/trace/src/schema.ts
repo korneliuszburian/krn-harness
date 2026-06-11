@@ -4,6 +4,7 @@ export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue
 export type TraceEventName =
   | "cli.status"
   | "task.started"
+  | "graph.built"
   | "context.built"
   | "verify.ran"
   | "handoff.created"

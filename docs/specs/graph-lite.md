@@ -35,6 +35,28 @@ Context package construction may consume graph-lite output through generic relat
 
 Selectors match task terms against graph labels and evidence paths. They must not depend on fixture path prefixes.
 
+## P0 CLI Artifact
+
+`krn graph` builds graph-lite for the current repository and writes:
+
+- `.krn/graph/repo-graph.json`
+- `.krn/graph/repo-graph.md`
+
+The JSON artifact is deterministic for a fixed repository and timestamp:
+
+- `schemaVersion`
+- `generatedAt`
+- `nodeCount`
+- `edgeCount`
+- `detectors`
+- `relationKindCounts`
+- `nodeKindCounts`
+- `statusCounts`
+- `nodes`
+- `edges`
+
+The Markdown artifact summarizes detector names, node kind counts, relation kind counts, deprecated docs count, selected evidence examples, and the P0 warning that graph-lite is shallow evidence.
+
 ## Deferred
 
 Tree-sitter, callgraph, dataflow, semantic embeddings, production WordPress/ACF detectors, and repository-wide semantic graph ranking are not P0.

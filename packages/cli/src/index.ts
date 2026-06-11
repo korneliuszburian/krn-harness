@@ -1,6 +1,7 @@
 import { contextCommand } from "./commands/context.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { evalCommand } from "./commands/eval.js";
+import { graphCommand } from "./commands/graph.js";
 import { handoffCommand } from "./commands/handoff.js";
 import { hookCommand } from "./commands/hook.js";
 import { installCommand } from "./commands/install.js";
@@ -15,6 +16,7 @@ Usage:
   krn --help
   krn status
   krn start "<task>"
+  krn graph
   krn context
   krn verify
   krn handoff
@@ -41,6 +43,10 @@ export async function runCli(
 
   if (command === "start") {
     return startCommand(rest, runtime);
+  }
+
+  if (command === "graph") {
+    return graphCommand(runtime);
   }
 
   if (command === "context") {

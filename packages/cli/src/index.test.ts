@@ -78,6 +78,7 @@ describe("krn CLI", () => {
 
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("krn status");
+    expect(result.stdout).toContain("krn graph");
     expect(result.stdout).toContain("krn install");
     expect(result.stdout).toContain("krn hook codex <event>");
   });
@@ -88,6 +89,67 @@ describe("krn CLI", () => {
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("KRN status: ready");
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([{ name: "cli.status" }]);
+  });
+
+  it("runs graph and writes deterministic graph artifacts", async () => {
+    const result = await runInTemp(["graph"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("KRN graph: ready");
+    expect(result.stdout).toContain("json: .krn/graph/repo-graph.json");
+    expect(result.stdout).toContain("markdown: .krn/graph/repo-graph.md");
+    expect(result.stdout).toContain("warning: graph-lite is shallow P0 evidence");
+
+    const graphJson = await readJson<{
+      schemaVersion: number;
+      generatedAt: string;
+      nodeCount: number;
+      edgeCount: number;
+      detectors: string[];
+      relationKindCounts: Record<string, number>;
+      nodeKindCounts: Record<string, number>;
+      statusCounts: Record<string, number>;
+      nodes: unknown[];
+      edges: unknown[];
+    }>(result.cwd, ".krn/graph/repo-graph.json");
+    const graphMarkdown = await readFile(path.join(result.cwd, ".krn/graph/repo-graph.md"), "utf8");
+
+    expect(graphJson).toMatchObject({
+      schemaVersion: 1,
+      generatedAt: "2026-06-03T00:00:00.000Z",
+      nodeCount: 0,
+      edgeCount: 0,
+      relationKindCounts: {},
+      nodeKindCounts: {},
+      statusCounts: {},
+      nodes: [],
+      edges: [],
+    });
+    expect(graphJson.detectors).toEqual([
+      "acf-json",
+      "composer-json",
+      "css-class",
+      "docs-links",
+      "filesystem",
+      "package-json",
+      "wordpress-bedrock",
+    ]);
+    expect(graphMarkdown).toContain("# Graph-Lite Repository Graph");
+    expect(graphMarkdown).toContain("## Detectors");
+    expect(graphMarkdown).toContain("## Relation Kind Counts");
+    expect(graphMarkdown).toContain("Graph-lite is shallow P0 evidence");
+    await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
+      {
+        name: "graph.built",
+        data: {
+          nodeCount: 0,
+          edgeCount: 0,
+          detectors: graphJson.detectors,
+          relationKindCounts: {},
+          nodeKindCounts: {},
+        },
+      },
+    ]);
   });
 
   it("installs deterministic downstream onboarding artifacts safely and idempotently", async () => {
