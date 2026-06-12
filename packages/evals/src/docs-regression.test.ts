@@ -82,6 +82,7 @@ describe("P0 docs anti-regression", () => {
 
   it("keeps dogfood lab local, optional, and artifact-first", async () => {
     const demo = await readDoc("docs/demo/codex-dogfood.md");
+    const hookExample = await readDoc("docs/demo/hook-trust-probe-example.json");
     const schema = await readDoc("docs/specs/dogfood-result.schema.md");
     const principles = await readDoc("docs/research/agentic-coding-principles.md");
 
@@ -110,6 +111,9 @@ describe("P0 docs anti-regression", () => {
     expect(principles).toContain("Measure explicit skill usage");
     expect(principles).toContain("Treat self-report as weak evidence");
     expect(principles).toContain("No production Codex runner");
+    expect(hookExample).toContain('"manualHookTraceEvents": 1');
+    expect(hookExample).toContain('"dangerousBypassUsed": false');
+    expect(hookExample).toContain("does not prove Codex loaded or trusted");
   });
 
   it("keeps WordPress ACF fixture detection scoped to P0 conventions", async () => {
@@ -123,6 +127,29 @@ describe("P0 docs anti-regression", () => {
     expect(wpSpec).toContain("not production WordPress/ACF detection");
     expect(wpSpec).toContain("No PHP parsing");
     expect(wpSpec).toContain("No PHP parsing, WordPress runtime inspection");
+  });
+
+  it("keeps operator console and WP ACF handoff data-only and honest", async () => {
+    const operator = await readDoc("docs/product/operator-console.md");
+    const handoff = await readDoc("docs/handoffs/2026-06-13-wp-acf-dogfood-evidence.md");
+    const readme = await readDoc("README.md");
+
+    expect(operator).toContain("P0 data model only");
+    expect(operator).toContain("No UI, static HTML, frontend framework, server, database");
+    expect(operator).toContain("Missing artifacts are allowed");
+    expect(operator).toContain("Do not duplicate full trace content");
+    expect(operator).toContain("future `krn summary` or `krn operator` command");
+
+    expect(handoff).toContain("not a production benchmark pass");
+    expect(handoff).toContain("Skipped.");
+    expect(handoff).toContain("forbids paid model calls");
+    expect(handoff).toContain("No WP/ACF baseline/KRN scores were produced");
+    expect(handoff).toContain("Real Codex hook loading/trust remains unproven");
+    expect(handoff).toContain("Do not claim KRN improves real WordPress/ACF Codex execution");
+
+    expect(readme).toContain("Tiny downstream fixture dogfood");
+    expect(readme).toContain("WordPress/ACF fixture");
+    expect(readme).toContain("real Codex hook loading/trust remains unproven");
   });
 
   it("keeps verify profile docs explicit about policy and non-execution", async () => {

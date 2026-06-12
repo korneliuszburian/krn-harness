@@ -1,0 +1,15 @@
+{
+  "status": "ready-for-real-codex-probe",
+  "codexAvailable": true,
+  "codexCommand": "/path/to/codex",
+  "hooksTemplatePresent": true,
+  "manualHookCommand": "krn hook codex SessionStart",
+  "manualHookTraceEvents": 1,
+  "dangerousBypassUsed": false,
+  "codexHookFlags": "--dangerously-bypass-hook-trust is available but not used",
+  "notes": [
+    "Manual krn hook invocation proves the generated command can write hook.received.",
+    "It does not prove Codex loaded or trusted .codex/hooks.json.",
+    "Real Codex runs must be checked for hook.received without --dangerously-bypass-hook-trust."
+  ]
+}
