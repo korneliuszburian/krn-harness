@@ -1,0 +1,18 @@
+{
+  "key": "group_hero",
+  "title": "Hero Section",
+  "fields": [
+    {
+      "key": "field_hero_headline",
+      "name": "hero_headline",
+      "label": "Hero headline",
+      "type": "text"
+    },
+    {
+      "key": "field_hero_variant",
+      "name": "hero_variant",
+      "label": "Hero variant",
+      "type": "select"
+    }
+  ]
+}

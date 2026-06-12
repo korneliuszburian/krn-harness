@@ -1,0 +1,32 @@
+{
+  "id": "wp-css-token-change",
+  "prompt": "Change only the current hero CSS token and static proof; do not edit PHP or stale docs.",
+  "expectedTouchedFiles": ["src/theme/assets/hero.css", "tests/theme.test.js"],
+  "forbiddenTouchedFiles": [
+    "src/theme/functions.php",
+    "src/theme/acf-fields.php",
+    "src/theme/template-parts/hero.php",
+    "docs/legacy-css-notes.md",
+    "docs/do-not-use.md"
+  ],
+  "expectedCommands": ["krn start", "krn graph", "krn context", "krn verify --execute"],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/graph/repo-graph.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json"
+  ],
+  "expectedUntouchedFiles": [
+    "src/theme/functions.php",
+    "src/theme/acf-fields.php",
+    "src/theme/template-parts/hero.php"
+  ],
+  "requiredDoNotUsePaths": ["docs/legacy-css-notes.md", "docs/do-not-use.md"],
+  "requiredTraceEvents": ["task.started", "graph.built", "context.built", "verify.ran"],
+  "expectedVerifyStatus": "pass",
+  "expectedVerifyMode": "execute",
+  "minExecutedCommands": 1,
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

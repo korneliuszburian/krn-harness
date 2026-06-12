@@ -1,0 +1,13 @@
+{
+  "fixtureRepo": "fixtures/repos/wordpress-acf-theme",
+  "tasks": [
+    "wp-acf-hero-copy",
+    "wp-acf-field-mapping",
+    "wp-css-token-change",
+    "wp-js-data-attribute",
+    "wp-stale-doc-trap",
+    "wp-missing-context-stop",
+    "wp-package-owned-source-test",
+    "wp-handoff-required"
+  ]
+}

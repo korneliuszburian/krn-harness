@@ -1,0 +1,8 @@
+{
+  "name": "wordpress-acf-theme",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/theme.test.js"
+  }
+}

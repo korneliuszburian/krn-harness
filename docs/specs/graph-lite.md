@@ -23,7 +23,7 @@ Included v0 detectors:
 - Package scripts: `package.json` nodes and declared npm script relations.
 - Composer scripts/type: `composer.json` nodes, Composer type, and declared Composer script relations.
 - CSS class relations: stylesheet class definitions, markup class uses, and file-to-file style relations when a class use matches a definition.
-- Tiny WordPress/ACF fixtures: ACF group/field relations and fixture-level WordPress site relations for `acf-json/`, `theme/`, and Composer files.
+- Tiny WordPress/ACF fixtures: ACF group/field relations and fixture-level WordPress site relations for `acf/`, `acf-json/`, `src/theme/`, `theme/`, and Composer files.
 
 ## Context Package Use
 
@@ -33,14 +33,17 @@ Context package construction may consume graph-lite output through generic relat
 - `owns-source` edges promote matching package-owned source files to `must-read`.
 - `owns-test` and `owns-config` edges promote matching package-owned tests/config files to `should-read`.
 - `tests-source` edges may promote a paired test to stronger `should-read` evidence when its source is already selected.
+- Package-owned tests may also become `should-read` when a source in the same package is selected.
 - `owns-doc` edges promote matching package-owned docs to `reference-only`, or `do-not-use` when the doc node is deprecated.
 - Matching ACF group nodes promote their JSON evidence paths to `must-read`.
+- Matching deprecated ACF group nodes become `do-not-use`.
 - Matching available docs become `reference-only`.
 - Matching deprecated docs become `do-not-use`.
 
 Selectors match task terms against graph labels, evidence paths, and package ownership nodes. They must not depend on fixture path prefixes.
+When selected source/package context exists, doc matches from neighboring fixture packages are ignored to reduce leakage.
 
-Package ownership is path-convention-only in P0. It may derive package roots from `packages/<name>`, `fixtures/repos/<name>`, or a downstream root with `src`, docs, README, or config files. It must not inspect imports, build ASTs, or infer runtime dependencies.
+Package ownership is path-convention-only in P0. It may derive package roots from `packages/<name>`, `fixtures/repos/<name>`, or a downstream root with `src`, tests, docs, README, or config files. It must not inspect imports, build ASTs, or infer runtime dependencies.
 
 ## P0 CLI Artifact
 

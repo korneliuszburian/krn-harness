@@ -1,0 +1,13 @@
+{
+  "key": "group_legacy_hero",
+  "title": "Legacy Hero Section",
+  "status": "deprecated",
+  "fields": [
+    {
+      "key": "field_legacy_headline",
+      "name": "legacy_headline",
+      "label": "Legacy headline",
+      "type": "text"
+    }
+  ]
+}

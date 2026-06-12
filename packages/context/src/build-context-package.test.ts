@@ -322,6 +322,57 @@ describe("context package", () => {
     ]);
   });
 
+  it("selects WordPress ACF hero context without promoting the whole fixture", async () => {
+    const contract = buildTaskContract("Update hero field mapping in WordPress ACF theme");
+    const graph = await buildGraph(repoRoot);
+    const pkg = buildContextPackage(contract, graph);
+    const mustRead = pkg.buckets.mustRead.map((item) => item.path);
+    const shouldRead = pkg.buckets.shouldRead.map((item) => item.path);
+    const doNotUse = pkg.buckets.doNotUse.map((item) => item.path);
+
+    expect(pkg.stop).toBe(false);
+    expect(mustRead).toEqual(
+      expect.arrayContaining([
+        "AGENTS.md",
+        "fixtures/repos/wordpress-acf-theme/src/theme/template-parts/hero.php",
+        "fixtures/repos/wordpress-acf-theme/src/theme/assets/hero.css",
+        "fixtures/repos/wordpress-acf-theme/acf/group_hero.json",
+      ]),
+    );
+    expect(shouldRead).toContain("fixtures/repos/wordpress-acf-theme/tests/theme.test.js");
+    expect(doNotUse).toEqual(
+      expect.arrayContaining([
+        "fixtures/repos/wordpress-acf-theme/acf/legacy_group.json",
+        "fixtures/repos/wordpress-acf-theme/docs/stale-acf-notes.md",
+      ]),
+    );
+    expect(mustRead).not.toEqual(
+      expect.arrayContaining([
+        "fixtures/repos/wordpress-acf-theme/src/theme/functions.php",
+        "fixtures/repos/wordpress-acf-theme/src/theme/template-parts/card-grid.php",
+      ]),
+    );
+  });
+
+  it("does not promote WordPress ACF fixture files from broad domain terms alone", async () => {
+    const contract = buildTaskContract("Audit WordPress ACF theme context");
+    const graph = await buildGraph(repoRoot);
+    const pkg = buildContextPackage(contract, graph);
+    const selectedPaths = [
+      ...pkg.buckets.mustRead,
+      ...pkg.buckets.shouldRead,
+      ...pkg.buckets.referenceOnly,
+    ].map((item) => item.path);
+
+    expect(selectedPaths).not.toEqual(
+      expect.arrayContaining([
+        "fixtures/repos/wordpress-acf-theme/src/theme/template-parts/hero.php",
+        "fixtures/repos/wordpress-acf-theme/src/theme/assets/hero.css",
+        "fixtures/repos/wordpress-acf-theme/src/theme/functions.php",
+      ]),
+    );
+  });
+
   it("does not select active frontend files for stale-doc tasks", () => {
     const fixture = readTaskFixture("stale-doc-trap");
     const contract = buildTaskContract(fixture.task);

@@ -46,6 +46,9 @@ function packageRootFor(graphPath: string): string | undefined {
   if (
     parts[0] === "src" ||
     parts[0] === "docs" ||
+    parts[0] === "test" ||
+    parts[0] === "tests" ||
+    parts[0] === "__tests__" ||
     graphPath === "README.md" ||
     configFileNames.has(path.posix.basename(graphPath))
   ) {

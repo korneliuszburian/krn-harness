@@ -3,13 +3,20 @@ import { graphPathJoin, toGraphPath, walkFiles } from "../path-utils.js";
 
 function siteRootFor(graphPath: string): string | undefined {
   const parts = graphPath.split("/");
-  const markerIndex = parts.findIndex((part) => part === "acf-json" || part === "theme");
+  const markerIndex = parts.findIndex(
+    (part) => part === "acf" || part === "acf-json" || part === "theme",
+  );
 
   if (markerIndex < 0) {
     return undefined;
   }
 
-  return parts.slice(0, markerIndex).join("/") || ".";
+  const rootEnd =
+    parts[markerIndex] === "theme" && parts[markerIndex - 1] === "src"
+      ? markerIndex - 1
+      : markerIndex;
+
+  return parts.slice(0, rootEnd).join("/") || ".";
 }
 
 export const wordpressBedrockDetector: GraphDetector = {
@@ -42,7 +49,7 @@ export const wordpressBedrockDetector: GraphDetector = {
         });
       }
 
-      for (const graphPath of siteFiles.filter((file) => file.includes("/acf-json/"))) {
+      for (const graphPath of siteFiles.filter((file) => /\/(acf|acf-json)\//.test(file))) {
         edges.push({
           from: siteId,
           to: `file:${graphPath}`,

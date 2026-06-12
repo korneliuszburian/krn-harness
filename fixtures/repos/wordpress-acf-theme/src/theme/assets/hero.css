@@ -1,0 +1,22 @@
+.hero {
+  min-height: 520px;
+}
+
+.hero--classic {
+  --hero-accent: #0f766e;
+}
+
+.hero__cta {
+  display: inline-flex;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    min-height: 320px;
+  }
+}
+
+.card-grid {
+  display: grid;
+  gap: 24px;
+}

@@ -47,6 +47,40 @@ Review generated files before trusting them:
 
 Hooks are guardrails and trace points, not a sandbox.
 
+## WordPress/ACF Fixture Protocol
+
+Use this fixture to test realistic source/config/docs selection without WordPress, PHP, Composer, or network access:
+
+```sh
+workdir="$(mktemp -d)"
+cp -R fixtures/repos/wordpress-acf-theme "$workdir/wordpress-acf-theme"
+cd "$workdir/wordpress-acf-theme"
+git init
+git add .
+git commit -m "fixture baseline"
+krn install
+krn start "Update hero field mapping in WordPress ACF theme"
+krn graph
+krn context
+krn verify --execute
+krn handoff
+```
+
+Expected evidence:
+
+- `.krn/current/context-package.json` includes hero template/CSS and active `acf/group_hero.json`.
+- `.krn/current/context-package.json` marks stale docs and `acf/legacy_group.json` as `do-not-use`.
+- `.krn/current/verify-result.json` has `mode: execute`, `status: pass`, and one executed command.
+- `.krn/current/handoff.md` includes verify status and mode.
+
+Task specs live in `fixtures/dogfood/tasks/wp-*.json`; the index is `fixtures/dogfood/tasks/wp-acf-theme-index.json`.
+
+Prompt fixtures:
+
+- `fixtures/dogfood/skills/wp-acf-baseline.md`
+- `fixtures/dogfood/skills/wp-acf-explicit-krn-skill.md`
+- `fixtures/dogfood/skills/wp-acf-implicit-krn-skill.md`
+
 ## Hook Trust/Loading Probe
 
 Before claiming hooks work in a real Codex run, prove loading and trust without bypass flags:
@@ -60,6 +94,8 @@ krn hook codex SessionStart
 
 Then run one Codex probe normally. Do not use `--dangerously-bypass-hook-trust`.
 If `.krn/traces/trace.jsonl` has no `hook.received`, record that hooks were installed but not proven trusted/loaded for that Codex surface.
+
+Current Codex hook docs say project-local hooks load only when the project `.codex/` layer is trusted. Use `/hooks` in interactive Codex to inspect sources, review changed command hooks, and persist trust. Treat `--dangerously-bypass-hook-trust` as non-primary automation evidence only.
 
 ## Manual KRN Run
 

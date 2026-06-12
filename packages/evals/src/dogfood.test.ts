@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -15,6 +15,15 @@ async function writeJson(cwd: string, relativePath: string, value: unknown): Pro
   const filePath = path.join(cwd, relativePath);
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function writeText(cwd: string, relativePath: string, value: string): Promise<void> {
@@ -153,6 +162,105 @@ describe("dogfood eval artifacts", () => {
     );
   });
 
+  it("grades realistic dogfood evidence beyond self-report fields", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-wp" });
+    await writeJson(cwd, ".krn/current/context-package.json", {
+      stop: false,
+      buckets: {
+        doNotUse: [{ path: "docs/stale-acf-notes.md" }, { path: "acf/legacy_group.json" }],
+      },
+    });
+    await writeJson(cwd, ".krn/current/verify-result.json", {
+      status: "pass",
+      mode: "execute",
+      summary: { executedCommands: 1 },
+    });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n\nStatus: pass\nMode: execute\n");
+    await writeTrace(cwd, "task-wp", [
+      "task.started",
+      "graph.built",
+      "context.built",
+      "verify.ran",
+      "handoff.created",
+    ]);
+
+    const result = await gradeDogfoodRun({
+      repoPath: cwd,
+      task: task({
+        id: "wp-acf-field-mapping",
+        expectedTouchedFiles: ["acf/group_hero.json", "tests/theme.test.js"],
+        expectedUntouchedFiles: ["docs/stale-acf-notes.md"],
+        forbiddenTouchedFiles: ["docs/stale-acf-notes.md"],
+        expectedCommands: ["krn start", "krn graph", "krn context", "krn verify --execute"],
+        requiredDoNotUsePaths: ["docs/stale-acf-notes.md", "acf/legacy_group.json"],
+        requiredTraceEvents: ["task.started", "graph.built", "context.built", "verify.ran"],
+        expectedVerifyMode: "execute",
+        minExecutedCommands: 1,
+        requireHandoffContent: ["Status: pass", "Mode: execute"],
+        hooksExpected: false,
+      }),
+      run: run({
+        taskId: "wp-acf-field-mapping",
+        touchedFiles: ["acf/group_hero.json", "tests/theme.test.js"],
+        forbiddenTouchedFiles: [],
+        krnCommandsObserved: ["krn start", "krn graph", "krn context", "krn verify --execute"],
+        hookTraceEvents: 0,
+      }),
+    });
+
+    expect(result.status).toBe("pass");
+    expect(result.grades).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "expected-untouched-files", status: "pass" }),
+        expect.objectContaining({ name: "verify-mode", status: "pass" }),
+        expect.objectContaining({ name: "verify-executed-commands", status: "pass" }),
+        expect.objectContaining({ name: "handoff-content", status: "pass" }),
+        expect.objectContaining({ name: "trace-events", status: "pass" }),
+        expect.objectContaining({ name: "context-do-not-use", status: "pass" }),
+      ]),
+    );
+  });
+
+  it("fails when executable verification is required but verify stayed record-only", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-wp" });
+    await writeJson(cwd, ".krn/current/context-package.json", { stop: false });
+    await writeJson(cwd, ".krn/current/verify-result.json", {
+      status: "warn",
+      mode: "record",
+      summary: { executedCommands: 0 },
+    });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-wp", ["task.started", "context.built", "verify.ran"]);
+
+    const result = await gradeDogfoodRun({
+      repoPath: cwd,
+      task: task({
+        expectedCommands: ["krn verify --execute"],
+        expectedVerifyStatus: "pass",
+        expectedVerifyMode: "execute",
+        minExecutedCommands: 1,
+        hooksExpected: false,
+      }),
+      run: run({
+        krnCommandsObserved: ["krn verify"],
+        verifyStatus: "warn",
+        hookTraceEvents: 0,
+      }),
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.grades).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "krn-command-compliance", status: "fail" }),
+        expect.objectContaining({ name: "verify-status", status: "fail" }),
+        expect.objectContaining({ name: "verify-mode", status: "fail" }),
+        expect.objectContaining({ name: "verify-executed-commands", status: "fail" }),
+      ]),
+    );
+  });
+
   it("renders a short baseline-vs-KRN dogfood report", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
     await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-a" });
@@ -211,5 +319,57 @@ describe("dogfood eval artifacts", () => {
       hookTraceEvents: 0,
       notes: ["codex CLI not available"],
     });
+  });
+
+  it("keeps WordPress ACF dogfood task specs deterministic and fixture-backed", async () => {
+    const repoRoot = process.cwd();
+    const indexPath = path.join(repoRoot, "fixtures/dogfood/tasks/wp-acf-theme-index.json");
+    const index = JSON.parse(await readFile(indexPath, "utf8")) as {
+      fixtureRepo: string;
+      tasks: string[];
+    };
+    const fixtureRoot = path.join(repoRoot, index.fixtureRepo);
+
+    expect(index).toEqual({
+      fixtureRepo: "fixtures/repos/wordpress-acf-theme",
+      tasks: [
+        "wp-acf-hero-copy",
+        "wp-acf-field-mapping",
+        "wp-css-token-change",
+        "wp-js-data-attribute",
+        "wp-stale-doc-trap",
+        "wp-missing-context-stop",
+        "wp-package-owned-source-test",
+        "wp-handoff-required",
+      ],
+    });
+
+    for (const taskId of index.tasks) {
+      const spec = await loadDogfoodTaskSpec(
+        path.join(repoRoot, "fixtures/dogfood/tasks", `${taskId}.json`),
+      );
+
+      expect(spec.id).toBe(taskId);
+      expect(spec.prompt.length).toBeGreaterThan(20);
+      expect(spec.requiredArtifacts).toContain(".krn/current/task-contract.json");
+      expect(spec.requiredArtifacts).toContain(".krn/current/context-package.json");
+      expect(spec.expectedCommands).toContain("krn start");
+      expect(spec.expectedCommands).toContain("krn context");
+      expect(["pass", "blocked"]).toContain(spec.expectedVerifyStatus);
+
+      if (spec.expectedVerifyStatus === "pass") {
+        expect(spec.expectedCommands).toContain("krn verify --execute");
+        expect(spec.requiredArtifacts).toContain(".krn/current/verify-result.json");
+      }
+
+      if (spec.handoffRequired) {
+        expect(spec.expectedCommands).toContain("krn handoff");
+        expect(spec.requiredArtifacts).toContain(".krn/current/handoff.md");
+      }
+
+      for (const relativePath of [...spec.expectedTouchedFiles, ...spec.forbiddenTouchedFiles]) {
+        expect(await fileExists(path.join(fixtureRoot, relativePath)), relativePath).toBe(true);
+      }
+    }
   });
 });

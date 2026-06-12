@@ -130,5 +130,71 @@ describe("graph-lite detector v0", () => {
         kind: "has-acf-json",
       }),
     );
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "acf-group:group_hero",
+        kind: "acf-group",
+        evidencePath: "fixtures/repos/wordpress-acf-theme/acf/group_hero.json",
+        status: "available",
+      }),
+    );
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "acf-group:group_legacy_hero",
+        kind: "acf-group",
+        evidencePath: "fixtures/repos/wordpress-acf-theme/acf/legacy_group.json",
+        status: "deprecated",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "wordpress-site:fixtures/repos/wordpress-acf-theme",
+        to: "file:fixtures/repos/wordpress-acf-theme/acf/group_hero.json",
+        kind: "has-acf-json",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "wordpress-site:fixtures/repos/wordpress-acf-theme",
+        to: "file:fixtures/repos/wordpress-acf-theme/src/theme/template-parts/hero.php",
+        kind: "has-theme-file",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:fixtures/repos/wordpress-acf-theme",
+        to: "source-file:fixtures/repos/wordpress-acf-theme/src/theme/assets/hero.js",
+        kind: "owns-source",
+      }),
+    );
+  });
+
+  it("detects root downstream tests as package-owned proof files", async () => {
+    const graph = await buildGraph(path.join(repoRoot, "fixtures/repos/wordpress-acf-theme"));
+
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "package:.",
+        kind: "package",
+        label: "wordpress-acf-theme",
+        evidencePath: ".",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:.",
+        to: "test-file:tests/theme.test.js",
+        kind: "owns-test",
+        evidencePath: "tests/theme.test.js",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:.",
+        to: "source-file:src/theme/assets/hero.js",
+        kind: "owns-source",
+        evidencePath: "src/theme/assets/hero.js",
+      }),
+    );
   });
 });

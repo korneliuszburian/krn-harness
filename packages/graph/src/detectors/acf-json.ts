@@ -13,6 +13,7 @@ interface AcfField {
 interface AcfGroup {
   key?: string;
   title?: string;
+  status?: string;
   fields?: AcfField[];
 }
 
@@ -20,7 +21,7 @@ export const acfJsonDetector: GraphDetector = {
   name: "acf-json",
   async detect(cwd) {
     const acfPaths = (await walkFiles(cwd, new Set([".json"]))).filter((file) =>
-      toGraphPath(cwd, file).includes("acf-json/"),
+      /(^|\/)(acf|acf-json)\//.test(toGraphPath(cwd, file)),
     );
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
@@ -35,6 +36,7 @@ export const acfJsonDetector: GraphDetector = {
         kind: "acf-group",
         label: group.title ?? group.key ?? graphPath,
         evidencePath: graphPath,
+        status: group.status === "deprecated" ? "deprecated" : "available",
       });
 
       for (const field of group.fields ?? []) {

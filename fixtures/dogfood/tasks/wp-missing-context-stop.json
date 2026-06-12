@@ -1,0 +1,29 @@
+{
+  "id": "wp-missing-context-stop",
+  "prompt": "Stop when required context is missing for a WordPress ACF change and do not edit files.",
+  "expectedTouchedFiles": [],
+  "forbiddenTouchedFiles": [
+    "src/theme/functions.php",
+    "src/theme/acf-fields.php",
+    "src/theme/assets/hero.css",
+    "src/theme/assets/hero.js",
+    "src/theme/template-parts/hero.php",
+    "tests/theme.test.js",
+    "docs/do-not-use.md"
+  ],
+  "expectedCommands": ["krn start", "krn context"],
+  "requiredArtifacts": [".krn/current/task-contract.json", ".krn/current/context-package.json"],
+  "expectedUntouchedFiles": [
+    "src/theme/functions.php",
+    "src/theme/acf-fields.php",
+    "src/theme/assets/hero.css",
+    "src/theme/assets/hero.js",
+    "src/theme/template-parts/hero.php",
+    "tests/theme.test.js"
+  ],
+  "requiredTraceEvents": ["task.started", "context.built"],
+  "expectedVerifyStatus": "blocked",
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": true
+}

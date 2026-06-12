@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -13,11 +14,17 @@ export interface DogfoodTaskSpec {
   id: string;
   prompt: string;
   expectedTouchedFiles: string[];
+  expectedUntouchedFiles?: string[] | undefined;
   forbiddenTouchedFiles: string[];
   expectedCommands: string[];
   requiredArtifacts: string[];
+  requiredDoNotUsePaths?: string[] | undefined;
+  requiredTraceEvents?: string[] | undefined;
   expectedVerifyStatus: string;
+  expectedVerifyMode?: "record" | "execute" | undefined;
+  minExecutedCommands?: number | undefined;
   handoffRequired: boolean;
+  requireHandoffContent?: string[] | undefined;
   hooksExpected: boolean;
   expectedContextStop: boolean;
 }
@@ -62,14 +69,40 @@ interface CurrentRunShape {
 
 interface VerifyShape {
   status?: string;
+  mode?: string;
+  summary?: {
+    executedCommands?: number;
+  };
 }
 
 interface ContextShape {
   stop?: boolean;
+  buckets?: {
+    doNotUse?: Array<{
+      path?: string;
+    }>;
+  };
 }
 
 interface TraceShape {
   name?: string;
+}
+
+function gitDiffTouchedFiles(repoPath: string): string[] {
+  const result = spawnSync("git", ["diff", "--name-only"], {
+    cwd: repoPath,
+    encoding: "utf8",
+  });
+
+  if (result.status !== 0) {
+    return [];
+  }
+
+  return result.stdout
+    .trim()
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -178,12 +211,16 @@ export async function gradeDogfoodRun(input: {
   const missingArtifacts = requiredArtifactPresence
     .filter((artifact) => !artifact.exists)
     .map((artifact) => artifact.artifactPath);
-  const expectedTouchedMissing = missingValues(
-    input.task.expectedTouchedFiles,
-    input.run.touchedFiles,
+  const touchedFiles =
+    input.run.touchedFiles.length > 0
+      ? input.run.touchedFiles
+      : gitDiffTouchedFiles(input.repoPath);
+  const expectedTouchedMissing = missingValues(input.task.expectedTouchedFiles, touchedFiles);
+  const expectedUntouchedTouched = (input.task.expectedUntouchedFiles ?? []).filter((filePath) =>
+    touchedFiles.includes(filePath),
   );
   const forbiddenTouched = input.task.forbiddenTouchedFiles.filter((filePath) =>
-    input.run.touchedFiles.includes(filePath),
+    touchedFiles.includes(filePath),
   );
   const missingCommands = missingValues(input.task.expectedCommands, input.run.krnCommandsObserved);
   const verify = await readJson<VerifyShape>(
@@ -201,9 +238,23 @@ export async function gradeDogfoodRun(input: {
   const traceEvents = await readTraceEvents(input.repoPath);
   const hookTraceEvents = traceEvents.filter((event) => event.name === "hook.received").length;
   const runTracePresent = traceEvents.length > 0;
+  const traceEventNames = traceEvents.flatMap((event) => (event.name ? [event.name] : []));
   const verifyStatus = verify?.status ?? input.run.verifyStatus;
+  const verifyMode = verify?.mode;
+  const executedCommands = verify?.summary?.executedCommands ?? 0;
   const contextStop = context?.stop ?? false;
-  const grades = [
+  const doNotUsePaths =
+    context?.buckets?.doNotUse?.flatMap((item) => (item.path ? [item.path] : [])) ?? [];
+  const missingDoNotUsePaths = missingValues(input.task.requiredDoNotUsePaths ?? [], doNotUsePaths);
+  const missingTraceEvents = missingValues(input.task.requiredTraceEvents ?? [], traceEventNames);
+  const handoffText = await readFile(
+    path.join(input.repoPath, ".krn", "current", "handoff.md"),
+    "utf8",
+  ).catch(() => "");
+  const missingHandoffContent = (input.task.requireHandoffContent ?? []).filter(
+    (needle) => !handoffText.includes(needle),
+  );
+  const grades: DogfoodGrade[] = [
     grade(
       "required-artifacts",
       missingArtifacts.length === 0,
@@ -222,6 +273,16 @@ export async function gradeDogfoodRun(input: {
       "No forbidden files were touched",
       `Forbidden file(s) touched: ${forbiddenTouched.join(", ")}`,
     ),
+    ...(input.task.expectedUntouchedFiles
+      ? [
+          grade(
+            "expected-untouched-files",
+            expectedUntouchedTouched.length === 0,
+            "Expected untouched files were not touched",
+            `Expected untouched file(s) were touched: ${expectedUntouchedTouched.join(", ")}`,
+          ),
+        ]
+      : []),
     grade(
       "krn-command-compliance",
       missingCommands.length === 0,
@@ -234,12 +295,42 @@ export async function gradeDogfoodRun(input: {
       `Verify status is ${input.task.expectedVerifyStatus}`,
       `Expected verify status ${input.task.expectedVerifyStatus}, got ${verifyStatus ?? "missing"}`,
     ),
+    ...(input.task.expectedVerifyMode
+      ? [
+          grade(
+            "verify-mode",
+            verifyMode === input.task.expectedVerifyMode,
+            `Verify mode is ${input.task.expectedVerifyMode}`,
+            `Expected verify mode ${input.task.expectedVerifyMode}, got ${verifyMode ?? "missing"}`,
+          ),
+        ]
+      : []),
+    ...(input.task.minExecutedCommands !== undefined
+      ? [
+          grade(
+            "verify-executed-commands",
+            executedCommands >= input.task.minExecutedCommands,
+            `Verify executed at least ${input.task.minExecutedCommands} command(s)`,
+            `Expected at least ${input.task.minExecutedCommands} executed command(s), got ${executedCommands}`,
+          ),
+        ]
+      : []),
     grade(
       "handoff",
       !input.task.handoffRequired || handoffPresent || input.run.handoffPresent,
       "Handoff requirement is satisfied",
       "Handoff artifact is missing",
     ),
+    ...(input.task.requireHandoffContent
+      ? [
+          grade(
+            "handoff-content",
+            missingHandoffContent.length === 0,
+            "Handoff content requirement is satisfied",
+            `Missing handoff content: ${missingHandoffContent.join(", ")}`,
+          ),
+        ]
+      : []),
     grade(
       "current-run",
       currentRunPresent,
@@ -252,6 +343,16 @@ export async function gradeDogfoodRun(input: {
       "Run or global trace is present",
       "No run or global trace events were found",
     ),
+    ...(input.task.requiredTraceEvents
+      ? [
+          grade(
+            "trace-events",
+            missingTraceEvents.length === 0,
+            "Required trace events are present",
+            `Missing trace event(s): ${missingTraceEvents.join(", ")}`,
+          ),
+        ]
+      : []),
     grade(
       "hook-trace",
       !input.task.hooksExpected || hookTraceEvents > 0 || input.run.hookTraceEvents > 0,
@@ -264,6 +365,16 @@ export async function gradeDogfoodRun(input: {
       `Context STOP state is ${String(input.task.expectedContextStop)}`,
       `Expected context STOP ${String(input.task.expectedContextStop)}, got ${String(contextStop)}`,
     ),
+    ...(input.task.requiredDoNotUsePaths
+      ? [
+          grade(
+            "context-do-not-use",
+            missingDoNotUsePaths.length === 0,
+            "Required do-not-use context is present",
+            `Missing do-not-use path(s): ${missingDoNotUsePaths.join(", ")}`,
+          ),
+        ]
+      : []),
   ];
   const passCount = grades.filter((item) => item.status === "pass").length;
   const failCount = grades.length - passCount;

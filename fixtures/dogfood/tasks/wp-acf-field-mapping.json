@@ -1,0 +1,47 @@
+{
+  "id": "wp-acf-field-mapping",
+  "prompt": "Update the active hero ACF field mapping and paired static proof without using legacy ACF notes.",
+  "expectedTouchedFiles": [
+    "acf/group_hero.json",
+    "src/theme/acf-fields.php",
+    "tests/theme.test.js"
+  ],
+  "forbiddenTouchedFiles": [
+    "acf/legacy_group.json",
+    "docs/stale-acf-notes.md",
+    "docs/do-not-use.md"
+  ],
+  "expectedCommands": [
+    "krn start",
+    "krn graph",
+    "krn context",
+    "krn verify --execute",
+    "krn handoff"
+  ],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/graph/repo-graph.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json",
+    ".krn/current/handoff.md"
+  ],
+  "requiredDoNotUsePaths": [
+    "acf/legacy_group.json",
+    "docs/stale-acf-notes.md",
+    "docs/do-not-use.md"
+  ],
+  "requiredTraceEvents": [
+    "task.started",
+    "graph.built",
+    "context.built",
+    "verify.ran",
+    "handoff.created"
+  ],
+  "expectedVerifyStatus": "pass",
+  "expectedVerifyMode": "execute",
+  "minExecutedCommands": 1,
+  "handoffRequired": true,
+  "requireHandoffContent": ["Status: pass", "Mode: execute"],
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

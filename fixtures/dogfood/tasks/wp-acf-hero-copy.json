@@ -1,0 +1,45 @@
+{
+  "id": "wp-acf-hero-copy",
+  "prompt": "Update the WordPress ACF hero default copy and verify the static theme proof.",
+  "expectedTouchedFiles": ["src/theme/template-parts/hero.php", "tests/theme.test.js"],
+  "forbiddenTouchedFiles": [
+    "docs/stale-acf-notes.md",
+    "docs/legacy-css-notes.md",
+    "docs/do-not-use.md",
+    "acf/legacy_group.json"
+  ],
+  "expectedCommands": [
+    "krn start",
+    "krn graph",
+    "krn context",
+    "krn verify --execute",
+    "krn handoff"
+  ],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/graph/repo-graph.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json",
+    ".krn/current/handoff.md"
+  ],
+  "requiredDoNotUsePaths": [
+    "docs/stale-acf-notes.md",
+    "docs/legacy-css-notes.md",
+    "docs/do-not-use.md",
+    "acf/legacy_group.json"
+  ],
+  "requiredTraceEvents": [
+    "task.started",
+    "graph.built",
+    "context.built",
+    "verify.ran",
+    "handoff.created"
+  ],
+  "expectedVerifyStatus": "pass",
+  "expectedVerifyMode": "execute",
+  "minExecutedCommands": 1,
+  "handoffRequired": true,
+  "requireHandoffContent": ["Status: pass", "Mode: execute"],
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

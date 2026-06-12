@@ -23,9 +23,20 @@ Dogfood run records compare baseline Codex and KRN-assisted Codex runs using loc
 - `handoffPresent`
 - `notes`
 
+Task specs may also request stricter optional checks:
+
+- `expectedUntouchedFiles`
+- `requiredDoNotUsePaths`
+- `requiredTraceEvents`
+- `expectedVerifyMode`
+- `minExecutedCommands`
+- `requireHandoffContent`
+
 ## Grader Behavior
 
-The dogfood grader inspects a downstream repo and a run record. It checks current KRN artifacts, run trace presence, `hook.received` events when expected, touched-file expectations, forbidden-file violations, verify status, handoff presence, command observations, and context STOP state.
+The dogfood grader inspects a downstream repo and a run record. It checks current KRN artifacts, run trace presence, `hook.received` events when expected, touched-file expectations, expected untouched files when configured, forbidden-file violations, verify status, verify mode, executed verify command count, handoff presence/content, command observations, required trace events, required `do-not-use` context paths, and context STOP state.
+
+If `touchedFiles` is empty in the run record, the grader may read `git diff --name-only` from the downstream repo as local evidence.
 
 Missing Codex is represented as a skipped run record. Self-report is not sufficient evidence.
 

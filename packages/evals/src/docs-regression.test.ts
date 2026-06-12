@@ -92,16 +92,37 @@ describe("P0 docs anti-regression", () => {
     );
     expect(demo).toContain("Hook Trust/Loading Probe");
     expect(demo).toContain("Do not use `--dangerously-bypass-hook-trust`");
+    expect(demo).toContain("project `.codex/` layer is trusted");
+    expect(demo).toContain("Use `/hooks` in interactive Codex");
     expect(demo).toContain("RUN_KRN_CODEX_DOGFOOD=1");
+    expect(demo).toContain("WordPress/ACF Fixture Protocol");
+    expect(demo).toContain("without WordPress, PHP, Composer, or network access");
+    expect(demo).toContain("wp-acf-theme-index.json");
+    expect(demo).toContain("wp-acf-explicit-krn-skill.md");
     expect(demo).toContain("not a production Codex runner");
     expect(schema).toContain("baseline");
     expect(schema).toContain("krn-explicit-skill");
+    expect(schema).toContain("requiredDoNotUsePaths");
+    expect(schema).toContain("minExecutedCommands");
     expect(schema).toContain("hook.received");
     expect(schema).toContain("Self-report is not sufficient evidence");
     expect(schema).toContain("must not make `pnpm test` or CI depend on Codex CLI");
     expect(principles).toContain("Measure explicit skill usage");
     expect(principles).toContain("Treat self-report as weak evidence");
     expect(principles).toContain("No production Codex runner");
+  });
+
+  it("keeps WordPress ACF fixture detection scoped to P0 conventions", async () => {
+    const graphSpec = await readDoc("docs/specs/graph-lite.md");
+    const wpSpec = await readDoc("docs/specs/wordpress-acf-detector.md");
+
+    expect(graphSpec).toContain("`acf/`, `acf-json/`, `src/theme/`, `theme/`");
+    expect(graphSpec).toContain("Package-owned tests may also become `should-read`");
+    expect(graphSpec).toContain("doc matches from neighboring fixture packages are ignored");
+    expect(wpSpec).toContain("synthetic WordPress/ACF-style fixtures");
+    expect(wpSpec).toContain("not production WordPress/ACF detection");
+    expect(wpSpec).toContain("No PHP parsing");
+    expect(wpSpec).toContain("No PHP parsing, WordPress runtime inspection");
   });
 
   it("keeps verify profile docs explicit about policy and non-execution", async () => {

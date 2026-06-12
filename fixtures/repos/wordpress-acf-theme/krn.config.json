@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "project": {
+    "name": "wordpress-acf-theme"
+  },
+  "runtime": {
+    "dir": ".krn"
+  },
+  "verify": {
+    "defaultProfile": "unit",
+    "profiles": {
+      "unit": {
+        "commands": [
+          {
+            "command": "node",
+            "args": ["tests/theme.test.js"],
+            "label": "theme static smoke"
+          }
+        ],
+        "timeoutMs": 30000,
+        "maxOutputBytes": 4096
+      }
+    }
+  }
+}
