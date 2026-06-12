@@ -249,6 +249,7 @@ markdown: .krn/graph/repo-graph.md
       "css-class",
       "docs-links",
       "filesystem",
+      "package-conventions",
       "package-json",
       "wordpress-bedrock",
     ]);
@@ -2045,7 +2046,7 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 16,
+      passCount: 19,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
@@ -2060,6 +2061,7 @@ markdown: .krn/graph/repo-graph.md
       "frontend-section-context",
       "stale-doc-trap",
       "missing-context-stop",
+      "downstream-basic-package-context",
     ]);
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
@@ -2095,8 +2097,8 @@ markdown: .krn/graph/repo-graph.md
         name: "eval.ran",
         data: {
           status: "pass",
-          fixtures: 3,
-          passCount: 16,
+          fixtures: 4,
+          passCount: 19,
           failCount: 0,
           downstreamStatus: "pass",
           verifyStatus: "pass",

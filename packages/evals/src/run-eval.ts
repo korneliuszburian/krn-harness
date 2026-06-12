@@ -128,25 +128,66 @@ function gradeGraphBehavior(input: {
   graph: GraphLite;
   frontendWithGraph?: ContextPackage | undefined;
   frontendWithoutGraph?: ContextPackage | undefined;
+  downstreamWithGraph?: ContextPackage | undefined;
+  downstreamWithoutGraph?: ContextPackage | undefined;
   expectedMustRead?: string[] | undefined;
+  downstreamExpectedMustRead?: string[] | undefined;
+  downstreamExpectedDoNotUse?: string[] | undefined;
 }): EvalGrade {
   const nodeKinds = new Set(input.graph.nodes.map((node) => node.kind));
   const relationKinds = new Set(input.graph.edges.map((edge) => edge.kind));
-  const requiredNodeKinds = ["stylesheet", "acf-group", "doc"];
-  const requiredRelationKinds = ["style-related-to", "declares-acf-field", "has-acf-json"];
+  const requiredNodeKinds = [
+    "stylesheet",
+    "acf-group",
+    "doc",
+    "package",
+    "source-file",
+    "test-file",
+  ];
+  const requiredRelationKinds = [
+    "style-related-to",
+    "declares-acf-field",
+    "has-acf-json",
+    "owns-source",
+    "owns-test",
+    "owns-doc",
+    "owns-config",
+    "tests-source",
+  ];
   const expectedGraphPaths = (input.expectedMustRead ?? []).filter((item) => item !== "AGENTS.md");
   const withGraphPaths = input.frontendWithGraph?.buckets.mustRead.map((item) => item.path) ?? [];
   const withoutGraphPaths =
     input.frontendWithoutGraph?.buckets.mustRead.map((item) => item.path) ?? [];
+  const downstreamExpectedPaths = (input.downstreamExpectedMustRead ?? []).filter(
+    (item) => item !== "AGENTS.md",
+  );
+  const downstreamWithGraphPaths =
+    input.downstreamWithGraph?.buckets.mustRead.map((item) => item.path) ?? [];
+  const downstreamWithoutGraphPaths =
+    input.downstreamWithoutGraph?.buckets.mustRead.map((item) => item.path) ?? [];
+  const downstreamDoNotUsePaths =
+    input.downstreamWithGraph?.buckets.doNotUse.map((item) => item.path) ?? [];
   const missingNodeKinds = requiredNodeKinds.filter((kind) => !nodeKinds.has(kind));
   const missingRelationKinds = requiredRelationKinds.filter((kind) => !relationKinds.has(kind));
   const missingGraphContext = expectedGraphPaths.filter((item) => !withGraphPaths.includes(item));
   const leakedWithoutGraph = expectedGraphPaths.filter((item) => withoutGraphPaths.includes(item));
+  const missingDownstreamGraphContext = downstreamExpectedPaths.filter(
+    (item) => !downstreamWithGraphPaths.includes(item),
+  );
+  const leakedDownstreamWithoutGraph = downstreamExpectedPaths.filter((item) =>
+    downstreamWithoutGraphPaths.includes(item),
+  );
+  const missingDownstreamDoNotUse = (input.downstreamExpectedDoNotUse ?? []).filter(
+    (item) => !downstreamDoNotUsePaths.includes(item),
+  );
   const failures = [
     ...missingNodeKinds.map((kind) => `missing node kind ${kind}`),
     ...missingRelationKinds.map((kind) => `missing relation kind ${kind}`),
     ...missingGraphContext.map((item) => `missing graph-fed context ${item}`),
     ...leakedWithoutGraph.map((item) => `leaked without graph ${item}`),
+    ...missingDownstreamGraphContext.map((item) => `missing downstream graph context ${item}`),
+    ...leakedDownstreamWithoutGraph.map((item) => `leaked downstream without graph ${item}`),
+    ...missingDownstreamDoNotUse.map((item) => `missing downstream do-not-use ${item}`),
   ];
 
   return {
@@ -154,7 +195,7 @@ function gradeGraphBehavior(input: {
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? "Graph-lite kinds and graph-fed context behavior are present"
+        ? "Graph-lite kinds, package relations, and graph-fed context behavior are present"
         : failures.join("; "),
   };
 }
@@ -797,6 +838,10 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   let frontendWithGraph: ContextPackage | undefined;
   let frontendWithoutGraph: ContextPackage | undefined;
   let frontendExpectedMustRead: string[] | undefined;
+  let downstreamWithGraph: ContextPackage | undefined;
+  let downstreamWithoutGraph: ContextPackage | undefined;
+  let downstreamExpectedMustRead: string[] | undefined;
+  let downstreamExpectedDoNotUse: string[] | undefined;
 
   for (const fixture of harnessFixtures) {
     const taskFixture = await loadEvalTaskFixture(fixture, fixtureRoot);
@@ -807,6 +852,13 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
       frontendWithGraph = contextPackage;
       frontendWithoutGraph = buildContextPackage(contract);
       frontendExpectedMustRead = taskFixture.expected.mustRead;
+    }
+
+    if (fixture.name === "downstream-basic-package-context") {
+      downstreamWithGraph = contextPackage;
+      downstreamWithoutGraph = buildContextPackage(contract);
+      downstreamExpectedMustRead = taskFixture.expected.mustRead;
+      downstreamExpectedDoNotUse = taskFixture.expected.doNotUse;
     }
 
     const grades = [
@@ -829,7 +881,11 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     graph,
     frontendWithGraph,
     frontendWithoutGraph,
+    downstreamWithGraph,
+    downstreamWithoutGraph,
     expectedMustRead: frontendExpectedMustRead,
+    downstreamExpectedMustRead,
+    downstreamExpectedDoNotUse,
   });
   const graphArtifact = await gradeGraphArtifact(cwd);
   const memory = gradeMemoryGovernance();

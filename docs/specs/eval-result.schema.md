@@ -31,6 +31,7 @@ The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, H
 - `frontend-section-context`: expected must-read context coverage.
 - `stale-doc-trap`: deprecated docs must stay in `do-not-use`.
 - `missing-context-stop`: missing required context must produce STOP.
+- `downstream-basic-package-context`: package-owned source/test/config/doc context from graph-lite must be selected without leaking from fixture-specific prefixes.
 - `fixtures/hooks/guardrail-matrix.json`: expected hook `allow`/`warn`/`block` decisions, trace finding codes, compact remediation codes, and selected English/Polish operator wording.
 - `fixtures/hooks/remediation-taxonomy.json`: stable remediation-code list, English/Polish hints, and finding-code mappings.
 - `fixtures/repos/downstream-basic`: tiny downstream repo shape for onboarding acceptance checks.
@@ -46,3 +47,5 @@ The hook grader is harness-only. It loads the deterministic guardrail matrix and
 The downstream acceptance grader is harness-only. It checks fixture shape and generated AGENTS/hooks/runtime skill template contracts without installing into the source checkout, invoking Codex, or running downstream project commands.
 
 The verify grader is harness-only. It checks safe record-only profile behavior, unsafe command blocking, output limits, and deterministic `execute` behavior using a tiny local node fixture. It does not run downstream project commands.
+
+The graph grader is harness-only. It checks shallow graph-lite node/relation kinds, graph-fed context selection, package-owned source/test/config/doc relations, downstream package context selection, and no-graph leakage prevention. It must not rely on AST, import graph, Tree-sitter, embeddings, or semantic retrieval.

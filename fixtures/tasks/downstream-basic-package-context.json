@@ -1,0 +1,9 @@
+{
+  "id": "downstream-basic-package-context",
+  "task": "Harden downstream basic fixture context",
+  "expected": {
+    "stop": false,
+    "mustRead": ["AGENTS.md", "fixtures/repos/downstream-basic/src/index.ts"],
+    "doNotUse": ["fixtures/repos/downstream-basic/docs/stale.md"]
+  }
+}

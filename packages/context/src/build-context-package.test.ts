@@ -402,6 +402,208 @@ describe("context package", () => {
     );
   });
 
+  it("selects downstream package-owned source, test, docs, and config from graph-lite output", async () => {
+    const fixture = readTaskFixture("downstream-basic-package-context");
+    const contract = buildTaskContract(fixture.task);
+    const graph = await buildGraph(repoRoot);
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.stop).toBe(false);
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(fixture.expected.mustRead);
+    expect(pkg.buckets.shouldRead.map((item) => item.path)).toEqual([
+      "docs/architecture/architecture-spec-v0.1.md",
+      "fixtures/repos/downstream-basic/src/index.test.ts",
+      "fixtures/repos/downstream-basic/krn.config.json",
+      "fixtures/repos/downstream-basic/package.json",
+    ]);
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toEqual(
+      expect.arrayContaining([
+        "docs/specs/context-package.schema.md",
+        "fixtures/repos/downstream-basic/README.md",
+        "fixtures/repos/downstream-basic/docs/overview.md",
+      ]),
+    );
+    expect(pkg.buckets.doNotUse.map((item) => item.path)).toEqual(fixture.expected.doNotUse);
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/downstream-basic/src/index.ts",
+        source: "graph",
+        selector: "package-owned-source",
+        matchedTerms: ["downstream"],
+        relationKind: "owns-source",
+        sourceNode: "package:fixtures/repos/downstream-basic",
+        targetNode: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+      }),
+    );
+    expect(pkg.buckets.shouldRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/downstream-basic/src/index.test.ts",
+        selector: "package-owned-test",
+        relationKind: "owns-test",
+      }),
+    );
+    expect(pkg.buckets.shouldRead).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/downstream-basic/krn.config.json",
+        selector: "package-owned-config",
+        relationKind: "owns-config",
+      }),
+    );
+  });
+
+  it("does not leak source, test, or docs from neighboring packages", () => {
+    const contract = buildTaskContract("Harden alpha package context");
+    const graph = {
+      nodes: [
+        {
+          id: "package:packages/alpha",
+          kind: "package",
+          label: "alpha",
+          evidencePath: "packages/alpha",
+        },
+        {
+          id: "source-file:packages/alpha/src/index.ts",
+          kind: "source-file",
+          label: "packages/alpha/src/index.ts",
+          evidencePath: "packages/alpha/src/index.ts",
+        },
+        {
+          id: "test-file:packages/alpha/src/index.test.ts",
+          kind: "test-file",
+          label: "packages/alpha/src/index.test.ts",
+          evidencePath: "packages/alpha/src/index.test.ts",
+        },
+        {
+          id: "doc:packages/alpha/docs/overview.md",
+          kind: "doc",
+          label: "packages/alpha/docs/overview.md",
+          evidencePath: "packages/alpha/docs/overview.md",
+          status: "available",
+        },
+        {
+          id: "package:packages/beta",
+          kind: "package",
+          label: "beta",
+          evidencePath: "packages/beta",
+        },
+        {
+          id: "source-file:packages/beta/src/index.ts",
+          kind: "source-file",
+          label: "packages/beta/src/index.ts",
+          evidencePath: "packages/beta/src/index.ts",
+        },
+        {
+          id: "test-file:packages/beta/src/index.test.ts",
+          kind: "test-file",
+          label: "packages/beta/src/index.test.ts",
+          evidencePath: "packages/beta/src/index.test.ts",
+        },
+        {
+          id: "doc:packages/beta/docs/overview.md",
+          kind: "doc",
+          label: "packages/beta/docs/overview.md",
+          evidencePath: "packages/beta/docs/overview.md",
+          status: "available",
+        },
+      ],
+      edges: [
+        {
+          from: "package:packages/alpha",
+          to: "source-file:packages/alpha/src/index.ts",
+          kind: "owns-source",
+          evidencePath: "packages/alpha/src/index.ts",
+        },
+        {
+          from: "package:packages/alpha",
+          to: "test-file:packages/alpha/src/index.test.ts",
+          kind: "owns-test",
+          evidencePath: "packages/alpha/src/index.test.ts",
+        },
+        {
+          from: "package:packages/alpha",
+          to: "doc:packages/alpha/docs/overview.md",
+          kind: "owns-doc",
+          evidencePath: "packages/alpha/docs/overview.md",
+        },
+        {
+          from: "package:packages/beta",
+          to: "source-file:packages/beta/src/index.ts",
+          kind: "owns-source",
+          evidencePath: "packages/beta/src/index.ts",
+        },
+        {
+          from: "package:packages/beta",
+          to: "test-file:packages/beta/src/index.test.ts",
+          kind: "owns-test",
+          evidencePath: "packages/beta/src/index.test.ts",
+        },
+        {
+          from: "package:packages/beta",
+          to: "doc:packages/beta/docs/overview.md",
+          kind: "owns-doc",
+          evidencePath: "packages/beta/docs/overview.md",
+        },
+      ],
+    } satisfies GraphLite;
+    const pkg = buildContextPackage(contract, graph);
+    const selectedPaths = pkg.items.map((contextItem) => contextItem.path);
+
+    expect(selectedPaths).toEqual(
+      expect.arrayContaining([
+        "packages/alpha/src/index.ts",
+        "packages/alpha/src/index.test.ts",
+        "packages/alpha/docs/overview.md",
+      ]),
+    );
+    expect(selectedPaths).not.toEqual(
+      expect.arrayContaining([
+        "packages/beta/src/index.ts",
+        "packages/beta/src/index.test.ts",
+        "packages/beta/docs/overview.md",
+      ]),
+    );
+  });
+
+  it("keeps STOP active even when package-owned graph context is available", () => {
+    const contract = buildTaskContract(
+      "Stop when required context is missing for downstream basic",
+    );
+    const graph = {
+      nodes: [
+        {
+          id: "package:fixtures/repos/downstream-basic",
+          kind: "package",
+          label: "downstream-basic",
+          evidencePath: "fixtures/repos/downstream-basic",
+        },
+        {
+          id: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+          kind: "source-file",
+          label: "fixtures/repos/downstream-basic/src/index.ts",
+          evidencePath: "fixtures/repos/downstream-basic/src/index.ts",
+        },
+      ],
+      edges: [
+        {
+          from: "package:fixtures/repos/downstream-basic",
+          to: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+          kind: "owns-source",
+          evidencePath: "fixtures/repos/downstream-basic/src/index.ts",
+        },
+      ],
+    } satisfies GraphLite;
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.stop).toBe(true);
+    expect(pkg.stopReason).toBe("Required context is missing: docs/required-context.md");
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toContain(
+      "fixtures/repos/downstream-basic/src/index.ts",
+    );
+    expect(pkg.buckets.missingContext.map((item) => item.path)).toEqual([
+      "docs/required-context.md",
+    ]);
+  });
+
   it("keeps deprecated stale docs out of must-read context", () => {
     const fixture = readTaskFixture("stale-doc-trap");
     const contract = buildTaskContract(fixture.task);

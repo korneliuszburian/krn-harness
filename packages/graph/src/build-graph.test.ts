@@ -15,12 +15,70 @@ describe("graph-lite detector v0", () => {
     expect(graph.nodes).toContainEqual(
       expect.objectContaining({ id: "package-script:package.json#test", kind: "package-script" }),
     );
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "package:fixtures/repos/downstream-basic",
+        kind: "package",
+        label: "downstream-basic",
+        evidencePath: "fixtures/repos/downstream-basic",
+      }),
+    );
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+        kind: "source-file",
+      }),
+    );
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
+        id: "test-file:fixtures/repos/downstream-basic/src/index.test.ts",
+        kind: "test-file",
+      }),
+    );
     expect(graph.edges).toContainEqual(
       expect.objectContaining({
         from: "package-json:package.json",
         to: "package-script:package.json#test",
         kind: "declares-script",
         evidencePath: "package.json",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:fixtures/repos/downstream-basic",
+        to: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+        kind: "owns-source",
+        evidencePath: "fixtures/repos/downstream-basic/src/index.ts",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:fixtures/repos/downstream-basic",
+        to: "test-file:fixtures/repos/downstream-basic/src/index.test.ts",
+        kind: "owns-test",
+        evidencePath: "fixtures/repos/downstream-basic/src/index.test.ts",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "test-file:fixtures/repos/downstream-basic/src/index.test.ts",
+        to: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+        kind: "tests-source",
+        evidencePath: "fixtures/repos/downstream-basic/src/index.test.ts",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:fixtures/repos/downstream-basic",
+        to: "doc:fixtures/repos/downstream-basic/docs/overview.md",
+        kind: "owns-doc",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "package:fixtures/repos/downstream-basic",
+        to: "config-file:fixtures/repos/downstream-basic/krn.config.json",
+        kind: "owns-config",
       }),
     );
     expect(graph.nodes).toContainEqual(

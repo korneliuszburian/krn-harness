@@ -24,6 +24,7 @@ const taskStopWords = new Set([
   "active",
   "avoid",
   "approved",
+  "basic",
   "context",
   "docs",
   "implement",
@@ -31,6 +32,7 @@ const taskStopWords = new Set([
   "memory",
   "missing",
   "only",
+  "package",
   "relevant",
   "required",
   "section",
@@ -43,6 +45,8 @@ const taskStopWords = new Set([
   "when",
   "with",
   "work",
+  "fixture",
+  "fixtures",
 ]);
 
 function item(
@@ -126,6 +130,14 @@ function graphNodeText(node: { label: string; evidencePath: string } | undefined
   return node ? `${node.label} ${node.evidencePath}` : "";
 }
 
+function graphRelationText(
+  edge: { evidencePath: string },
+  from?: { label: string; evidencePath: string },
+  to?: { label: string; evidencePath: string },
+): string {
+  return `${edge.evidencePath} ${graphNodeText(from)} ${graphNodeText(to)}`;
+}
+
 function taskPolicyItems(task: string): ContextItem[] {
   const normalized = task.toLowerCase();
 
@@ -156,6 +168,18 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
   const taskTerms = taskTermsFor(task);
   const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
   const items: ContextItem[] = [];
+  const matchedPackageTerms = new Map<string, string[]>();
+
+  for (const node of graph.nodes) {
+    if (node.kind !== "package") {
+      continue;
+    }
+
+    const matchedTerms = matchedTermsForText(graphNodeText(node), taskTerms);
+    if (matchedTerms.length > 0) {
+      matchedPackageTerms.set(node.id, matchedTerms);
+    }
+  }
 
   for (const edge of graph.edges) {
     if (edge.kind !== "style-related-to") {
@@ -164,7 +188,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
 
     const from = nodeById.get(edge.from);
     const to = nodeById.get(edge.to);
-    const relationText = `${edge.evidencePath} ${graphNodeText(from)} ${graphNodeText(to)}`;
+    const relationText = graphRelationText(edge, from, to);
 
     const matchedTerms = matchedTermsForText(relationText, taskTerms);
     if (matchedTerms.length === 0) {
@@ -200,6 +224,127 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
           {
             source: "graph",
             selector: "style-related-to-target",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    }
+  }
+
+  for (const edge of graph.edges) {
+    if (!["owns-source", "owns-test", "owns-doc", "owns-config"].includes(edge.kind)) {
+      continue;
+    }
+
+    const from = nodeById.get(edge.from);
+    const to = nodeById.get(edge.to);
+    const packageMatchedTerms = matchedPackageTerms.get(edge.from) ?? [];
+
+    if (packageMatchedTerms.length === 0) {
+      continue;
+    }
+
+    const relationMatchedTerms = matchedTermsForText(graphRelationText(edge, from, to), taskTerms);
+    const matchedTerms = [...new Set([...packageMatchedTerms, ...relationMatchedTerms])].sort(
+      (left, right) => left.localeCompare(right),
+    );
+
+    if (matchedTerms.length === 0 || !to?.evidencePath) {
+      continue;
+    }
+
+    if (edge.kind === "owns-source") {
+      items.push(
+        item(
+          "must-read",
+          to.evidencePath,
+          "Graph-lite package-owned source matched task terms",
+          94,
+          "available",
+          {
+            source: "graph",
+            selector: "package-owned-source",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    }
+
+    if (edge.kind === "owns-test") {
+      items.push(
+        item(
+          "should-read",
+          to.evidencePath,
+          "Graph-lite package-owned test matched task terms",
+          74,
+          "available",
+          {
+            source: "graph",
+            selector: "package-owned-test",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    }
+
+    if (edge.kind === "owns-config") {
+      items.push(
+        item(
+          "should-read",
+          to.evidencePath,
+          "Graph-lite package-owned config matched task terms",
+          72,
+          "available",
+          {
+            source: "graph",
+            selector: "package-owned-config",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    }
+
+    if (edge.kind === "owns-doc" && to.status === "deprecated") {
+      items.push(
+        item(
+          "do-not-use",
+          to.evidencePath,
+          "Graph-lite package-owned doc is deprecated",
+          99,
+          "deprecated",
+          {
+            source: "graph",
+            selector: "package-owned-deprecated-doc",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    } else if (edge.kind === "owns-doc") {
+      items.push(
+        item(
+          "reference-only",
+          to.evidencePath,
+          "Graph-lite package-owned doc matched task terms",
+          35,
+          "available",
+          {
+            source: "graph",
+            selector: "package-owned-doc",
             matchedTerms,
             relationKind: edge.kind,
             sourceNode: edge.from,

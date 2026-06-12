@@ -98,7 +98,7 @@ describe("harness-only eval", () => {
 
     expect(result).toMatchObject({
       status: "pass",
-      passCount: 16,
+      passCount: 19,
       failCount: 0,
       graph: {
         name: "graph-behavior",
@@ -134,6 +134,7 @@ describe("harness-only eval", () => {
       "frontend-section-context",
       "stale-doc-trap",
       "missing-context-stop",
+      "downstream-basic-package-context",
     ]);
     expect(result.memory.detail).toContain("broad-term");
     expect(result.memory.detail).toContain("opt-out");

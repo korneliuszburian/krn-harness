@@ -37,6 +37,11 @@ export const harnessFixtures: EvalFixture[] = [
     taskPath: "fixtures/tasks/missing-context-stop.json",
     repoPath: "fixtures/repos/missing-context-stop",
   },
+  {
+    name: "downstream-basic-package-context",
+    taskPath: "fixtures/tasks/downstream-basic-package-context.json",
+    repoPath: "fixtures/repos/downstream-basic",
+  },
 ];
 
 export async function loadEvalTaskFixture(
