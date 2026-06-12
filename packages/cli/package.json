@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "krn": "./src/index.ts"
+    "krn": "./src/bin.js"
   },
   "exports": "./src/index.ts"
 }

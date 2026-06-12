@@ -12,7 +12,8 @@ description: Downstream KRN Harness runtime workflow. Use in repositories where 
 5. Read `.krn/current/task-contract.md`.
 6. Read `.krn/current/context-package.md`.
 7. Stop without edits if KRN reports STOP.
-8. After edits, run `krn verify` or record why it cannot run.
-9. Run `krn handoff`.
+8. After edits, run `krn verify --execute` when a configured executable verify profile exists or the task requires executable verification.
+9. If executable verification is not configured or not allowed, run `krn verify` and record why it stayed record-only.
+10. Run `krn handoff`.
 
 Do not include raw research or full KRN architecture in downstream active context.

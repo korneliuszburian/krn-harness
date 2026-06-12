@@ -9,7 +9,8 @@ This repository uses KRN Harness.
 - Read `.krn/current/task-contract.md` and `.krn/current/context-package.md`.
 - Use `.agents/skills/krn-harness/SKILL.md` for the KRN workflow if available.
 - Do not edit if KRN reports STOP.
-- After edits, run `krn verify` or record why it is not runnable.
+- After edits, run `krn verify --execute` when a configured executable verify profile exists or the task requires executable verification.
+- If executable verification is not configured or not allowed, run `krn verify` and record why it stayed record-only.
 - Run `krn handoff`.
 
 For visual or layout work, include concrete sizes before starting the task, for example mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or the actual element size/tolerance the user gave.

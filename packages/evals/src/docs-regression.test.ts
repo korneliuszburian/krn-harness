@@ -87,6 +87,11 @@ describe("P0 docs anti-regression", () => {
 
     expect(demo).toContain("manual-first");
     expect(demo).toContain("krn --help");
+    expect(demo).toContain(
+      "node --import /home/krn/coding/krn/krn-harness/node_modules/tsx/dist/esm/index.mjs",
+    );
+    expect(demo).toContain("Hook Trust/Loading Probe");
+    expect(demo).toContain("Do not use `--dangerously-bypass-hook-trust`");
     expect(demo).toContain("RUN_KRN_CODEX_DOGFOOD=1");
     expect(demo).toContain("not a production Codex runner");
     expect(schema).toContain("baseline");

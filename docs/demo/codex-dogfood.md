@@ -21,7 +21,8 @@ If global linking is not acceptable, use a temporary shell shim for one terminal
 mkdir -p /tmp/krn-dogfood-bin
 cat > /tmp/krn-dogfood-bin/krn <<'SH'
 #!/usr/bin/env sh
-pnpm --dir /home/krn/coding/krn/krn-harness --silent krn "$@"
+node --import /home/krn/coding/krn/krn-harness/node_modules/tsx/dist/esm/index.mjs \
+  /home/krn/coding/krn/krn-harness/packages/cli/src/index.ts "$@"
 SH
 chmod +x /tmp/krn-dogfood-bin/krn
 export PATH="/tmp/krn-dogfood-bin:$PATH"
@@ -46,13 +47,27 @@ Review generated files before trusting them:
 
 Hooks are guardrails and trace points, not a sandbox.
 
+## Hook Trust/Loading Probe
+
+Before claiming hooks work in a real Codex run, prove loading and trust without bypass flags:
+
+```sh
+codex --help | rg "hook|bypass"
+codex exec --help | rg "hook|bypass"
+cat .codex/hooks.json
+krn hook codex SessionStart
+```
+
+Then run one Codex probe normally. Do not use `--dangerously-bypass-hook-trust`.
+If `.krn/traces/trace.jsonl` has no `hook.received`, record that hooks were installed but not proven trusted/loaded for that Codex surface.
+
 ## Manual KRN Run
 
 ```sh
 krn start "Harden downstream basic fixture context"
 krn graph
 krn context
-krn verify
+krn verify --execute
 krn handoff
 krn eval
 krn doctor

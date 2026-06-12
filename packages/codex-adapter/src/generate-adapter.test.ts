@@ -21,6 +21,7 @@ function expectKRNCommandFlow(output: string): void {
     "krn context",
     "STOP",
     "krn verify",
+    "krn verify --execute",
     "krn handoff",
   ]) {
     expect(output).toContain(phrase);
@@ -67,7 +68,7 @@ describe("Codex adapter generation", () => {
     const output = generateRuntimeSkillTemplate();
     const nonBlankLines = output.split("\n").filter((line) => line.trim().length > 0);
 
-    expect(nonBlankLines.length).toBeLessThanOrEqual(24);
+    expect(nonBlankLines.length).toBeLessThanOrEqual(26);
     expectKRNCommandFlow(output);
     expect(output).toContain("name: krn-harness");
     expect(output).toContain(".krn/current/task-contract.md");

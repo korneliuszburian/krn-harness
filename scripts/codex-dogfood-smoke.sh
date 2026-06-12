@@ -13,7 +13,7 @@ mkdir -p "$RESULT_DIR" "$WORKDIR/bin"
 
 cat > "$WORKDIR/bin/krn" <<SH
 #!/usr/bin/env sh
-pnpm --dir "$ROOT" --silent krn "\$@"
+node --import "$ROOT/node_modules/tsx/dist/esm/index.mjs" "$ROOT/packages/cli/src/index.ts" "\$@"
 SH
 chmod +x "$WORKDIR/bin/krn"
 export PATH="$WORKDIR/bin:$PATH"
@@ -57,10 +57,9 @@ JSON
 fi
 
 prompt="$(cat "$ROOT/fixtures/dogfood/skills/explicit-krn-skill.md")"
-"$codex_command" exec \
+"$codex_command" --ask-for-approval never exec \
   --cd "$DOWNSTREAM" \
   --sandbox workspace-write \
-  --ask-for-approval never \
   "$prompt" > "$RESULT_DIR/codex-output.txt"
 
 cat > "$RESULT_JSON" <<JSON
@@ -69,7 +68,7 @@ cat > "$RESULT_JSON" <<JSON
   "mode": "krn-explicit-skill",
   "taskId": "simple-source-edit",
   "codexAvailable": true,
-  "codexCommand": "$codex_command exec --cd <temp> --sandbox workspace-write --ask-for-approval never",
+  "codexCommand": "$codex_command --ask-for-approval never exec --cd <temp> --sandbox workspace-write",
   "startedAt": "manual",
   "finishedAt": "manual",
   "status": "pass",

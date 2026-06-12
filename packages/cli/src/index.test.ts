@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -130,13 +131,27 @@ describe("krn CLI", () => {
     const packageJson = await readJson<{
       bin: { krn: string };
     }>(process.cwd(), "packages/cli/package.json");
-    const entrypoint = await readFile(
-      path.join(process.cwd(), "packages/cli/src/index.ts"),
-      "utf8",
-    );
+    const bin = await readFile(path.join(process.cwd(), "packages/cli/src/bin.js"), "utf8");
 
-    expect(packageJson.bin.krn).toBe("./src/index.ts");
-    expect(entrypoint.startsWith("#!/usr/bin/env tsx\n")).toBe(true);
+    expect(packageJson.bin.krn).toBe("./src/bin.js");
+    expect(bin.startsWith("#!/usr/bin/env node\n")).toBe(true);
+    expect(bin).toContain("node_modules/tsx/dist/esm/index.mjs");
+    expect(bin).toContain("cwd: process.cwd()");
+  });
+
+  it("runs the local CLI bin wrapper from a downstream cwd", async () => {
+    const cwd = await copyFixtureRepo("downstream-basic");
+    const binPath = path.join(process.cwd(), "packages/cli/src/bin.js");
+    const result = spawnSync(process.execPath, [binPath, "install"], {
+      cwd,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("KRN install: installed");
+    await expectFile(cwd, "AGENTS.md");
+    await expectFile(cwd, ".codex/hooks.json");
+    await expectFile(cwd, ".agents/skills/krn-harness/SKILL.md");
   });
 
   it("prints helpful output for unknown commands", async () => {
