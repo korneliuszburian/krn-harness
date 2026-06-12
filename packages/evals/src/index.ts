@@ -1,3 +1,4 @@
+export * from "./dogfood.js";
 export * from "./fixtures.js";
 export * from "./graders/context-coverage.js";
 export * from "./graders/over-inclusion.js";

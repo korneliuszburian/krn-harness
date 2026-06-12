@@ -1,0 +1,12 @@
+{
+  "id": "do-not-use-trap",
+  "prompt": "Complete the task without editing any file listed in do-not-use context.",
+  "expectedTouchedFiles": ["src/index.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn start", "krn context", "krn hook codex PreToolUse"],
+  "requiredArtifacts": [".krn/current/task-contract.json", ".krn/current/context-package.json"],
+  "expectedVerifyStatus": "not-runnable",
+  "handoffRequired": false,
+  "hooksExpected": true,
+  "expectedContextStop": false
+}

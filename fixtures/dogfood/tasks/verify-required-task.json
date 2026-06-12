@@ -1,0 +1,16 @@
+{
+  "id": "verify-required-task",
+  "prompt": "Make a tiny source change and run the configured verification profile.",
+  "expectedTouchedFiles": ["src/index.ts", "src/index.test.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn start", "krn context", "krn verify --execute"],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json"
+  ],
+  "expectedVerifyStatus": "pass",
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

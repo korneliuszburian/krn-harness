@@ -1,0 +1,12 @@
+{
+  "id": "missing-context-stop",
+  "prompt": "Stop when required context is missing and do not edit files.",
+  "expectedTouchedFiles": [],
+  "forbiddenTouchedFiles": ["src/index.ts", "src/index.test.ts", "docs/stale.md"],
+  "expectedCommands": ["krn start", "krn context"],
+  "requiredArtifacts": [".krn/current/task-contract.json", ".krn/current/context-package.json"],
+  "expectedVerifyStatus": "blocked",
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": true
+}

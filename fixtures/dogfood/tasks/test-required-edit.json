@@ -1,0 +1,16 @@
+{
+  "id": "test-required-edit",
+  "prompt": "Change the downstream behavior and update the tiny test proof.",
+  "expectedTouchedFiles": ["src/index.ts", "src/index.test.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn start", "krn context", "krn verify"],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json"
+  ],
+  "expectedVerifyStatus": "pass",
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

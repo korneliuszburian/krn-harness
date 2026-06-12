@@ -80,6 +80,25 @@ describe("P0 docs anti-regression", () => {
     expect(adr).toContain("no CI dependency on Codex CLI availability");
   });
 
+  it("keeps dogfood lab local, optional, and artifact-first", async () => {
+    const demo = await readDoc("docs/demo/codex-dogfood.md");
+    const schema = await readDoc("docs/specs/dogfood-result.schema.md");
+    const principles = await readDoc("docs/research/agentic-coding-principles.md");
+
+    expect(demo).toContain("manual-first");
+    expect(demo).toContain("krn --help");
+    expect(demo).toContain("RUN_KRN_CODEX_DOGFOOD=1");
+    expect(demo).toContain("not a production Codex runner");
+    expect(schema).toContain("baseline");
+    expect(schema).toContain("krn-explicit-skill");
+    expect(schema).toContain("hook.received");
+    expect(schema).toContain("Self-report is not sufficient evidence");
+    expect(schema).toContain("must not make `pnpm test` or CI depend on Codex CLI");
+    expect(principles).toContain("Measure explicit skill usage");
+    expect(principles).toContain("Treat self-report as weak evidence");
+    expect(principles).toContain("No production Codex runner");
+  });
+
   it("keeps verify profile docs explicit about policy and non-execution", async () => {
     const verifySpec = await readDoc("docs/specs/verify-result.schema.md");
     const configSpec = await readDoc("docs/specs/krn-config.schema.md");
@@ -103,7 +122,8 @@ describe("P0 docs anti-regression", () => {
   it("keeps release prep local and unpublished", async () => {
     const checklist = await readDoc("docs/release/checklist.md");
 
-    expect(checklist).toContain("Do not add `bin` metadata yet");
+    expect(checklist).toContain("local `bin` metadata for dogfood linking only");
+    expect(checklist).toContain("not a publish-ready package boundary");
     expect(checklist).toContain("Do not publish from P0");
     expect(checklist).toContain("Do not add GitHub Actions");
     expect(checklist).toContain("Codex CLI CI dependency");

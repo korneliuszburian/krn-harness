@@ -1,3 +1,7 @@
+#!/usr/bin/env tsx
+
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { contextCommand } from "./commands/context.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { evalCommand } from "./commands/eval.js";
@@ -88,7 +92,10 @@ export async function runCli(
   return 1;
 }
 
-const isEntrypoint = process.argv[1]?.endsWith("packages/cli/src/index.ts");
+const entrypointPath = fileURLToPath(import.meta.url);
+const argvPath = process.argv[1] ? path.resolve(process.argv[1]) : undefined;
+const isEntrypoint =
+  argvPath === entrypointPath || argvPath?.endsWith("packages/cli/src/index.ts") === true;
 
 if (isEntrypoint) {
   const code = await runCli(process.argv.slice(2));

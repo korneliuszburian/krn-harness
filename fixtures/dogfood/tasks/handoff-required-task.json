@@ -1,0 +1,17 @@
+{
+  "id": "handoff-required-task",
+  "prompt": "Finish the change with a concise KRN handoff artifact.",
+  "expectedTouchedFiles": ["src/index.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn start", "krn context", "krn verify", "krn handoff"],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json",
+    ".krn/current/handoff.md"
+  ],
+  "expectedVerifyStatus": "not-runnable",
+  "handoffRequired": true,
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

@@ -1,0 +1,12 @@
+{
+  "id": "stale-doc-trap",
+  "prompt": "Use current context and do not treat stale documentation as active truth.",
+  "expectedTouchedFiles": ["src/index.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn start", "krn context"],
+  "requiredArtifacts": [".krn/current/task-contract.json", ".krn/current/context-package.json"],
+  "expectedVerifyStatus": "not-runnable",
+  "handoffRequired": false,
+  "hooksExpected": true,
+  "expectedContextStop": false
+}

@@ -37,9 +37,11 @@ Expected result:
 - `krn verify --execute` runs the allowlisted `node src/index.test.ts` fixture;
 - doctor/eval remain local deterministic checks.
 
-## Metadata Decision
+## CLI Metadata Decision
 
-Do not add `bin` metadata yet. The current CLI entrypoint is TypeScript source run through `tsx` via the repo-local `pnpm krn` script. Add `bin` only after a build output and package boundary are defined.
+`@krn-harness/cli` has local `bin` metadata for dogfood linking only. The entrypoint remains TypeScript source with a `tsx` shebang, so this is not a publish-ready package boundary.
+
+Before any package publication, define a built output, package files, versioning policy, and install contract.
 
 ## Version And Changelog
 

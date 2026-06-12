@@ -1,0 +1,12 @@
+{
+  "id": "simple-source-edit",
+  "prompt": "Update the tiny downstream source file and keep the change scoped.",
+  "expectedTouchedFiles": ["src/index.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn status", "krn start", "krn context"],
+  "requiredArtifacts": [".krn/current/task-contract.json", ".krn/current/context-package.json"],
+  "expectedVerifyStatus": "not-runnable",
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

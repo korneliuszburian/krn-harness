@@ -1,0 +1,17 @@
+{
+  "id": "package-owned-source-test",
+  "prompt": "Use package-owned source and paired test context before editing downstream behavior.",
+  "expectedTouchedFiles": ["src/index.ts", "src/index.test.ts"],
+  "forbiddenTouchedFiles": ["docs/stale.md"],
+  "expectedCommands": ["krn start", "krn graph", "krn context", "krn verify"],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/graph/repo-graph.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json"
+  ],
+  "expectedVerifyStatus": "pass",
+  "handoffRequired": false,
+  "hooksExpected": false,
+  "expectedContextStop": false
+}

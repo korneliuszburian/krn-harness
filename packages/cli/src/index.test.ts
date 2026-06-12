@@ -126,6 +126,19 @@ describe("krn CLI", () => {
     }
   });
 
+  it("keeps the local CLI bin entrypoint linkable for dogfood", async () => {
+    const packageJson = await readJson<{
+      bin: { krn: string };
+    }>(process.cwd(), "packages/cli/package.json");
+    const entrypoint = await readFile(
+      path.join(process.cwd(), "packages/cli/src/index.ts"),
+      "utf8",
+    );
+
+    expect(packageJson.bin.krn).toBe("./src/index.ts");
+    expect(entrypoint.startsWith("#!/usr/bin/env tsx\n")).toBe(true);
+  });
+
   it("prints helpful output for unknown commands", async () => {
     const result = await runInTemp(["unknown-command"]);
 
