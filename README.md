@@ -18,7 +18,14 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - Safe downstream install for `AGENTS.md`, hooks, runtime skill, and runtime directories.
 - Task contract, context package, graph-lite, trace, verify, handoff, doctor, memory, and eval contracts.
 - Hook guardrails with deterministic `allow`, `warn`, and `block` decisions, compact trace evidence, and operator guidance.
+- Dogfood evidence for tiny downstream fixture runs and a synthetic WordPress/ACF-style fixture.
 - Repo-scoped build-time skills in `.agents/skills/*`.
+
+## Current Evidence Status
+
+- Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
+- WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
+- Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
 
 ## Commands
 
@@ -45,6 +52,8 @@ pnpm --silent krn hook codex SessionStart
 ## Demo
 
 See `docs/demo/downstream-basic-demo.md` for a local downstream onboarding smoke using `fixtures/repos/downstream-basic`.
+
+See `docs/demo/codex-dogfood.md` for artifact-first dogfood protocols, including the synthetic WordPress/ACF fixture.
 
 ## P0 Non-Goals
 
