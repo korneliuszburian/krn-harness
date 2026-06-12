@@ -35,6 +35,7 @@ const taskStopWords = new Set([
   "package",
   "relevant",
   "required",
+  "root",
   "section",
   "stop",
   "task",
@@ -63,6 +64,7 @@ function item(
     | "relationKind"
     | "sourceNode"
     | "targetNode"
+    | "operatorMessage"
     | "memoryId"
     | "memorySummary"
     | "approvedAt"
@@ -169,6 +171,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
   const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
   const items: ContextItem[] = [];
   const matchedPackageTerms = new Map<string, string[]>();
+  const matchedPackageSourceTerms = new Map<string, string[]>();
 
   for (const node of graph.nodes) {
     if (node.kind !== "package") {
@@ -257,11 +260,12 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
     }
 
     if (edge.kind === "owns-source") {
+      matchedPackageSourceTerms.set(edge.to, matchedTerms);
       items.push(
         item(
           "must-read",
           to.evidencePath,
-          "Graph-lite package-owned source matched task terms",
+          "Package-owned source selected by graph-lite",
           94,
           "available",
           {
@@ -271,6 +275,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
             relationKind: edge.kind,
             sourceNode: edge.from,
             targetNode: edge.to,
+            operatorMessage: "Read source owned by the matched package.",
           },
         ),
       );
@@ -281,7 +286,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
         item(
           "should-read",
           to.evidencePath,
-          "Graph-lite package-owned test matched task terms",
+          "Package-owned test selected by graph-lite",
           74,
           "available",
           {
@@ -291,6 +296,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
             relationKind: edge.kind,
             sourceNode: edge.from,
             targetNode: edge.to,
+            operatorMessage: "Use package test as supporting evidence.",
           },
         ),
       );
@@ -301,7 +307,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
         item(
           "should-read",
           to.evidencePath,
-          "Graph-lite package-owned config matched task terms",
+          "Package-owned config selected by graph-lite",
           72,
           "available",
           {
@@ -311,6 +317,7 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
             relationKind: edge.kind,
             sourceNode: edge.from,
             targetNode: edge.to,
+            operatorMessage: "Check package config for commands and local settings.",
           },
         ),
       );
@@ -318,28 +325,22 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
 
     if (edge.kind === "owns-doc" && to.status === "deprecated") {
       items.push(
-        item(
-          "do-not-use",
-          to.evidencePath,
-          "Graph-lite package-owned doc is deprecated",
-          99,
-          "deprecated",
-          {
-            source: "graph",
-            selector: "package-owned-deprecated-doc",
-            matchedTerms,
-            relationKind: edge.kind,
-            sourceNode: edge.from,
-            targetNode: edge.to,
-          },
-        ),
+        item("do-not-use", to.evidencePath, "Package-owned doc is deprecated", 99, "deprecated", {
+          source: "graph",
+          selector: "package-owned-deprecated-doc",
+          matchedTerms,
+          relationKind: edge.kind,
+          sourceNode: edge.from,
+          targetNode: edge.to,
+          operatorMessage: "Do not use this package doc as active truth.",
+        }),
       );
     } else if (edge.kind === "owns-doc") {
       items.push(
         item(
           "reference-only",
           to.evidencePath,
-          "Graph-lite package-owned doc matched task terms",
+          "Package-owned doc selected by graph-lite",
           35,
           "available",
           {
@@ -349,10 +350,49 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
             relationKind: edge.kind,
             sourceNode: edge.from,
             targetNode: edge.to,
+            operatorMessage: "Use package docs as reference; code remains source of truth.",
           },
         ),
       );
     }
+  }
+
+  for (const edge of graph.edges) {
+    if (edge.kind !== "tests-source") {
+      continue;
+    }
+
+    const sourceMatchedTerms = matchedPackageSourceTerms.get(edge.to);
+    const from = nodeById.get(edge.from);
+    const to = nodeById.get(edge.to);
+
+    if (!sourceMatchedTerms || !from?.evidencePath) {
+      continue;
+    }
+
+    const relationMatchedTerms = matchedTermsForText(graphRelationText(edge, from, to), taskTerms);
+    const matchedTerms = [...new Set([...sourceMatchedTerms, ...relationMatchedTerms])].sort(
+      (left, right) => left.localeCompare(right),
+    );
+
+    items.push(
+      item(
+        "should-read",
+        from.evidencePath,
+        "Paired test selected for package-owned source",
+        76,
+        "available",
+        {
+          source: "graph",
+          selector: "tests-source-for-owned-source",
+          matchedTerms,
+          relationKind: edge.kind,
+          sourceNode: edge.from,
+          targetNode: edge.to,
+          operatorMessage: "Review the paired test for the selected source.",
+        },
+      ),
+    );
   }
 
   for (const node of graph.nodes) {

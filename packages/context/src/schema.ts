@@ -19,6 +19,7 @@ export interface ContextItem {
   relationKind?: string | undefined;
   sourceNode?: string | undefined;
   targetNode?: string | undefined;
+  operatorMessage?: string | undefined;
   memoryId?: string | undefined;
   memorySummary?: string | undefined;
   approvedAt?: string | undefined;

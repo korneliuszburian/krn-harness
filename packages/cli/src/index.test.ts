@@ -462,9 +462,88 @@ markdown: .krn/graph/repo-graph.md
     );
     await expect(runInCwd(cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
     await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
-    await expect(readJson(cwd, ".krn/current/context-package.json")).resolves.toMatchObject({
-      stop: false,
-    });
+    const contextJson = await readJson<{
+      stop: boolean;
+      buckets: {
+        mustRead: Array<{
+          path: string;
+          selector?: string;
+          operatorMessage?: string;
+        }>;
+        shouldRead: Array<{
+          path: string;
+          selector?: string;
+          relationKind?: string;
+          operatorMessage?: string;
+        }>;
+        referenceOnly: Array<{
+          path: string;
+          selector?: string;
+          operatorMessage?: string;
+        }>;
+        doNotUse: Array<{
+          path: string;
+          selector?: string;
+        }>;
+      };
+    }>(cwd, ".krn/current/context-package.json");
+    const contextMarkdown = await readFile(
+      path.join(cwd, ".krn/current/context-package.md"),
+      "utf8",
+    );
+    expect(contextJson.stop).toBe(false);
+    expect(contextJson.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "src/index.ts",
+        selector: "package-owned-source",
+        operatorMessage: "Read source owned by the matched package.",
+      }),
+    );
+    expect(contextJson.buckets.shouldRead).toContainEqual(
+      expect.objectContaining({
+        path: "src/index.test.ts",
+        selector: "tests-source-for-owned-source",
+        relationKind: "tests-source",
+        operatorMessage: "Review the paired test for the selected source.",
+      }),
+    );
+    expect(contextJson.buckets.shouldRead).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "krn.config.json",
+          selector: "package-owned-config",
+        }),
+        expect.objectContaining({
+          path: "package.json",
+          selector: "package-owned-config",
+        }),
+      ]),
+    );
+    expect(contextJson.buckets.referenceOnly).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "README.md",
+          selector: "package-owned-doc",
+          operatorMessage: "Use package docs as reference; code remains source of truth.",
+        }),
+        expect.objectContaining({
+          path: "docs/overview.md",
+          selector: "package-owned-doc",
+        }),
+      ]),
+    );
+    expect(contextJson.buckets.doNotUse).toContainEqual(
+      expect.objectContaining({
+        path: "docs/stale.md",
+      }),
+    );
+    expect(
+      contextJson.buckets.mustRead
+        .map((item) => item.path)
+        .some((item) => item.startsWith("fixtures/repos/")),
+    ).toBe(false);
+    expect(contextMarkdown).toContain("Read source owned by the matched package.");
+    expect(contextMarkdown).toContain("selector: tests-source-for-owned-source");
 
     const sessionStart = await runInCwd(cwd, ["hook", "codex", "SessionStart"]);
     expect(sessionStart).toMatchObject({ code: 0 });

@@ -407,6 +407,7 @@ describe("context package", () => {
     const contract = buildTaskContract(fixture.task);
     const graph = await buildGraph(repoRoot);
     const pkg = buildContextPackage(contract, graph);
+    const markdown = renderContextPackageMarkdown(pkg);
 
     expect(pkg.stop).toBe(false);
     expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(fixture.expected.mustRead);
@@ -433,13 +434,17 @@ describe("context package", () => {
         relationKind: "owns-source",
         sourceNode: "package:fixtures/repos/downstream-basic",
         targetNode: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+        operatorMessage: "Read source owned by the matched package.",
       }),
     );
     expect(pkg.buckets.shouldRead).toContainEqual(
       expect.objectContaining({
         path: "fixtures/repos/downstream-basic/src/index.test.ts",
-        selector: "package-owned-test",
-        relationKind: "owns-test",
+        selector: "tests-source-for-owned-source",
+        relationKind: "tests-source",
+        sourceNode: "test-file:fixtures/repos/downstream-basic/src/index.test.ts",
+        targetNode: "source-file:fixtures/repos/downstream-basic/src/index.ts",
+        operatorMessage: "Review the paired test for the selected source.",
       }),
     );
     expect(pkg.buckets.shouldRead).toContainEqual(
@@ -447,8 +452,19 @@ describe("context package", () => {
         path: "fixtures/repos/downstream-basic/krn.config.json",
         selector: "package-owned-config",
         relationKind: "owns-config",
+        operatorMessage: "Check package config for commands and local settings.",
       }),
     );
+    expect(pkg.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: "fixtures/repos/downstream-basic/docs/overview.md",
+        selector: "package-owned-doc",
+        operatorMessage: "Use package docs as reference; code remains source of truth.",
+      }),
+    );
+    expect(markdown).toContain("Read source owned by the matched package.");
+    expect(markdown).toContain("Review the paired test for the selected source.");
+    expect(markdown).toContain("selector: tests-source-for-owned-source");
   });
 
   it("does not leak source, test, or docs from neighboring packages", () => {
@@ -601,6 +617,58 @@ describe("context package", () => {
     );
     expect(pkg.buckets.missingContext.map((item) => item.path)).toEqual([
       "docs/required-context.md",
+    ]);
+  });
+
+  it("does not promote fallback root package ownership from broad root wording", () => {
+    const contract = buildTaskContract("Harden root package context");
+    const graph = {
+      nodes: [
+        {
+          id: "package:.",
+          kind: "package",
+          label: "root",
+          evidencePath: ".",
+        },
+        {
+          id: "source-file:src/index.ts",
+          kind: "source-file",
+          label: "src/index.ts",
+          evidencePath: "src/index.ts",
+        },
+        {
+          id: "test-file:src/index.test.ts",
+          kind: "test-file",
+          label: "src/index.test.ts",
+          evidencePath: "src/index.test.ts",
+        },
+      ],
+      edges: [
+        {
+          from: "package:.",
+          to: "source-file:src/index.ts",
+          kind: "owns-source",
+          evidencePath: "src/index.ts",
+        },
+        {
+          from: "package:.",
+          to: "test-file:src/index.test.ts",
+          kind: "owns-test",
+          evidencePath: "src/index.test.ts",
+        },
+        {
+          from: "test-file:src/index.test.ts",
+          to: "source-file:src/index.ts",
+          kind: "tests-source",
+          evidencePath: "src/index.test.ts",
+        },
+      ],
+    } satisfies GraphLite;
+    const pkg = buildContextPackage(contract, graph);
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(["AGENTS.md"]);
+    expect(pkg.buckets.shouldRead.map((item) => item.path)).toEqual([
+      "docs/architecture/architecture-spec-v0.1.md",
     ]);
   });
 

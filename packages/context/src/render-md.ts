@@ -62,7 +62,10 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
       }
 
       const provenance = provenanceParts.length > 0 ? ` [${provenanceParts.join(", ")}]` : "";
-      lines.push(`- ${item.path} (${item.status}, ${item.priority}): ${item.reason}${provenance}`);
+      const operatorMessage = item.operatorMessage ? ` ${item.operatorMessage}` : "";
+      lines.push(
+        `- ${item.path} (${item.status}, ${item.priority}): ${item.reason}.${operatorMessage}${provenance}`,
+      );
     }
   }
 

@@ -32,6 +32,7 @@ Context package construction may consume graph-lite output through generic relat
 - `style-related-to` edges promote matching markup and stylesheet files to `must-read`.
 - `owns-source` edges promote matching package-owned source files to `must-read`.
 - `owns-test` and `owns-config` edges promote matching package-owned tests/config files to `should-read`.
+- `tests-source` edges may promote a paired test to stronger `should-read` evidence when its source is already selected.
 - `owns-doc` edges promote matching package-owned docs to `reference-only`, or `do-not-use` when the doc node is deprecated.
 - Matching ACF group nodes promote their JSON evidence paths to `must-read`.
 - Matching available docs become `reference-only`.
