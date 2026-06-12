@@ -42,11 +42,58 @@ export interface ContextCoverage {
   overInclusionRisk: "low" | "medium" | "high";
 }
 
+export interface ContextMarkdownItemBudgets {
+  mustRead: number;
+  shouldRead: number;
+  referenceOnly: number;
+  doNotUse: number;
+  missingContext: number;
+}
+
+export interface ContextBucketSummary {
+  bucket: ContextBucket;
+  totalItems: number;
+  shownInMarkdown: number;
+  hiddenFromMarkdown: number;
+  markdownBudget: number;
+  availableItems: number;
+  deprecatedItems: number;
+  missingItems: number;
+  selectors: string[];
+}
+
+export interface ContextBucketSummaries {
+  mustRead: ContextBucketSummary;
+  shouldRead: ContextBucketSummary;
+  referenceOnly: ContextBucketSummary;
+  doNotUse: ContextBucketSummary;
+  missingContext: ContextBucketSummary;
+}
+
+export interface ContextCompactness {
+  markdownItemBudgets: ContextMarkdownItemBudgets;
+  totalItems: number;
+  markdownVisibleItems: number;
+  markdownHiddenItems: number;
+}
+
+export interface ContextOverInclusionMetrics {
+  activeItems: number;
+  referenceOnlyItems: number;
+  totalItems: number;
+  score: number;
+  risk: "low" | "medium" | "high";
+  reasons: string[];
+}
+
 export interface ContextPackage {
   taskId?: string | undefined;
   items: ContextItem[];
   buckets: ContextBuckets;
+  bucketSummaries: ContextBucketSummaries;
   coverage: ContextCoverage;
+  compactness: ContextCompactness;
+  overInclusion: ContextOverInclusionMetrics;
   stop: boolean;
   stopReason?: string | undefined;
 }

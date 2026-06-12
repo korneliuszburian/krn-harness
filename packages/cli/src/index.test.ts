@@ -464,6 +464,22 @@ markdown: .krn/graph/repo-graph.md
     await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
     const contextJson = await readJson<{
       stop: boolean;
+      bucketSummaries: {
+        mustRead: { totalItems: number; hiddenFromMarkdown: number };
+        shouldRead: { totalItems: number; hiddenFromMarkdown: number };
+        referenceOnly: { totalItems: number; hiddenFromMarkdown: number };
+        doNotUse: { totalItems: number; hiddenFromMarkdown: number };
+      };
+      compactness: {
+        totalItems: number;
+        markdownVisibleItems: number;
+        markdownHiddenItems: number;
+      };
+      overInclusion: {
+        risk: string;
+        score: number;
+        reasons: string[];
+      };
       buckets: {
         mustRead: Array<{
           path: string;
@@ -492,6 +508,22 @@ markdown: .krn/graph/repo-graph.md
       "utf8",
     );
     expect(contextJson.stop).toBe(false);
+    expect(contextJson.bucketSummaries).toMatchObject({
+      mustRead: { totalItems: 2, hiddenFromMarkdown: 0 },
+      shouldRead: { totalItems: 4, hiddenFromMarkdown: 0 },
+      referenceOnly: { totalItems: 3, hiddenFromMarkdown: 0 },
+      doNotUse: { totalItems: 1, hiddenFromMarkdown: 0 },
+    });
+    expect(contextJson.compactness).toMatchObject({
+      totalItems: 10,
+      markdownVisibleItems: 10,
+      markdownHiddenItems: 0,
+    });
+    expect(contextJson.overInclusion).toMatchObject({
+      risk: "low",
+      score: 3,
+      reasons: ["within-p0-budget"],
+    });
     expect(contextJson.buckets.mustRead).toContainEqual(
       expect.objectContaining({
         path: "src/index.ts",
@@ -543,6 +575,8 @@ markdown: .krn/graph/repo-graph.md
         .some((item) => item.startsWith("fixtures/repos/")),
     ).toBe(false);
     expect(contextMarkdown).toContain("Read source owned by the matched package.");
+    expect(contextMarkdown).toContain("Items: 10 total, 10 shown, 0 hidden from markdown");
+    expect(contextMarkdown).toContain("Summary: 2 total, showing 2/8, hidden 0");
     expect(contextMarkdown).toContain("selector: tests-source-for-owned-source");
 
     const sessionStart = await runInCwd(cwd, ["hook", "codex", "SessionStart"]);

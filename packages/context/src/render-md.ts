@@ -19,7 +19,8 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
     `Confidence: ${pkg.coverage.confidence}`,
     `Coverage: ${pkg.coverage.present}/${pkg.coverage.required} required present`,
     `Missing: ${pkg.coverage.missing}`,
-    `Over-inclusion risk: ${pkg.coverage.overInclusionRisk}`,
+    `Items: ${pkg.compactness.totalItems} total, ${pkg.compactness.markdownVisibleItems} shown, ${pkg.compactness.markdownHiddenItems} hidden from markdown`,
+    `Over-inclusion: ${pkg.overInclusion.risk} (score ${pkg.overInclusion.score}, active ${pkg.overInclusion.activeItems}, reference ${pkg.overInclusion.referenceOnlyItems})`,
   ];
 
   if (pkg.stopReason) {
@@ -36,12 +37,19 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
     lines.push("", `## ${titleFor(bucketName)}`, "");
 
     const items = pkg.buckets[bucketName];
+    const summary = pkg.bucketSummaries[bucketName];
+    const selectors = summary.selectors.length > 0 ? summary.selectors.join(", ") : "none";
+    lines.push(
+      `Summary: ${summary.totalItems} total, showing ${summary.shownInMarkdown}/${summary.markdownBudget}, hidden ${summary.hiddenFromMarkdown}, selectors: ${selectors}`,
+      "",
+    );
+
     if (items.length === 0) {
       lines.push("- none");
       continue;
     }
 
-    for (const item of items) {
+    for (const item of items.slice(0, summary.markdownBudget)) {
       const provenanceParts = [];
 
       if (item.source || item.selector) {
@@ -65,6 +73,12 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
       const operatorMessage = item.operatorMessage ? ` ${item.operatorMessage}` : "";
       lines.push(
         `- ${item.path} (${item.status}, ${item.priority}): ${item.reason}.${operatorMessage}${provenance}`,
+      );
+    }
+
+    if (summary.hiddenFromMarkdown > 0) {
+      lines.push(
+        `- +${summary.hiddenFromMarkdown} more item(s) hidden from markdown; see .krn/current/context-package.json`,
       );
     }
   }
