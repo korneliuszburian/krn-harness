@@ -27,6 +27,7 @@ Usage:
   krn verify [--profile <name>] [--execute]
   krn handoff
   krn doctor
+  krn doctor cli
   krn eval
   krn install
   krn memory <command>
@@ -69,7 +70,7 @@ export async function runCli(
   }
 
   if (command === "doctor") {
-    return doctorCommand(runtime);
+    return doctorCommand(rest, runtime);
   }
 
   if (command === "eval") {

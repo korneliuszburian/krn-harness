@@ -1,9 +1,20 @@
 import { renderDoctorResultMarkdown, runDoctor } from "../../../doctor/src/index.js";
 import { writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
+import { buildCliIdentity, renderCliIdentity } from "../identity.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
-export async function doctorCommand(runtime: CliRuntime): Promise<number> {
+export async function doctorCommand(args: string[], runtime: CliRuntime): Promise<number> {
+  if (args[0] === "cli") {
+    runtime.stdout(renderCliIdentity(buildCliIdentity(runtime)));
+    return 0;
+  }
+
+  if (args.length > 0) {
+    runtime.stderr("KRN doctor: expected `krn doctor` or `krn doctor cli`\n");
+    return 1;
+  }
+
   const result = await runDoctor(runtime.cwd);
   await writeCurrentJson(runtime.cwd, "doctor-result.json", result);
   await writeCurrentMarkdown(runtime.cwd, "doctor-result.md", renderDoctorResultMarkdown(result));

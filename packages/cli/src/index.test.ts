@@ -119,6 +119,7 @@ describe("krn CLI", () => {
       "krn verify [--profile <name>] [--execute]",
       "krn handoff",
       "krn doctor",
+      "krn doctor cli",
       "krn eval",
       "krn install",
       "krn memory <command>",
@@ -138,6 +139,23 @@ describe("krn CLI", () => {
     expect(bin.startsWith("#!/usr/bin/env node\n")).toBe(true);
     expect(bin).toContain("node_modules/tsx/dist/esm/index.mjs");
     expect(bin).toContain("cwd: process.cwd()");
+    expect(bin).toContain("KRN_HARNESS_BIN_WRAPPER");
+    expect(bin).toContain("KRN_HARNESS_SOURCE_ROOT");
+  });
+
+  it("prints KRN CLI identity without writing runtime artifacts", async () => {
+    const result = await runInTemp(["doctor", "cli"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("KRN Harness CLI identity");
+    expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
+    expect(result.stdout).toContain("package: @krn-harness/cli");
+    expect(result.stdout).toContain(
+      "supported_commands: status,start,graph,context,verify,handoff",
+    );
+    expect(result.stdout).toContain("required_commands_present: true");
+    expect(result.stdout).toContain(`runtime_cwd: ${result.cwd}`);
+    await expect(stat(path.join(result.cwd, ".krn"))).rejects.toThrow();
   });
 
   it("runs the local CLI bin wrapper from a downstream cwd", async () => {
@@ -153,6 +171,51 @@ describe("krn CLI", () => {
     await expectFile(cwd, "AGENTS.md");
     await expectFile(cwd, ".codex/hooks.json");
     await expectFile(cwd, ".agents/skills/krn-harness/SKILL.md");
+  });
+
+  it("generates a pinned local shim that preserves downstream cwd", async () => {
+    const cwd = await copyFixtureRepo("downstream-basic");
+    const binDir = await mkdtemp(path.join(os.tmpdir(), "krn-harness-bin-"));
+    const shimResult = spawnSync(path.join(process.cwd(), "scripts/krn-local-shim.sh"), [binDir], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    });
+
+    expect(shimResult.status).toBe(0);
+    const shimPath = shimResult.stdout.trim();
+    const identity = spawnSync(shimPath, ["doctor", "cli"], {
+      cwd,
+      encoding: "utf8",
+    });
+
+    expect(identity.status).toBe(0);
+    expect(identity.stdout).toContain("schema: krn-harness-cli-identity-v1");
+    expect(identity.stdout).toContain(`command_path: ${shimPath}`);
+    expect(identity.stdout).toContain(`bin_wrapper_path: ${shimPath}`);
+    expect(identity.stdout).toContain(`source_root_path: ${process.cwd()}`);
+    expect(identity.stdout).toContain(`runtime_cwd: ${cwd}`);
+
+    const install = spawnSync(shimPath, ["install"], {
+      cwd,
+      encoding: "utf8",
+    });
+
+    expect(install.status).toBe(0);
+    expect(install.stdout).toContain("KRN install: installed");
+    await expectFile(cwd, "AGENTS.md");
+    await expectFile(cwd, ".krn/traces/trace.jsonl");
+  });
+
+  it("runs dogfood preflight through a pinned shim without source checkout mutation", () => {
+    const result = spawnSync(path.join(process.cwd(), "scripts/krn-dogfood-preflight.sh"), {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("KRN dogfood preflight: pass");
+    expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
+    expect(result.stdout).toContain("required_commands_present: true");
   });
 
   it("prints helpful output for unknown commands", async () => {

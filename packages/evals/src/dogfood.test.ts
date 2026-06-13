@@ -94,6 +94,10 @@ function run(overrides: Partial<DogfoodRunRecord> = {}): DogfoodRunRecord {
       ".krn/current/verify-result.json",
       ".krn/current/handoff.md",
     ],
+    krnCommandPath: "/tmp/krn-dogfood-bin/krn",
+    krnIdentity:
+      "schema: krn-harness-cli-identity-v1\npackage: @krn-harness/cli\nrequired_commands_present: true\n",
+    krnIdentityValid: true,
     krnCommandsObserved: ["krn start", "krn context", "krn verify"],
     hookTraceEvents: 1,
     verifyStatus: "pass",
@@ -120,11 +124,60 @@ describe("dogfood eval artifacts", () => {
 
     expect(result).toMatchObject({
       status: "pass",
-      passCount: 10,
+      passCount: 11,
       failCount: 0,
       taskId: "test-required-edit",
       mode: "krn-explicit-skill",
     });
+  });
+
+  it("fails KRN runs with missing or invalid CLI identity", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-a" });
+    await writeJson(cwd, ".krn/current/context-package.json", { stop: false });
+    await writeJson(cwd, ".krn/current/verify-result.json", { status: "pass" });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-a", ["task.started", "context.built", "hook.received"]);
+
+    const result = await gradeDogfoodRun({
+      repoPath: cwd,
+      task: task(),
+      run: run({
+        krnCommandPath: "/home/krn/.local/bin/krn",
+        krnIdentity: "some other cli",
+        krnIdentityValid: false,
+      }),
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.grades).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "krn-cli-identity", status: "fail" }),
+      ]),
+    );
+  });
+
+  it("does not require KRN CLI identity for baseline runs", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-a" });
+    await writeJson(cwd, ".krn/current/context-package.json", { stop: false });
+    await writeJson(cwd, ".krn/current/verify-result.json", { status: "pass" });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-a", ["task.started", "context.built", "hook.received"]);
+
+    const result = await gradeDogfoodRun({
+      repoPath: cwd,
+      task: task(),
+      run: run({
+        mode: "baseline",
+        krnCommandPath: null,
+        krnIdentity: null,
+        krnIdentityValid: false,
+      }),
+    });
+
+    expect(result.status).toBe("pass");
+    expect(result.grades.some((item) => item.name === "krn-cli-identity")).toBe(false);
   });
 
   it("reports forbidden files, missing artifacts, missing hooks, and STOP mismatch", async () => {
@@ -368,6 +421,7 @@ describe("dogfood eval artifacts", () => {
       "## Mode",
       "## Codex Availability",
       "## KRN Command Compliance",
+      "## KRN CLI Identity",
       "## Artifacts",
       "## Hooks",
       "## Verify",
@@ -380,6 +434,8 @@ describe("dogfood eval artifacts", () => {
       expect(report).toContain(heading);
     }
     expect(report).toContain("Verdict: pass");
+    expect(report).toContain("Command path: /tmp/krn-dogfood-bin/krn");
+    expect(report).toContain("schema: krn-harness-cli-identity-v1");
     expect(report).toContain("hook.received events: 1");
   });
 

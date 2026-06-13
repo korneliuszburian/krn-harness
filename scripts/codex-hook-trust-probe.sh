@@ -10,16 +10,13 @@ mkdir -p "$WORKDIR/bin"
 cp -R "$ROOT/fixtures/repos/downstream-basic" "$DOWNSTREAM"
 rm -rf "$DOWNSTREAM/.krn"
 
-cat > "$WORKDIR/bin/krn" <<SH
-#!/usr/bin/env sh
-node --import "$ROOT/node_modules/tsx/dist/esm/index.mjs" "$ROOT/packages/cli/src/index.ts" "\$@"
-SH
-chmod +x "$WORKDIR/bin/krn"
-export PATH="$WORKDIR/bin:$PATH"
+KRN="$("$ROOT/scripts/krn-local-shim.sh" "$WORKDIR/bin")"
 
 cd "$DOWNSTREAM"
-krn install >/dev/null
-krn hook codex SessionStart >/dev/null
+krn_identity="$("$KRN" doctor cli)"
+krn_identity_json="$(printf '%s' "$krn_identity" | node -e 'let data=""; process.stdin.on("data", c => data += c); process.stdin.on("end", () => console.log(JSON.stringify(data)));')"
+"$KRN" install >/dev/null
+"$KRN" hook codex SessionStart >/dev/null
 
 codex_command="$(command -v codex || true)"
 codex_hook_flags="unavailable"
@@ -35,8 +32,11 @@ cat > "$RESULT_JSON" <<JSON
   "status": "ready-for-real-codex-probe",
   "codexAvailable": $([[ -n "$codex_command" ]] && echo true || echo false),
   "codexCommand": $(if [[ -n "$codex_command" ]]; then printf '"%s"' "$codex_command"; else echo null; fi),
+  "krnCommandPath": "$KRN",
+  "krnIdentity": $krn_identity_json,
+  "krnIdentityValid": true,
   "hooksTemplatePresent": true,
-  "manualHookCommand": "krn hook codex SessionStart",
+  "manualHookCommand": "$KRN hook codex SessionStart",
   "manualHookTraceEvents": $hook_trace_count,
   "dangerousBypassUsed": false,
   "codexHookFlags": $(printf '%s' "$codex_hook_flags" | node -e 'let data=""; process.stdin.on("data", c => data += c); process.stdin.on("end", () => console.log(JSON.stringify(data)));'),

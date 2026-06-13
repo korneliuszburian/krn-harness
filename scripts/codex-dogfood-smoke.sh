@@ -12,19 +12,16 @@ cp -R "$ROOT/fixtures/repos/downstream-basic" "$DOWNSTREAM"
 rm -rf "$DOWNSTREAM/.krn"
 mkdir -p "$RESULT_DIR" "$WORKDIR/bin"
 
-cat > "$WORKDIR/bin/krn" <<SH
-#!/usr/bin/env sh
-node --import "$ROOT/node_modules/tsx/dist/esm/index.mjs" "$ROOT/packages/cli/src/index.ts" "\$@"
-SH
-chmod +x "$WORKDIR/bin/krn"
-export PATH="$WORKDIR/bin:$PATH"
+KRN="$("$ROOT/scripts/krn-local-shim.sh" "$WORKDIR/bin")"
 
 cd "$DOWNSTREAM"
-krn --help >/dev/null
-krn install >/dev/null
-krn start "Dogfood smoke task: install KRN in downstream-basic, build graph and context, and verify required current artifacts." >/dev/null
-krn graph >/dev/null
-krn context >/dev/null
+"$KRN" --help >/dev/null
+krn_identity="$("$KRN" doctor cli)"
+krn_identity_json="$(printf '%s' "$krn_identity" | node -e 'let data=""; process.stdin.on("data", c => data += c); process.stdin.on("end", () => console.log(JSON.stringify(data)));')"
+"$KRN" install >/dev/null
+"$KRN" start "Dogfood smoke task: install KRN in downstream-basic, build graph and context, and verify required current artifacts." >/dev/null
+"$KRN" graph >/dev/null
+"$KRN" context >/dev/null
 
 codex_command="$(command -v codex || true)"
 if [[ -z "$codex_command" || "${RUN_KRN_CODEX_DOGFOOD:-0}" != "1" ]]; then
@@ -44,7 +41,10 @@ if [[ -z "$codex_command" || "${RUN_KRN_CODEX_DOGFOOD:-0}" != "1" ]]; then
     ".krn/current/task-contract.json",
     ".krn/current/context-package.json"
   ],
-  "krnCommandsObserved": ["krn --help", "krn install", "krn start", "krn graph", "krn context"],
+  "krnCommandPath": "$KRN",
+  "krnIdentity": $krn_identity_json,
+  "krnIdentityValid": true,
+  "krnCommandsObserved": ["krn --help", "krn doctor cli", "krn install", "krn start", "krn graph", "krn context"],
   "hookTraceEvents": 0,
   "verifyStatus": null,
   "handoffPresent": false,
@@ -57,7 +57,10 @@ JSON
   exit 0
 fi
 
-prompt="$(cat "$ROOT/fixtures/dogfood/skills/explicit-krn-skill.md")"
+prompt="Pinned KRN command path for this run: $KRN
+Do not use global krn.
+
+$(cat "$ROOT/fixtures/dogfood/skills/explicit-krn-skill.md")"
 "$codex_command" --ask-for-approval never exec \
   --cd "$DOWNSTREAM" \
   --sandbox workspace-write \
@@ -76,7 +79,10 @@ cat > "$RESULT_JSON" <<JSON
   "touchedFiles": [],
   "forbiddenTouchedFiles": [],
   "requiredArtifactsPresent": [],
-  "krnCommandsObserved": ["krn --help", "krn install", "krn start", "krn graph", "krn context"],
+  "krnCommandPath": "$KRN",
+  "krnIdentity": $krn_identity_json,
+  "krnIdentityValid": true,
+  "krnCommandsObserved": ["krn --help", "krn doctor cli", "krn install", "krn start", "krn graph", "krn context"],
   "hookTraceEvents": 0,
   "verifyStatus": null,
   "handoffPresent": false,

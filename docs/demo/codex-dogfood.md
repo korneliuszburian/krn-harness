@@ -7,36 +7,43 @@ It is manual-first. Normal tests and `krn eval` do not require Codex CLI, networ
 
 ## Make `krn` Available
 
-From the KRN Harness source checkout:
+Do not trust a global `krn` for benchmark runs. A previous global `krn` collision resolved `/home/krn/.local/bin/krn`, which was not the KRN Harness CLI and made the run invalid.
+
+From the KRN Harness source checkout, generate a pinned repo-local command for each temp dogfood repo:
 
 ```sh
 pnpm install
-pnpm --filter @krn-harness/cli link --global
-krn --help
+workdir="$(mktemp -d)"
+KRN="$(scripts/krn-local-shim.sh "$workdir/bin")"
+"$KRN" --help
+"$KRN" doctor cli
 ```
 
-If global linking is not acceptable, use a temporary shell shim for one terminal:
+Record both command identity checks in every benchmark report:
+
+- exact pinned command path, for example `$KRN`;
+- `command -v krn` or `which krn` as ambient PATH evidence;
+- full `"$KRN" doctor cli` output;
+- whether `required_commands_present: true` appears.
+
+If `krn doctor cli` is missing, lacks `schema: krn-harness-cli-identity-v1`, lacks `package: @krn-harness/cli`, or resolves to a global command instead of the pinned command, mark the run invalid and rerun with a fresh pinned shim.
+
+The generated shim invokes the current source CLI directly:
 
 ```sh
-mkdir -p /tmp/krn-dogfood-bin
-cat > /tmp/krn-dogfood-bin/krn <<'SH'
-#!/usr/bin/env sh
-node --import /home/krn/coding/krn/krn-harness/node_modules/tsx/dist/esm/index.mjs \
-  /home/krn/coding/krn/krn-harness/packages/cli/src/index.ts "$@"
-SH
-chmod +x /tmp/krn-dogfood-bin/krn
-export PATH="/tmp/krn-dogfood-bin:$PATH"
-krn --help
+scripts/krn-local-shim.sh /tmp/krn-dogfood-bin
+/tmp/krn-dogfood-bin/krn doctor cli
 ```
+
+Use `./.krn/bin/krn`, `./krn`, or another exact pinned path when a fixture intentionally installs a local wrapper. Do not fall back to global `krn`.
 
 ## Prepare A Temp Downstream Repo
 
 ```sh
-workdir="$(mktemp -d)"
 cp -R fixtures/repos/downstream-basic "$workdir/downstream-basic"
 cd "$workdir/downstream-basic"
-krn install
-krn status
+"$KRN" install
+"$KRN" status
 ```
 
 Review generated files before trusting them:
@@ -53,17 +60,19 @@ Use this fixture to test realistic source/config/docs selection without WordPres
 
 ```sh
 workdir="$(mktemp -d)"
+KRN="$(scripts/krn-local-shim.sh "$workdir/bin")"
 cp -R fixtures/repos/wordpress-acf-theme "$workdir/wordpress-acf-theme"
 cd "$workdir/wordpress-acf-theme"
 git init
 git add .
 git commit -m "fixture baseline"
-krn install
-krn start "Update hero field mapping in WordPress ACF theme"
-krn graph
-krn context
-krn verify --execute
-krn handoff
+"$KRN" doctor cli
+"$KRN" install
+"$KRN" start "Update hero field mapping in WordPress ACF theme"
+"$KRN" graph
+"$KRN" context
+"$KRN" verify --execute
+"$KRN" handoff
 ```
 
 Expected evidence:
@@ -100,13 +109,13 @@ Current Codex hook docs say project-local hooks load only when the project `.cod
 ## Manual KRN Run
 
 ```sh
-krn start "Harden downstream basic fixture context"
-krn graph
-krn context
-krn verify --execute
-krn handoff
-krn eval
-krn doctor
+"$KRN" start "Harden downstream basic fixture context"
+"$KRN" graph
+"$KRN" context
+"$KRN" verify --execute
+"$KRN" handoff
+"$KRN" eval
+"$KRN" doctor
 ```
 
 Collect:
@@ -135,12 +144,13 @@ The run does not pass just because Codex says it used KRN. Prefer artifact evide
 The optional script is local-only and skipped by default unless explicitly enabled:
 
 ```sh
+scripts/krn-dogfood-preflight.sh
 scripts/codex-dogfood-smoke.sh
 RUN_KRN_CODEX_DOGFOOD=1 scripts/codex-dogfood-smoke.sh
 ```
 
 The script must never run against the source checkout, must not use `danger-full-access`, and must not use bypass flags.
-It first verifies that `krn --help` works from the temp downstream repo.
+The preflight first verifies that pinned `krn --help` and `krn doctor cli` work, then proves `status/start/graph/context/verify/handoff` in a temp downstream repo without invoking Codex.
 
 ## Compare Baseline vs KRN
 
@@ -156,6 +166,7 @@ Useful signals:
 - expected files touched;
 - forbidden files avoided;
 - `krn status/start/context/verify/handoff` observed;
+- `krnCommandPath`, `krnIdentity`, and `krnIdentityValid` recorded for every KRN run;
 - `hook.received` trace events present when hooks were expected;
 - verify status acceptable;
 - handoff artifact present.

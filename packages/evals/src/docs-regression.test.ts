@@ -88,9 +88,12 @@ describe("P0 docs anti-regression", () => {
 
     expect(demo).toContain("manual-first");
     expect(demo).toContain("krn --help");
-    expect(demo).toContain(
-      "node --import /home/krn/coding/krn/krn-harness/node_modules/tsx/dist/esm/index.mjs",
-    );
+    expect(demo).toContain("Do not trust a global `krn`");
+    expect(demo).toContain("global `krn` collision");
+    expect(demo).toContain("scripts/krn-local-shim.sh");
+    expect(demo).toContain("krn doctor cli");
+    expect(demo).toContain("krn-harness-cli-identity-v1");
+    expect(demo).toContain("scripts/krn-dogfood-preflight.sh");
     expect(demo).toContain("Hook Trust/Loading Probe");
     expect(demo).toContain("Do not use `--dangerously-bypass-hook-trust`");
     expect(demo).toContain("project `.codex/` layer is trusted");
@@ -105,6 +108,8 @@ describe("P0 docs anti-regression", () => {
     expect(schema).toContain("krn-explicit-skill");
     expect(schema).toContain("requiredDoNotUsePaths");
     expect(schema).toContain("minExecutedCommands");
+    expect(schema).toContain("krnCommandPath");
+    expect(schema).toContain("krnIdentityValid");
     expect(schema).toContain("hook.received");
     expect(schema).toContain("Self-report is not sufficient evidence");
     expect(schema).toContain("must not make `pnpm test` or CI depend on Codex CLI");

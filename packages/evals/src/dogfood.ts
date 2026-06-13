@@ -42,6 +42,9 @@ export interface DogfoodRunRecord {
   touchedFiles: string[];
   forbiddenTouchedFiles: string[];
   requiredArtifactsPresent: string[];
+  krnCommandPath?: string | null | undefined;
+  krnIdentity?: string | null | undefined;
+  krnIdentityValid?: boolean | undefined;
   krnCommandsObserved: string[];
   hookTraceEvents: number;
   verifyStatus: string | null;
@@ -195,6 +198,9 @@ export function skippedDogfoodRunRecord(input: {
     touchedFiles: [],
     forbiddenTouchedFiles: [],
     requiredArtifactsPresent: [],
+    krnCommandPath: null,
+    krnIdentity: null,
+    krnIdentityValid: false,
     krnCommandsObserved: [],
     hookTraceEvents: 0,
     verifyStatus: null,
@@ -260,6 +266,14 @@ export async function gradeDogfoodRun(input: {
   const taskIntentQuality = taskContract?.intentQuality;
   const minTaskIntentQuality = input.task.minTaskIntentQuality;
   const taskSpecHasDoNotUsePaths = (input.task.requiredDoNotUsePaths?.length ?? 0) > 0;
+  const isKrnMode = input.run.mode !== "baseline";
+  const krnIdentityText = input.run.krnIdentity ?? "";
+  const krnIdentityLooksValid =
+    input.run.krnIdentityValid === true &&
+    krnIdentityText.includes("krn-harness-cli-identity-v1") &&
+    krnIdentityText.includes("@krn-harness/cli") &&
+    krnIdentityText.includes("required_commands_present: true") &&
+    Boolean(input.run.krnCommandPath);
   const handoffText = await readFile(
     path.join(input.repoPath, ".krn", "current", "handoff.md"),
     "utf8",
@@ -302,6 +316,16 @@ export async function gradeDogfoodRun(input: {
       "Expected KRN commands were observed",
       `Missing KRN command(s): ${missingCommands.join(", ")}`,
     ),
+    ...(isKrnMode
+      ? [
+          grade(
+            "krn-cli-identity",
+            krnIdentityLooksValid,
+            "KRN Harness CLI identity is valid",
+            "KRN Harness CLI identity is missing or invalid",
+          ),
+        ]
+      : []),
     grade(
       "verify-status",
       verifyStatus === input.task.expectedVerifyStatus,
@@ -455,6 +479,12 @@ export function renderDogfoodReport(input: {
     input.run.krnCommandsObserved.length === 0
       ? "- none"
       : input.run.krnCommandsObserved.map((command) => `- ${command}`).join("\n"),
+    "",
+    "## KRN CLI Identity",
+    "",
+    `Command path: ${input.run.krnCommandPath ?? "none"}`,
+    `Valid: ${String(input.run.mode === "baseline" ? "not-required" : input.run.krnIdentityValid === true)}`,
+    input.run.krnIdentity ? input.run.krnIdentity : "Identity: none",
     "",
     "## Artifacts",
     "",

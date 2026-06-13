@@ -14,7 +14,11 @@ const result = spawnSync(
   ["--import", tsxLoader, entrypoint, ...process.argv.slice(2)],
   {
     cwd: process.cwd(),
-    env: process.env,
+    env: {
+      ...process.env,
+      KRN_HARNESS_BIN_WRAPPER: fileURLToPath(import.meta.url),
+      KRN_HARNESS_SOURCE_ROOT: repoRoot,
+    },
     stdio: "inherit",
   },
 );
