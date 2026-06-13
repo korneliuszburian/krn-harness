@@ -9,6 +9,7 @@ export type DogfoodMode =
   | "krn-agents-only";
 
 export type DogfoodRunStatus = "pass" | "fail" | "skipped";
+export type DogfoodHookEvidenceSource = "real-codex" | "manual-probe" | "fixture" | "unknown";
 
 export interface DogfoodTaskSpec {
   id: string;
@@ -42,11 +43,14 @@ export interface DogfoodRunRecord {
   touchedFiles: string[];
   forbiddenTouchedFiles: string[];
   requiredArtifactsPresent: string[];
+  ambientKrnCommandPath?: string | null | undefined;
   krnCommandPath?: string | null | undefined;
   krnIdentity?: string | null | undefined;
   krnIdentityValid?: boolean | undefined;
+  globalKrnFallbackUsed?: boolean | undefined;
   krnCommandsObserved: string[];
   hookTraceEvents: number;
+  hookEvidenceSource?: DogfoodHookEvidenceSource | undefined;
   verifyStatus: string | null;
   handoffPresent: boolean;
   notes: string[];
@@ -65,6 +69,40 @@ export interface DogfoodComplianceResult {
   passCount: number;
   failCount: number;
   grades: DogfoodGrade[];
+  evidence: DogfoodEvidenceSummary;
+}
+
+export interface DogfoodEvidenceSummary {
+  requiredArtifactsPresent: string[];
+  missingArtifacts: string[];
+  taskContractPath: string | null;
+  contextPath: string | null;
+  verifyResultPath: string | null;
+  handoffPath: string | null;
+  currentRunPath: string | null;
+  tracePath: string | null;
+  traceEventNames: string[];
+  touchedFiles: string[];
+  expectedTouchedMissing: string[];
+  expectedUntouchedTouched: string[];
+  forbiddenTouchedFiles: string[];
+  missingCommands: string[];
+  verifyStatus: string | null;
+  verifyMode: string | null;
+  executedCommands: number;
+  handoffPresent: boolean;
+  hookTraceEvents: number;
+  contextStop: boolean;
+  requiredDoNotUsePaths: string[];
+  observedDoNotUsePaths: string[];
+  missingDoNotUsePaths: string[];
+  krnIdentityRequired: boolean;
+  krnIdentityValid: boolean | null;
+  krnIdentityProblems: string[];
+  ambientKrnCommandPath: string | null;
+  krnCommandPath: string | null;
+  globalKrnDiffersFromPinned: boolean | null;
+  globalKrnFallbackUsed: boolean;
 }
 
 interface CurrentRunShape {
@@ -95,6 +133,11 @@ interface ContextShape {
 
 interface TraceShape {
   name?: string;
+}
+
+interface TraceEvidence {
+  tracePath: string | null;
+  events: TraceShape[];
 }
 
 function gitDiffTouchedFiles(repoPath: string): string[] {
@@ -131,7 +174,18 @@ async function readJson<T>(filePath: string): Promise<T | undefined> {
   }
 }
 
-async function readTraceEvents(repoPath: string): Promise<TraceShape[]> {
+function resolveRepoPath(repoPath: string, filePath: string): string {
+  return path.isAbsolute(filePath) ? filePath : path.join(repoPath, filePath);
+}
+
+async function existingRelativePath(
+  repoPath: string,
+  relativePath: string,
+): Promise<string | null> {
+  return (await pathExists(path.join(repoPath, relativePath))) ? relativePath : null;
+}
+
+async function readTraceEvidence(repoPath: string): Promise<TraceEvidence> {
   const currentRun = await readJson<CurrentRunShape>(
     path.join(repoPath, ".krn", "current", "run.json"),
   );
@@ -141,18 +195,21 @@ async function readTraceEvents(repoPath: string): Promise<TraceShape[]> {
 
   for (const tracePath of tracePaths) {
     try {
-      const raw = await readFile(path.join(repoPath, tracePath), "utf8");
-      return raw
-        .trim()
-        .split("\n")
-        .filter(Boolean)
-        .map((line) => JSON.parse(line) as TraceShape);
+      const raw = await readFile(resolveRepoPath(repoPath, tracePath), "utf8");
+      return {
+        tracePath,
+        events: raw
+          .trim()
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => JSON.parse(line) as TraceShape),
+      };
     } catch {
       // Try the next trace location.
     }
   }
 
-  return [];
+  return { tracePath: null, events: [] };
 }
 
 function grade(name: string, pass: boolean, passDetail: string, failDetail: string): DogfoodGrade {
@@ -165,6 +222,37 @@ function grade(name: string, pass: boolean, passDetail: string, failDetail: stri
 
 function missingValues(expected: string[], actual: string[]): string[] {
   return expected.filter((value) => !actual.includes(value));
+}
+
+function evaluateKrnIdentity(run: DogfoodRunRecord): {
+  required: boolean;
+  valid: boolean | null;
+  problems: string[];
+} {
+  if (run.mode === "baseline") {
+    return { required: false, valid: null, problems: [] };
+  }
+
+  const identity = run.krnIdentity ?? "";
+  const problems = [
+    ...(!run.krnCommandPath ? ["missing krnCommandPath"] : []),
+    ...(run.globalKrnFallbackUsed === true ? ["global krn fallback was used"] : []),
+    ...(!identity ? ["missing krnIdentity"] : []),
+    ...(run.krnIdentityValid !== true ? ["krnIdentityValid is not true"] : []),
+    ...(!identity.includes("krn-harness-cli-identity-v1")
+      ? ["missing krn-harness-cli-identity-v1 marker"]
+      : []),
+    ...(!identity.includes("@krn-harness/cli") ? ["missing @krn-harness/cli marker"] : []),
+    ...(!identity.includes("required_commands_present: true")
+      ? ["missing required_commands_present: true marker"]
+      : []),
+  ];
+
+  return {
+    required: true,
+    valid: problems.length === 0,
+    problems,
+  };
 }
 
 export async function loadDogfoodTaskSpec(filePath: string): Promise<DogfoodTaskSpec> {
@@ -198,11 +286,14 @@ export function skippedDogfoodRunRecord(input: {
     touchedFiles: [],
     forbiddenTouchedFiles: [],
     requiredArtifactsPresent: [],
+    ambientKrnCommandPath: null,
     krnCommandPath: null,
     krnIdentity: null,
     krnIdentityValid: false,
+    globalKrnFallbackUsed: false,
     krnCommandsObserved: [],
     hookTraceEvents: 0,
+    hookEvidenceSource: "unknown",
     verifyStatus: null,
     handoffPresent: false,
     notes: [input.note],
@@ -220,6 +311,9 @@ export async function gradeDogfoodRun(input: {
       exists: await pathExists(path.join(input.repoPath, artifactPath)),
     })),
   );
+  const requiredArtifactsPresent = requiredArtifactPresence
+    .filter((artifact) => artifact.exists)
+    .map((artifact) => artifact.artifactPath);
   const missingArtifacts = requiredArtifactPresence
     .filter((artifact) => !artifact.exists)
     .map((artifact) => artifact.artifactPath);
@@ -250,12 +344,13 @@ export async function gradeDogfoodRun(input: {
   const currentRunPresent = await pathExists(
     path.join(input.repoPath, ".krn", "current", "run.json"),
   );
-  const traceEvents = await readTraceEvents(input.repoPath);
+  const traceEvidence = await readTraceEvidence(input.repoPath);
+  const traceEvents = traceEvidence.events;
   const hookTraceEvents = traceEvents.filter((event) => event.name === "hook.received").length;
   const runTracePresent = traceEvents.length > 0;
   const traceEventNames = traceEvents.flatMap((event) => (event.name ? [event.name] : []));
   const verifyStatus = verify?.status ?? input.run.verifyStatus;
-  const verifyMode = verify?.mode;
+  const verifyMode = verify?.mode ?? null;
   const executedCommands = verify?.summary?.executedCommands ?? 0;
   const contextStop = context?.stop ?? false;
   const doNotUsePaths =
@@ -267,13 +362,7 @@ export async function gradeDogfoodRun(input: {
   const minTaskIntentQuality = input.task.minTaskIntentQuality;
   const taskSpecHasDoNotUsePaths = (input.task.requiredDoNotUsePaths?.length ?? 0) > 0;
   const isKrnMode = input.run.mode !== "baseline";
-  const krnIdentityText = input.run.krnIdentity ?? "";
-  const krnIdentityLooksValid =
-    input.run.krnIdentityValid === true &&
-    krnIdentityText.includes("krn-harness-cli-identity-v1") &&
-    krnIdentityText.includes("@krn-harness/cli") &&
-    krnIdentityText.includes("required_commands_present: true") &&
-    Boolean(input.run.krnCommandPath);
+  const krnIdentity = evaluateKrnIdentity(input.run);
   const handoffText = await readFile(
     path.join(input.repoPath, ".krn", "current", "handoff.md"),
     "utf8",
@@ -320,9 +409,9 @@ export async function gradeDogfoodRun(input: {
       ? [
           grade(
             "krn-cli-identity",
-            krnIdentityLooksValid,
+            krnIdentity.valid === true,
             "KRN Harness CLI identity is valid",
-            "KRN Harness CLI identity is missing or invalid",
+            `KRN Harness CLI identity invalid: ${krnIdentity.problems.join(", ")}`,
           ),
         ]
       : []),
@@ -436,6 +525,42 @@ export async function gradeDogfoodRun(input: {
   ];
   const passCount = grades.filter((item) => item.status === "pass").length;
   const failCount = grades.length - passCount;
+  const ambientKrnCommandPath = input.run.ambientKrnCommandPath ?? null;
+  const krnCommandPath = input.run.krnCommandPath ?? null;
+  const globalKrnDiffersFromPinned =
+    ambientKrnCommandPath && krnCommandPath ? ambientKrnCommandPath !== krnCommandPath : null;
+  const evidence: DogfoodEvidenceSummary = {
+    requiredArtifactsPresent,
+    missingArtifacts,
+    taskContractPath: await existingRelativePath(input.repoPath, ".krn/current/task-contract.json"),
+    contextPath: await existingRelativePath(input.repoPath, ".krn/current/context-package.json"),
+    verifyResultPath: await existingRelativePath(input.repoPath, ".krn/current/verify-result.json"),
+    handoffPath: await existingRelativePath(input.repoPath, ".krn/current/handoff.md"),
+    currentRunPath: await existingRelativePath(input.repoPath, ".krn/current/run.json"),
+    tracePath: traceEvidence.tracePath,
+    traceEventNames,
+    touchedFiles,
+    expectedTouchedMissing,
+    expectedUntouchedTouched,
+    forbiddenTouchedFiles: forbiddenTouched,
+    missingCommands,
+    verifyStatus: verifyStatus ?? null,
+    verifyMode,
+    executedCommands,
+    handoffPresent,
+    hookTraceEvents,
+    contextStop,
+    requiredDoNotUsePaths: input.task.requiredDoNotUsePaths ?? [],
+    observedDoNotUsePaths: doNotUsePaths,
+    missingDoNotUsePaths,
+    krnIdentityRequired: krnIdentity.required,
+    krnIdentityValid: krnIdentity.valid,
+    krnIdentityProblems: krnIdentity.problems,
+    ambientKrnCommandPath,
+    krnCommandPath,
+    globalKrnDiffersFromPinned,
+    globalKrnFallbackUsed: input.run.globalKrnFallbackUsed === true,
+  };
 
   return {
     status: failCount > 0 ? "fail" : "pass",
@@ -444,7 +569,50 @@ export async function gradeDogfoodRun(input: {
     passCount,
     failCount,
     grades,
+    evidence,
   };
+}
+
+function markdownList(items: string[]): string {
+  return items.length === 0 ? "- none" : items.map((item) => `- ${item}`).join("\n");
+}
+
+function markdownValue(value: string | null | undefined): string {
+  return value && value.length > 0 ? value : "none";
+}
+
+function runValidity(input: { run: DogfoodRunRecord; evidence: DogfoodEvidenceSummary }): {
+  status: "valid" | "invalid" | "not-required" | "skipped";
+  reasons: string[];
+} {
+  if (input.run.status === "skipped") {
+    return { status: "skipped", reasons: input.run.notes };
+  }
+
+  if (!input.evidence.krnIdentityRequired) {
+    return { status: "not-required", reasons: [] };
+  }
+
+  if (input.evidence.krnIdentityValid === true) {
+    return { status: "valid", reasons: [] };
+  }
+
+  return {
+    status: "invalid",
+    reasons: input.evidence.krnIdentityProblems,
+  };
+}
+
+function hookStatus(input: { run: DogfoodRunRecord; evidence: DogfoodEvidenceSummary }): string {
+  if (input.evidence.hookTraceEvents === 0) {
+    return "unproven: no hook.received events recorded";
+  }
+
+  if (input.run.hookEvidenceSource === "real-codex") {
+    return "observed: real Codex hook.received event recorded; enforcement is still not claimed";
+  }
+
+  return `unproven: ${input.evidence.hookTraceEvents} hook.received event(s) recorded, but real non-bypass Codex provenance is not recorded`;
 }
 
 export function renderDogfoodReport(input: {
@@ -452,6 +620,8 @@ export function renderDogfoodReport(input: {
   task: DogfoodTaskSpec;
   result: DogfoodComplianceResult;
 }): string {
+  const evidence = input.result.evidence;
+  const validity = runValidity({ run: input.run, evidence });
   const lines = [
     "# KRN Dogfood Report",
     "",
@@ -459,6 +629,7 @@ export function renderDogfoodReport(input: {
     "",
     `Verdict: ${input.result.status}`,
     `Pass/fail: ${input.result.passCount}/${input.result.failCount}`,
+    `Run validity: ${validity.status}`,
     "",
     "## Task",
     "",
@@ -474,6 +645,11 @@ export function renderDogfoodReport(input: {
     `Available: ${String(input.run.codexAvailable)}`,
     `Command: ${input.run.codexCommand ?? "none"}`,
     "",
+    "## Run Validity",
+    "",
+    `Status: ${validity.status}`,
+    `Reasons: ${validity.reasons.length === 0 ? "none" : validity.reasons.join("; ")}`,
+    "",
     "## KRN Command Compliance",
     "",
     input.run.krnCommandsObserved.length === 0
@@ -482,39 +658,62 @@ export function renderDogfoodReport(input: {
     "",
     "## KRN CLI Identity",
     "",
-    `Command path: ${input.run.krnCommandPath ?? "none"}`,
-    `Valid: ${String(input.run.mode === "baseline" ? "not-required" : input.run.krnIdentityValid === true)}`,
+    `Command path: ${markdownValue(evidence.krnCommandPath)}`,
+    `Ambient krn: ${markdownValue(evidence.ambientKrnCommandPath)}`,
+    `Global differs from pinned: ${String(evidence.globalKrnDiffersFromPinned ?? "unknown")}`,
+    `Global fallback used: ${String(evidence.globalKrnFallbackUsed)}`,
+    `Valid: ${String(evidence.krnIdentityValid ?? "not-required")}`,
+    `Problems: ${evidence.krnIdentityProblems.length === 0 ? "none" : evidence.krnIdentityProblems.join("; ")}`,
     input.run.krnIdentity ? input.run.krnIdentity : "Identity: none",
     "",
-    "## Artifacts",
+    "## Evidence Artifacts",
     "",
-    input.run.requiredArtifactsPresent.length === 0
-      ? "- none recorded"
-      : input.run.requiredArtifactsPresent.map((artifact) => `- ${artifact}`).join("\n"),
+    "Required artifacts present:",
+    markdownList(evidence.requiredArtifactsPresent),
+    "Missing required artifacts:",
+    markdownList(evidence.missingArtifacts),
+    `Trace path: ${markdownValue(evidence.tracePath)}`,
+    `Verify result path: ${markdownValue(evidence.verifyResultPath)}`,
+    `Handoff path: ${markdownValue(evidence.handoffPath)}`,
+    `Context path: ${markdownValue(evidence.contextPath)}`,
+    `Task contract path: ${markdownValue(evidence.taskContractPath)}`,
+    `Current run path: ${markdownValue(evidence.currentRunPath)}`,
     "",
-    "## Hooks",
+    "## Context Quality",
     "",
-    `hook.received events: ${input.run.hookTraceEvents}`,
+    `STOP: ${String(evidence.contextStop)}`,
+    "Required do-not-use paths:",
+    markdownList(evidence.requiredDoNotUsePaths),
+    "Observed do-not-use paths:",
+    markdownList(evidence.observedDoNotUsePaths),
+    "Missing do-not-use paths:",
+    markdownList(evidence.missingDoNotUsePaths),
+    "",
+    "## Hook Status",
+    "",
+    `hook.received events: ${evidence.hookTraceEvents}`,
+    `Status: ${hookStatus({ run: input.run, evidence })}`,
     "",
     "## Verify",
     "",
-    `Status: ${input.run.verifyStatus ?? "missing"}`,
+    `Status: ${evidence.verifyStatus ?? "missing"}`,
+    `Mode: ${evidence.verifyMode ?? "missing"}`,
+    `Executed commands: ${evidence.executedCommands}`,
     "",
     "## Handoff",
     "",
-    `Present: ${String(input.run.handoffPresent)}`,
+    `Present: ${String(evidence.handoffPresent)}`,
     "",
     "## Touched Files",
     "",
-    input.run.touchedFiles.length === 0
-      ? "- none"
-      : input.run.touchedFiles.map((filePath) => `- ${filePath}`).join("\n"),
+    markdownList(evidence.touchedFiles),
     "",
-    "## Forbidden File Violations",
+    "## Forbidden File Safety",
     "",
-    input.run.forbiddenTouchedFiles.length === 0
-      ? "- none"
-      : input.run.forbiddenTouchedFiles.map((filePath) => `- ${filePath}`).join("\n"),
+    "Forbidden touched files:",
+    markdownList(evidence.forbiddenTouchedFiles),
+    "Expected untouched violations:",
+    markdownList(evidence.expectedUntouchedTouched),
     "",
     "## Notes",
     "",

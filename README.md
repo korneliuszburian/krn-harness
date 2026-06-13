@@ -25,6 +25,8 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 
 - Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
 - WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
+- Dogfood CLI identity: KRN-assisted dogfood must use a pinned KRN command path and captured `krn doctor cli` identity. Global `krn` fallback invalidates the run.
+- Real user-repo dogfood: pending unless `KRN_REAL_REPO_DOGFOOD_PATH` and `KRN_REAL_REPO_DOGFOOD_APPROVED=1` are explicitly configured. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
 - Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
 
 ## Commands
@@ -34,6 +36,8 @@ pnpm install
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm verify:local
+scripts/krn-real-repo-preflight.sh <repo-path>
 pnpm --silent krn --help
 pnpm --silent krn status
 pnpm --silent krn install
@@ -56,6 +60,8 @@ pnpm --silent krn hook codex SessionStart
 See `docs/demo/downstream-basic-demo.md` for a local downstream onboarding smoke using `fixtures/repos/downstream-basic`.
 
 See `docs/demo/codex-dogfood.md` for artifact-first dogfood protocols, including the synthetic WordPress/ACF fixture.
+
+See `docs/demo/real-repo-dogfood.md` for the first real user-repo dry dogfood protocol, including preflight, safety boundaries, prompt templates, and skipped-run conditions.
 
 ## P0 Non-Goals
 

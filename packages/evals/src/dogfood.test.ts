@@ -94,12 +94,15 @@ function run(overrides: Partial<DogfoodRunRecord> = {}): DogfoodRunRecord {
       ".krn/current/verify-result.json",
       ".krn/current/handoff.md",
     ],
+    ambientKrnCommandPath: null,
     krnCommandPath: "/tmp/krn-dogfood-bin/krn",
     krnIdentity:
       "schema: krn-harness-cli-identity-v1\npackage: @krn-harness/cli\nrequired_commands_present: true\n",
     krnIdentityValid: true,
+    globalKrnFallbackUsed: false,
     krnCommandsObserved: ["krn start", "krn context", "krn verify"],
     hookTraceEvents: 1,
+    hookEvidenceSource: "unknown",
     verifyStatus: "pass",
     handoffPresent: true,
     notes: ["local fixture"],
@@ -420,23 +423,78 @@ describe("dogfood eval artifacts", () => {
       "## Task",
       "## Mode",
       "## Codex Availability",
+      "## Run Validity",
       "## KRN Command Compliance",
       "## KRN CLI Identity",
-      "## Artifacts",
-      "## Hooks",
+      "## Evidence Artifacts",
+      "## Context Quality",
+      "## Hook Status",
       "## Verify",
       "## Handoff",
       "## Touched Files",
-      "## Forbidden File Violations",
+      "## Forbidden File Safety",
       "## Notes",
       "## Verdict",
     ]) {
       expect(report).toContain(heading);
     }
     expect(report).toContain("Verdict: pass");
+    expect(report).toContain("Run validity: valid");
     expect(report).toContain("Command path: /tmp/krn-dogfood-bin/krn");
+    expect(report).toContain("Global differs from pinned: unknown");
+    expect(report).toContain("Global fallback used: false");
     expect(report).toContain("schema: krn-harness-cli-identity-v1");
+    expect(report).toContain("Trace path: .krn/runs/task-a/trace.jsonl");
+    expect(report).toContain("Missing required artifacts:\n- none");
+    expect(report).toContain("STOP: false");
     expect(report).toContain("hook.received events: 1");
+    expect(report).toContain("real non-bypass Codex provenance is not recorded");
+  });
+
+  it("renders invalid KRN identity and global fallback evidence clearly", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-a" });
+    await writeJson(cwd, ".krn/current/context-package.json", { stop: false });
+    await writeJson(cwd, ".krn/current/verify-result.json", { status: "pass" });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-a", ["task.started", "context.built"]);
+
+    const spec = task({ hooksExpected: false });
+    const record = run({
+      ambientKrnCommandPath: "/home/krn/.local/bin/krn",
+      krnCommandPath: "/home/krn/.local/bin/krn",
+      krnIdentity: "not the harness cli",
+      krnIdentityValid: false,
+      globalKrnFallbackUsed: true,
+      hookTraceEvents: 0,
+    });
+    const result = await gradeDogfoodRun({ repoPath: cwd, task: spec, run: record });
+    const report = renderDogfoodReport({ run: record, task: spec, result });
+
+    expect(result.status).toBe("fail");
+    expect(report).toContain("Run validity: invalid");
+    expect(report).toContain("Global fallback used: true");
+    expect(report).toContain("global krn fallback was used");
+    expect(report).toContain("missing krn-harness-cli-identity-v1 marker");
+    expect(report).toContain("missing @krn-harness/cli marker");
+    expect(report).toContain("missing required_commands_present: true marker");
+  });
+
+  it("renders hook status as unproven when no hook trace exists", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-a" });
+    await writeJson(cwd, ".krn/current/context-package.json", { stop: false });
+    await writeJson(cwd, ".krn/current/verify-result.json", { status: "pass" });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-a", ["task.started", "context.built"]);
+
+    const spec = task({ hooksExpected: false });
+    const record = run({ hookTraceEvents: 0 });
+    const result = await gradeDogfoodRun({ repoPath: cwd, task: spec, run: record });
+    const report = renderDogfoodReport({ run: record, task: spec, result });
+
+    expect(report).toContain("hook.received events: 0");
+    expect(report).toContain("Status: unproven: no hook.received events recorded");
   });
 
   it("loads dogfood task specs and represents skipped Codex runs", async () => {

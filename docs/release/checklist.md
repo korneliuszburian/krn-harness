@@ -10,6 +10,7 @@ Run from the source checkout:
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm verify:local
 pnpm --silent krn --help
 pnpm --silent krn status
 pnpm --silent krn install
@@ -26,6 +27,8 @@ git diff --check
 git status --short
 ```
 
+`pnpm verify:local` is the no-model local gate. It runs lint, typecheck, tests, and the fixture dogfood preflight. It must not depend on paid Codex calls, hook trust, CI, network, or real user repositories.
+
 ## Downstream Fixture Smoke
 
 Run the local demo in `docs/demo/downstream-basic-demo.md` against a temp copy of `fixtures/repos/downstream-basic`.
@@ -36,6 +39,18 @@ Expected result:
 - `krn verify` records the safe profile without execution;
 - `krn verify --execute` runs the allowlisted `node src/index.test.ts` fixture;
 - doctor/eval remain local deterministic checks.
+
+## Real-Repo Preflight Smoke
+
+Before a first real user-repo dogfood, run:
+
+```bash
+scripts/krn-real-repo-preflight.sh <repo-path>
+```
+
+This is a readiness check only. It uses filename/path heuristics, rejects the KRN source checkout as a target, reports pinned CLI identity, and writes `.krn/dogfood/real-repo-preflight/latest/summary.json` plus `summary.md` in the target repo.
+
+Do not include paid dogfood, real repo mutation beyond local `.krn` preflight state, or hook trust proof in CI/local release gates.
 
 ## CLI Metadata Decision
 

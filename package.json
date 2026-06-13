@@ -8,6 +8,7 @@
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "verify:local": "pnpm lint && pnpm typecheck && pnpm test && scripts/krn-dogfood-preflight.sh",
     "krn": "tsx packages/cli/src/index.ts"
   },
   "devDependencies": {

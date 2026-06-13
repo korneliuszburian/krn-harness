@@ -1,23 +1,27 @@
 ---
 name: krn-harness
-description: Downstream KRN Harness runtime workflow. Use in repositories where KRN Harness is installed to route Codex through status, start, context, STOP policy, verify, and handoff for non-trivial edits.
+description: Downstream KRN Harness workflow for status, start, context, STOP policy, verify, and handoff in installed repos.
 ---
 
 # KRN Harness
 
+Use a provided pinned KRN command path; do not use global `krn`.
+
 1. Run `krn status`.
-2. If the task is visual or layout-related, include concrete sizes or pixel ranges in the task, such as mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or a specific element tolerance.
+2. For visual/layout work, include concrete sizes, such as mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or a specific tolerance.
 3. Run `krn start "<full user intent>"`.
    - Do not pass only a task id, slug, or title when the user gave richer instructions.
    - Include expected outcome, constraints, forbidden files, required proof, and task-specific context.
-   - Good: `krn start "Update ACF hero field mapping: edit src/theme/... and tests/..., avoid docs/stale-acf-notes.md and acf/legacy_group.json, verify with configured profile."`
+   - Good: `krn start "Update ACF hero mapping, edit src/theme/... and tests/..., avoid stale docs and legacy ACF, verify with configured profile."`
    - Bad: `krn start "wp-acf-field-mapping"`
-4. Run `krn context`.
+4. Run `krn graph`, then `krn context`.
 5. Read `.krn/current/task-contract.md`.
 6. Read `.krn/current/context-package.md`.
 7. Stop without edits if KRN reports STOP.
-8. After edits, run `krn verify --execute` when a configured executable verify profile exists or the task requires executable verification.
+8. After edits, run `krn verify --execute` when a safe executable verify profile exists or the task requires it.
 9. If executable verification is not configured or not allowed, run `krn verify` and record why it stayed record-only.
 10. Run `krn handoff`.
+
+Hooks remain unproven unless real non-bypass Codex emits `hook.received`.
 
 Do not include raw research or full KRN architecture in downstream active context.

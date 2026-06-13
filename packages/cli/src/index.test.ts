@@ -98,6 +98,95 @@ async function expectFile(cwd: string, relativePath: string): Promise<void> {
   expect((await stat(path.join(cwd, relativePath))).isFile()).toBe(true);
 }
 
+interface RealRepoPreflightSummary {
+  schema: string;
+  eligible: boolean;
+  isGitRepo: boolean;
+  dirtyWorktree: boolean;
+  krnConfigExists: boolean;
+  verifyProfileStatus: string;
+  safeVerifyCommands: string[];
+  blockers: string[];
+  warnings: string[];
+  requiredOperatorDecisions: string[];
+  pinnedKrnPath: string | null;
+  krnIdentityValid: boolean;
+  summaryJsonPath: string | null;
+  summaryMarkdownPath: string | null;
+  wouldInstall: string[];
+}
+
+function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
+  const start = stdout.indexOf("{\n");
+  const end = stdout.indexOf("\n--- markdown ---", start);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+
+  return JSON.parse(stdout.slice(start, end)) as RealRepoPreflightSummary;
+}
+
+async function createGitRepoForPreflight(
+  input: { config?: unknown; dirty?: boolean } = {},
+): Promise<string> {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-real-preflight-test-"));
+  await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+
+  if (input.config) {
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify(input.config, null, 2)}\n`,
+      "utf8",
+    );
+  }
+
+  spawnSync("git", ["init", "-q"], { cwd, encoding: "utf8" });
+  spawnSync("git", ["add", "."], { cwd, encoding: "utf8" });
+  spawnSync(
+    "git",
+    [
+      "-c",
+      "user.email=krn@example.invalid",
+      "-c",
+      "user.name=KRN Test",
+      "commit",
+      "-q",
+      "-m",
+      "fixture baseline",
+    ],
+    {
+      cwd,
+      encoding: "utf8",
+    },
+  );
+
+  if (input.dirty) {
+    await writeFile(path.join(cwd, "dirty.txt"), "dirty\n", "utf8");
+  }
+
+  return cwd;
+}
+
+function runRealRepoPreflight(repoPath: string, env: Record<string, string> = {}) {
+  const result = spawnSync(
+    path.join(process.cwd(), "scripts/krn-real-repo-preflight.sh"),
+    [repoPath],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...env,
+      },
+    },
+  );
+
+  return {
+    result,
+    summary: parseRealRepoPreflightSummary(result.stdout),
+  };
+}
+
 describe("krn CLI", () => {
   it("parses git status paths for handoff changed files", () => {
     expect(parseGitStatusPath(" M packages/cli/src/commands/handoff.ts")).toBe(
@@ -216,7 +305,134 @@ describe("krn CLI", () => {
     expect(result.stdout).toContain("KRN dogfood preflight: pass");
     expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
     expect(result.stdout).toContain("required_commands_present: true");
+  }, 20_000);
+
+  it("rejects the KRN source checkout as a real-repo preflight target", () => {
+    const { result, summary } = runRealRepoPreflight(process.cwd());
+
+    expect(result.status).toBe(1);
+    expect(summary.eligible).toBe(false);
+    expect(summary.blockers).toContain("repo_path_is_krn_source_checkout");
+    expect(summary.pinnedKrnPath).toBeNull();
+    expect(summary.summaryJsonPath).toBeNull();
   });
+
+  it("warns on dirty real-repo preflight worktrees and missing config", async () => {
+    const repo = await createGitRepoForPreflight({ dirty: true });
+    const { result, summary } = runRealRepoPreflight(repo, {
+      KRN_REAL_REPO_PREFLIGHT_BIN_DIR: path.join(repo, "..", "bin-dirty"),
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary.eligible).toBe(true);
+    expect(summary.dirtyWorktree).toBe(true);
+    expect(summary.krnConfigExists).toBe(false);
+    expect(summary.verifyProfileStatus).toBe("missing");
+    expect(summary.warnings).toEqual(
+      expect.arrayContaining(["dirty_worktree", "missing_krn_config_json"]),
+    );
+    expect(summary.requiredOperatorDecisions).toEqual(
+      expect.arrayContaining([
+        "clean_or_branch_isolate_before_paid_dogfood",
+        "create_or_accept_record_only_krn_config",
+        "krn_install_not_run",
+      ]),
+    );
+  }, 20_000);
+
+  it("detects safe verify profile evidence in real-repo preflight", async () => {
+    const repo = await createGitRepoForPreflight({
+      config: {
+        version: 1,
+        verify: {
+          defaultProfile: "unit",
+          profiles: {
+            unit: {
+              commands: [{ command: "node", args: ["src/index.test.ts"] }],
+            },
+          },
+        },
+      },
+    });
+    const { result, summary } = runRealRepoPreflight(repo, {
+      KRN_REAL_REPO_PREFLIGHT_BIN_DIR: path.join(repo, "..", "bin-safe"),
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary.eligible).toBe(true);
+    expect(summary.krnConfigExists).toBe(true);
+    expect(summary.verifyProfileStatus).toBe("safe");
+    expect(summary.safeVerifyCommands).toEqual(["node src/index.test.ts"]);
+    expect(summary.krnIdentityValid).toBe(true);
+    expect(summary.pinnedKrnPath).toBe(path.join(repo, "..", "bin-safe", "krn"));
+  }, 20_000);
+
+  it("writes deterministic real-repo preflight summary files", async () => {
+    const repo = await createGitRepoForPreflight({
+      config: {
+        version: 1,
+        verify: {
+          commands: ["pnpm lint"],
+        },
+      },
+    });
+    const { summary } = runRealRepoPreflight(repo, {
+      KRN_REAL_REPO_PREFLIGHT_BIN_DIR: path.join(repo, "..", "bin-shape"),
+    });
+
+    expect(Object.keys(summary)).toEqual([
+      "schema",
+      "eligible",
+      "repoPath",
+      "sourceRootPath",
+      "isGitRepo",
+      "dirtyWorktree",
+      "krnConfigExists",
+      "verifyProfileStatus",
+      "verifyDefaultProfile",
+      "verifyProfiles",
+      "safeVerifyCommands",
+      "unsafeVerifyCommands",
+      "configIssues",
+      "blockers",
+      "warnings",
+      "requiredOperatorDecisions",
+      "pinnedKrnPath",
+      "krnIdentityValid",
+      "krnIdentity",
+      "krnStatusOk",
+      "krnStatusOutput",
+      "installRun",
+      "installOutput",
+      "wouldInstall",
+      "recommendedNextCommand",
+      "summaryJsonPath",
+      "summaryMarkdownPath",
+    ]);
+    expect(summary.wouldInstall).toEqual([
+      "AGENTS.md",
+      ".codex/hooks.json",
+      ".agents/skills/krn-harness/SKILL.md",
+      ".krn/",
+    ]);
+    expect(summary.summaryJsonPath).toBe(
+      path.join(repo, ".krn/dogfood/real-repo-preflight/latest/summary.json"),
+    );
+    expect(summary.summaryMarkdownPath).toBe(
+      path.join(repo, ".krn/dogfood/real-repo-preflight/latest/summary.md"),
+    );
+    expect(
+      await readJson<RealRepoPreflightSummary>(
+        repo,
+        ".krn/dogfood/real-repo-preflight/latest/summary.json",
+      ),
+    ).toMatchObject({
+      schema: "krn-real-repo-preflight-v1",
+      verifyProfileStatus: "safe",
+      safeVerifyCommands: ["pnpm lint"],
+    });
+    await expectFile(repo, ".krn/dogfood/real-repo-preflight/latest/summary.md");
+  }, 20_000);
 
   it("prints helpful output for unknown commands", async () => {
     const result = await runInTemp(["unknown-command"]);

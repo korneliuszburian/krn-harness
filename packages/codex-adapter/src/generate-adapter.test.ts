@@ -18,6 +18,7 @@ function expectKRNCommandFlow(output: string): void {
     "KRN Harness",
     "krn status",
     "krn start",
+    "krn graph",
     "krn context",
     "STOP",
     "krn verify",
@@ -37,6 +38,10 @@ describe("Codex adapter generation", () => {
     expect(output).toContain(".krn/current/task-contract.md");
     expect(output).toContain(".krn/current/context-package.md");
     expect(output).toContain('krn start "<full user intent>"');
+    expect(output).toContain("pinned KRN command path");
+    expect(output).toContain("do not substitute global `krn`");
+    expect(output).toContain("run `krn graph` before `krn context`");
+    expect(output).toContain("real non-bypass Codex run emits `hook.received`");
     expect(output).toContain("Do not pass only a task id, slug, or title");
     expect(output).toContain("320-480px");
     expect(output).toContain("1280-1440px");
@@ -76,6 +81,9 @@ describe("Codex adapter generation", () => {
     expect(output).toContain(".krn/current/task-contract.md");
     expect(output).toContain(".krn/current/context-package.md");
     expect(output).toContain('krn start "<full user intent>"');
+    expect(output).toContain("Use a provided pinned KRN command path");
+    expect(output).toContain("Run `krn graph`, then `krn context`");
+    expect(output).toContain("Hooks remain unproven");
     expect(output).toContain('Bad: `krn start "wp-acf-field-mapping"`');
     expect(output).toContain("320-480px");
     expect(output).not.toContain("dashboard");

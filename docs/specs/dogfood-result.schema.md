@@ -17,11 +17,14 @@ Dogfood run records compare baseline Codex and KRN-assisted Codex runs using loc
 - `touchedFiles`
 - `forbiddenTouchedFiles`
 - `requiredArtifactsPresent`
+- `ambientKrnCommandPath`: ambient `command -v krn` / `which krn` evidence when captured
 - `krnCommandPath`: exact pinned KRN command path used for KRN-assisted runs
 - `krnIdentity`: captured `krn doctor cli` output
 - `krnIdentityValid`: true only when the identity marker, package marker, and required command list are present
+- `globalKrnFallbackUsed`: true when the run used the ambient/global `krn` instead of an exact pinned KRN command
 - `krnCommandsObserved`
 - `hookTraceEvents`
+- `hookEvidenceSource`: `real-codex`, `manual-probe`, `fixture`, or `unknown`
 - `verifyStatus`
 - `handoffPresent`
 - `notes`
@@ -40,9 +43,25 @@ Task specs may also request stricter optional checks:
 
 The dogfood grader inspects a downstream repo and a run record. It checks current KRN artifacts, run trace presence, KRN CLI identity for KRN-assisted modes, `hook.received` events when expected, touched-file expectations, expected untouched files when configured, forbidden-file violations, verify status, verify mode, executed verify command count, task intent quality, whether context-quality task specs declare required `do-not-use` paths, handoff presence/content, command observations, required trace events, required `do-not-use` context paths, and context STOP state.
 
+The compliance result includes an evidence summary for report rendering:
+
+- required artifacts present/missing
+- task contract, context, verify, handoff, current run, and trace paths
+- touched files, forbidden touched files, expected untouched violations, and missing commands
+- verify status, verify mode, and executed command count
+- required, observed, and missing `do-not-use` paths
+- context STOP status
+- KRN identity validity problems
+- ambient-vs-pinned KRN path comparison
+- whether global KRN fallback was used
+
+Reports must include the sections `Run Validity`, `KRN CLI Identity`, `Evidence Artifacts`, `Context Quality`, `Forbidden File Safety`, and `Hook Status`.
+
 If `touchedFiles` is empty in the run record, the grader may read `git diff --name-only` from the downstream repo as local evidence.
 
-Missing Codex is represented as a skipped run record. Self-report is not sufficient evidence. A KRN-assisted run with missing or invalid `krn-harness-cli-identity-v1` evidence must be marked failed or invalid, because a global `krn` collision can otherwise masquerade as a KRN Harness benchmark.
+Missing Codex is represented as a skipped run record. Self-report is not sufficient evidence. A KRN-assisted run with missing or invalid `krn-harness-cli-identity-v1` evidence must be marked failed or invalid, because a global `krn` collision can otherwise masquerade as a KRN Harness benchmark. A KRN-assisted report must mark the run invalid when identity evidence is missing, required commands are missing from `doctor cli`, `krnCommandPath` is empty, the identity marker is absent, or `globalKrnFallbackUsed` is true.
+
+Hook reporting must stay conservative. `hook.received` from a manual probe or fixture is not proof that Codex loaded and trusted project hooks. A report must call hooks unproven unless `hook.received > 0` came from a real non-bypass Codex run.
 
 ## P0 Limits
 

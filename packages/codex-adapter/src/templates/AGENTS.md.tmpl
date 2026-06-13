@@ -4,8 +4,9 @@ This repository uses KRN Harness.
 
 ## KRN Workflow
 
+- When a task or benchmark provides a pinned KRN command path, use that exact path for all KRN commands and do not substitute global `krn`.
 - Before non-trivial work, run `krn status`.
-- Start with `krn start "<full user intent>"`, then run `krn context`.
+- Start with `krn start "<full user intent>"`, then run `krn graph` before `krn context`.
 - Do not pass only a task id, slug, or title when the user gave richer instructions.
 - Include expected outcome, constraints, forbidden files, required proof, and task-specific context in the start string.
 - Read `.krn/current/task-contract.md` and `.krn/current/context-package.md`.
@@ -14,6 +15,7 @@ This repository uses KRN Harness.
 - After edits, run `krn verify --execute` when a configured executable verify profile exists or the task requires executable verification.
 - If executable verification is not configured or not allowed, run `krn verify` and record why it stayed record-only.
 - Run `krn handoff`.
+- Do not claim real Codex hook validation unless a real non-bypass Codex run emits `hook.received`.
 
 For visual or layout work, include concrete sizes before starting the task, for example mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or the actual element size/tolerance the user gave.
 

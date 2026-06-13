@@ -82,8 +82,13 @@ describe("P0 docs anti-regression", () => {
 
   it("keeps dogfood lab local, optional, and artifact-first", async () => {
     const demo = await readDoc("docs/demo/codex-dogfood.md");
+    const realRepo = await readDoc("docs/demo/real-repo-dogfood.md");
+    const wpExplicitSkill = await readDoc("fixtures/dogfood/skills/wp-acf-explicit-krn-skill.md");
     const hookExample = await readDoc("docs/demo/hook-trust-probe-example.json");
     const schema = await readDoc("docs/specs/dogfood-result.schema.md");
+    const dogfoodAdr = await readDoc(
+      "docs/adr/ADR-0013-dogfood-cli-identity-and-real-repo-preflight.md",
+    );
     const principles = await readDoc("docs/research/agentic-coding-principles.md");
 
     expect(demo).toContain("manual-first");
@@ -109,10 +114,31 @@ describe("P0 docs anti-regression", () => {
     expect(schema).toContain("requiredDoNotUsePaths");
     expect(schema).toContain("minExecutedCommands");
     expect(schema).toContain("krnCommandPath");
+    expect(schema).toContain("ambientKrnCommandPath");
     expect(schema).toContain("krnIdentityValid");
+    expect(schema).toContain("globalKrnFallbackUsed");
+    expect(schema).toContain("Run Validity");
+    expect(schema).toContain("Evidence Artifacts");
+    expect(schema).toContain("Context Quality");
     expect(schema).toContain("hook.received");
+    expect(schema).toContain("real non-bypass Codex run");
     expect(schema).toContain("Self-report is not sufficient evidence");
     expect(schema).toContain("must not make `pnpm test` or CI depend on Codex CLI");
+    expect(realRepo).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
+    expect(realRepo).toContain("Do not use this with protected data");
+    expect(realRepo).toContain("filename/path heuristics only");
+    expect(realRepo).toContain("KRN_REAL_REPO_DOGFOOD_APPROVED=1");
+    expect(realRepo).toContain("Baseline no-KRN");
+    expect(realRepo).toContain("KRN explicit with no safe verify");
+    expect(realRepo).toContain("Never run `composer install`, `npm install`");
+    expect(realRepo).toContain("Do not use global `krn`");
+    expect(realRepo).toContain("Mark a run invalid");
+    expect(wpExplicitSkill).toContain("pinned repo-local KRN command");
+    expect(wpExplicitSkill).toContain("Do not fall back to global `krn`");
+    expect(wpExplicitSkill).toContain("Run `<pinned-krn> graph` before `<pinned-krn> context`");
+    expect(dogfoodAdr).toContain("Global `krn` is invalid for dogfood");
+    expect(dogfoodAdr).toContain("First real user-repo dogfood requires preflight");
+    expect(dogfoodAdr).toContain("Hooks remain unproven");
     expect(principles).toContain("Measure explicit skill usage");
     expect(principles).toContain("Treat self-report as weak evidence");
     expect(principles).toContain("No production Codex runner");
@@ -154,6 +180,8 @@ describe("P0 docs anti-regression", () => {
 
     expect(readme).toContain("Tiny downstream fixture dogfood");
     expect(readme).toContain("WordPress/ACF fixture");
+    expect(readme).toContain("Global `krn` fallback invalidates the run");
+    expect(readme).toContain("Real user-repo dogfood: pending");
     expect(readme).toContain("real Codex hook loading/trust remains unproven");
   });
 
@@ -180,6 +208,9 @@ describe("P0 docs anti-regression", () => {
   it("keeps release prep local and unpublished", async () => {
     const checklist = await readDoc("docs/release/checklist.md");
 
+    expect(checklist).toContain("pnpm verify:local");
+    expect(checklist).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
+    expect(checklist).toContain("must not depend on paid Codex calls");
     expect(checklist).toContain("local `bin` metadata for dogfood linking only");
     expect(checklist).toContain("not a publish-ready package boundary");
     expect(checklist).toContain("Do not publish from P0");

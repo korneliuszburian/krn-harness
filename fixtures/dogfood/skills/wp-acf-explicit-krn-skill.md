@@ -9,6 +9,8 @@ Update the synthetic WordPress/ACF theme fixture according to the selected `fixt
 
 Before editing, run or report the KRN commands you used:
 
+Run `<pinned-krn> graph` before `<pinned-krn> context`.
+
 - `<pinned-krn> doctor cli`
 - `<pinned-krn> status`
 - `<pinned-krn> start "<full user intent>"`
