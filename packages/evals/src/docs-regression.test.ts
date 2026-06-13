@@ -108,6 +108,9 @@ describe("P0 docs anti-regression", () => {
     expect(demo).toContain("without WordPress, PHP, Composer, or network access");
     expect(demo).toContain("wp-acf-theme-index.json");
     expect(demo).toContain("wp-acf-explicit-krn-skill.md");
+    expect(demo).toContain("pnpm dogfood:wp-acf");
+    expect(demo).toContain("KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1");
+    expect(demo).toContain("writes a skipped report and does not invoke Codex");
     expect(demo).toContain("not a production Codex runner");
     expect(schema).toContain("baseline");
     expect(schema).toContain("krn-explicit-skill");
@@ -172,11 +175,12 @@ describe("P0 docs anti-regression", () => {
     expect(operator).toContain("future `krn summary` or `krn operator` command");
 
     expect(handoff).toContain("not a production benchmark pass");
-    expect(handoff).toContain("Skipped.");
-    expect(handoff).toContain("forbids paid model calls");
-    expect(handoff).toContain("No WP/ACF baseline/KRN scores were produced");
-    expect(handoff).toContain("Real Codex hook loading/trust remains unproven");
-    expect(handoff).toContain("Do not claim KRN improves real WordPress/ACF Codex execution");
+    expect(handoff).toContain("Completed for the full WP/ACF task index.");
+    expect(handoff).toContain("baseline: tasks 0/8, grades 38/117, invalid 0");
+    expect(handoff).toContain("krn-explicit-skill: tasks 8/8, grades 125/125, invalid 0");
+    expect(handoff).toContain("no global KRN fallback");
+    expect(handoff).toContain("does not prove real Codex hook loading/trust");
+    expect(handoff).toContain("not production WordPress proof");
 
     expect(readme).toContain("Tiny downstream fixture dogfood");
     expect(readme).toContain("WordPress/ACF fixture");

@@ -9,3 +9,4 @@ export * from "./graders/trace-completeness.js";
 export * from "./graders/types.js";
 export * from "./harness-only.js";
 export * from "./run-eval.js";
+export * from "./wp-acf-index-benchmark.js";

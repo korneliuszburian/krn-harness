@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify:local": "pnpm lint && pnpm typecheck && pnpm test && scripts/krn-dogfood-preflight.sh",
+    "dogfood:wp-acf": "tsx packages/evals/src/wp-acf-index-benchmark.ts",
     "krn": "tsx packages/cli/src/index.ts"
   },
   "devDependencies": {

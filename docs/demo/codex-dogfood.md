@@ -90,6 +90,15 @@ Prompt fixtures:
 - `fixtures/dogfood/skills/wp-acf-explicit-krn-skill.md`
 - `fixtures/dogfood/skills/wp-acf-implicit-krn-skill.md`
 
+The repeatable paid-call index runner is:
+
+```sh
+pnpm dogfood:wp-acf
+KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1 pnpm dogfood:wp-acf
+```
+
+Without `KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1`, the runner writes a skipped report and does not invoke Codex. With approval, it runs baseline and explicit KRN modes across `wp-acf-theme-index.json`, uses a pinned `scripts/krn-local-shim.sh` command, captures `krn doctor cli` identity for every KRN task, and writes `summary.json` plus `summary.md` under ignored `.krn/dogfood/wp-acf-index-*`.
+
 ## Hook Trust/Loading Probe
 
 Before claiming hooks work in a real Codex run, prove loading and trust without bypass flags:

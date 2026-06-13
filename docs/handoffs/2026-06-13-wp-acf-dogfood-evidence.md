@@ -6,9 +6,9 @@ KRN Harness now has a synthetic WordPress/ACF-style fixture and deterministic do
 
 This is evidence for realistic fixture behavior, not a production benchmark pass.
 
-## Current Head
+## Benchmark Source Head
 
-`0b7de00 docs: record dogfood evidence status`
+`0a2f242 feat: harden dogfood readiness workflow`
 
 ## Fixture
 
@@ -74,37 +74,61 @@ The grader now supports optional realistic-task checks:
 - handoff content
 - touched files from `git diff --name-only` when the run record omits them
 
+## Repeatable Runner
+
+The paid-call runner is source-controlled as:
+
+```sh
+pnpm dogfood:wp-acf
+KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1 pnpm dogfood:wp-acf
+```
+
+Without `KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1`, it writes a skipped report and does not invoke Codex.
+
+With approval, it reads `fixtures/dogfood/tasks/wp-acf-theme-index.json`, runs baseline and `krn-explicit-skill` modes for every indexed task, installs a pinned KRN shim, captures `krn doctor cli` identity evidence for KRN runs, and writes ignored artifacts under `.krn/dogfood/wp-acf-index-*`.
+
 ## Real Codex Run Status
 
-Skipped.
+Completed for the full WP/ACF task index.
 
-Reason: the active goal forbids paid model calls. No real Codex WP/ACF baseline-vs-KRN comparison was executed.
+Artifact root:
+
+```txt
+.krn/dogfood/wp-acf-index-2026-06-13T16-17-50-020Z
+```
+
+Summary files:
+
+```txt
+.krn/dogfood/wp-acf-index-2026-06-13T16-17-50-020Z/summary.json
+.krn/dogfood/wp-acf-index-2026-06-13T16-17-50-020Z/summary.md
+```
 
 ## Scores
 
-No WP/ACF baseline/KRN scores were produced in this slice.
+Paid WP/ACF index run:
 
-The existing tiny fixture evidence remains:
+```txt
+baseline: tasks 0/8, grades 38/117, invalid 0
+krn-explicit-skill: tasks 8/8, grades 125/125, invalid 0
+```
 
-- baseline: 5/10 fail
-- krn-agents-only: 10/10 pass
-- krn-explicit-skill: 10/10 pass
-- krn-implicit-skill: 10/10 pass
+All eight KRN explicit runs had valid pinned CLI identity evidence and no global KRN fallback.
 
 ## Hook Status
 
 Manual hook probe can write `hook.received`.
 
-Real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
+The WP/ACF task specs in this index set `hooksExpected: false`, so the paid index run does not prove real Codex hook loading/trust.
 
 ## Product Decision
 
-KRN now has acceptable local fixture evidence that its graph/context/verify/handoff loop works on a more realistic WordPress/ACF-style repository.
+KRN now has repeatable, source-controlled evidence that the explicit KRN workflow outperforms the baseline prompt on the local synthetic WordPress/ACF fixture index.
 
-Do not claim KRN improves real WordPress/ACF Codex execution until a paid-call-approved comparison run is collected and graded.
+This is still local fixture evidence, not production WordPress proof.
 
 ## Recommended Next Goal
 
 ```txt
-/goal Run the paid-call-approved WordPress/ACF dogfood comparison: baseline vs krn-explicit-skill on fixtures/repos/wordpress-acf-theme, collect grader records, verify artifacts, handoff artifacts, touched files, stale-doc violations, and hook.received status without bypass.
+/goal Decide whether to run the first real user-repo dogfood behind explicit KRN_REAL_REPO_DOGFOOD_PATH and KRN_REAL_REPO_DOGFOOD_APPROVED=1, or first close the remaining real Codex hook-loading proof gap.
 ```
