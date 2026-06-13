@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -17,6 +17,7 @@ async function copyFixtureRepo(name: string): Promise<string> {
   const parent = await mkdtemp(path.join(os.tmpdir(), "krn-harness-fixture-"));
   const cwd = path.join(parent, name);
   await cp(path.join(process.cwd(), "fixtures", "repos", name), cwd, { recursive: true });
+  await rm(path.join(cwd, ".krn"), { force: true, recursive: true });
   return cwd;
 }
 
@@ -1702,6 +1703,8 @@ markdown: .krn/graph/repo-graph.md
       id: "task-1354ea37dd50",
       rawUserIntent: "goal 2 smoke task",
       task: "goal 2 smoke task",
+      intentQuality: "medium",
+      intentWarnings: ["Task intent is very short."],
       classification: "implementation",
       mode: "edit",
       nonTrivial: true,
@@ -1714,6 +1717,8 @@ markdown: .krn/graph/repo-graph.md
       "validation command output or explicit reason it could not run",
     ]);
     expect(markdown).toContain("## Raw User Intent");
+    expect(markdown).toContain("Intent quality: medium");
+    expect(markdown).toContain("## Intent Warnings");
     expect(markdown).toContain("## Evidence Requirements");
     expect(markdown).toContain("## Stop Conditions");
     await expect(readTraceEvents(result.cwd)).resolves.toMatchObject([
@@ -1722,9 +1727,102 @@ markdown: .krn/graph/repo-graph.md
         taskId: "task-1354ea37dd50",
         data: {
           classification: "implementation",
+          intentQuality: "medium",
         },
       },
     ]);
+  });
+
+  it("warns but accepts a slug-like start task", async () => {
+    const result = await runInTemp(["start", "wp-acf-field-mapping"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("intent_quality: low");
+    expect(result.stderr).toContain("KRN start warning:");
+
+    const contract = await readJson<Record<string, unknown>>(
+      result.cwd,
+      ".krn/current/task-contract.json",
+    );
+
+    expect(contract).toMatchObject({
+      task: "wp-acf-field-mapping",
+      intentQuality: "low",
+    });
+    expect(contract.intentWarnings).toEqual(
+      expect.arrayContaining([
+        "Task intent looks like a slug or task id; pass the full user intent to krn start.",
+      ]),
+    );
+  });
+
+  it("starts from a local dogfood task spec", async () => {
+    const cwd = await copyFixtureRepo("wordpress-acf-theme");
+    await mkdir(path.join(cwd, "fixtures", "dogfood", "tasks"), { recursive: true });
+    await writeFile(
+      path.join(cwd, "fixtures", "dogfood", "tasks", "wp-acf-field-mapping.json"),
+      JSON.stringify(
+        {
+          prompt:
+            "Update the active hero ACF field mapping and paired static proof without using legacy ACF notes.",
+          expectedTouchedFiles: ["acf/group_hero.json", "tests/theme.test.js"],
+          forbiddenTouchedFiles: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
+          requiredDoNotUsePaths: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, [
+      "start",
+      "--task-spec",
+      "fixtures/dogfood/tasks/wp-acf-field-mapping.json",
+    ]);
+
+    expect(result.code).toBe(0);
+    const contract = await readJson<Record<string, unknown>>(
+      cwd,
+      ".krn/current/task-contract.json",
+    );
+    const markdown = await readFile(path.join(cwd, ".krn/current/task-contract.md"), "utf8");
+
+    expect(contract).toMatchObject({
+      task: "Update the active hero ACF field mapping and paired static proof without using legacy ACF notes.",
+      metadata: {
+        taskSpecPath: "fixtures/dogfood/tasks/wp-acf-field-mapping.json",
+        expectedTouchedFiles: ["acf/group_hero.json", "tests/theme.test.js"],
+        forbiddenTouchedFiles: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
+        requiredDoNotUsePaths: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
+      },
+    });
+    expect(markdown).toContain("## Metadata");
+    expect(markdown).toContain("Task spec path: fixtures/dogfood/tasks/wp-acf-field-mapping.json");
+  });
+
+  it("rejects malformed task spec metadata before rendering artifacts", async () => {
+    const cwd = await copyFixtureRepo("wordpress-acf-theme");
+    await mkdir(path.join(cwd, "fixtures", "dogfood", "tasks"), { recursive: true });
+    await writeFile(
+      path.join(cwd, "fixtures", "dogfood", "tasks", "bad-task-spec.json"),
+      JSON.stringify({
+        prompt: "Update active ACF mapping.",
+        expectedTouchedFiles: "acf/group_hero.json",
+      }),
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, [
+      "start",
+      "--task-spec",
+      "fixtures/dogfood/tasks/bad-task-spec.json",
+    ]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(
+      "--task-spec JSON expectedTouchedFiles must be an array of non-empty strings",
+    );
   });
 
   it("writes STOP context-package current artifacts", async () => {
@@ -2003,6 +2101,7 @@ markdown: .krn/graph/repo-graph.md
           version: 1,
           verify: {
             defaultProfile: "unit",
+            mode: "execute",
             profiles: {
               unit: {
                 commands: [{ command: "node", args: ["pass.cjs"], label: "unit smoke" }],

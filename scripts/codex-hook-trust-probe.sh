@@ -8,6 +8,7 @@ RESULT_JSON="$DOWNSTREAM/.krn/dogfood/hook-trust-probe.json"
 
 mkdir -p "$WORKDIR/bin"
 cp -R "$ROOT/fixtures/repos/downstream-basic" "$DOWNSTREAM"
+rm -rf "$DOWNSTREAM/.krn"
 
 cat > "$WORKDIR/bin/krn" <<SH
 #!/usr/bin/env sh

@@ -42,11 +42,11 @@
 
 - `version` must be `1`.
 - Missing config falls back to defaults.
-- `.krn/` remains local runtime state unless a downstream repo chooses otherwise.
+- `.krn/` is the fixed P0 local runtime directory. `runtime.dir` may be omitted or set to `.krn`; custom runtime dirs are rejected until a later ADR accepts a resolver.
 - `verify.commands` is the legacy default profile command list.
 - `verify.profiles` maps names to command lists and optional limits.
 - `verify.defaultProfile` must reference a configured profile when `verify.profiles` is present.
-- `verify.mode` may be `record-only` or `execute`; P0 defaults to `record-only`.
+- `verify.mode` may be `record-only` or `execute`; P0 defaults to `record-only`, and the CLI still requires `krn verify --execute` before any command is executed.
 - `verify.timeoutMs` and `verify.maxOutputBytes` are positive integers.
 - Commands may be strings for simple allowlisted commands or exact `{ command, args, label }` objects.
-- `execute` mode still uses the narrow verify allowlist and never uses shell mode.
+- `execute` mode still uses the narrow verify allowlist, never uses shell mode, scrubs inherited environment variables, and redacts compact output tails before writing verify artifacts.

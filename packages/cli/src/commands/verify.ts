@@ -65,9 +65,10 @@ export async function verifyCommand(args: string[], runtime: CliRuntime): Promis
     loadConfig(runtime.cwd),
   ]);
   const resolvedProfile = resolveVerifyProfile(loadedConfig.config.verify, parsedArgs.profileName);
-  const profile = parsedArgs.execute
-    ? { ...resolvedProfile.profile, mode: "execute" as const }
-    : resolvedProfile.profile;
+  const profile = {
+    ...resolvedProfile.profile,
+    mode: parsedArgs.execute ? ("execute" as const) : ("record-only" as const),
+  };
   const commandResults =
     profile.mode === "execute" && !resolvedProfile.issue && !contextPackage?.stop
       ? await runVerifyCommands(profile, {

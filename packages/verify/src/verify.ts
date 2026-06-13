@@ -115,6 +115,7 @@ export interface RunVerifyCommandInput {
   cwd: string;
   limits: VerifyLimits;
   nowMs?: (() => number) | undefined;
+  env?: NodeJS.ProcessEnv | undefined;
 }
 
 const defaultVerifyLimits: VerifyLimits = {
@@ -225,15 +226,82 @@ function trimOutputTail(value: string, maxBytes: number): { value: string; trunc
   };
 }
 
+const verifyEnvAllowlist = new Set([
+  "CI",
+  "COMSPEC",
+  "FORCE_COLOR",
+  "HOME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "LANG",
+  "LC_ALL",
+  "LOGNAME",
+  "NO_COLOR",
+  "PATH",
+  "Path",
+  "PATHEXT",
+  "PNPM_HOME",
+  "SYSTEMROOT",
+  "TEMP",
+  "TERM",
+  "TMP",
+  "TMPDIR",
+  "USER",
+  "USERPROFILE",
+  "WINDIR",
+]);
+
+const sensitiveEnvKey =
+  /(?:API[_-]?KEY|AUTH|CREDENTIAL|PASS(?:WORD)?|PRIVATE[_-]?KEY|SECRET|TOKEN)/i;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function buildVerifyEnvironment(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const scrubbed: NodeJS.ProcessEnv = {};
+
+  for (const key of verifyEnvAllowlist) {
+    const value = env[key];
+    if (value !== undefined) {
+      scrubbed[key] = value;
+    }
+  }
+
+  return scrubbed;
+}
+
+export function redactVerifyOutput(value: string, env: NodeJS.ProcessEnv = process.env): string {
+  let redacted = value
+    .replace(
+      /((?:API[_-]?KEY|AUTHORIZATION|PASSWORD|PRIVATE[_-]?KEY|SECRET|TOKEN)[A-Z0-9_-]*\s*[:=]\s*)(?:"[^"\n]+"|'[^'\n]+'|[^\s]+)/giu,
+      "$1[REDACTED]",
+    )
+    .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/gu, "[REDACTED]")
+    .replace(/\bghp_[A-Za-z0-9_]{8,}\b/gu, "[REDACTED]")
+    .replace(/\bgithub_pat_[A-Za-z0-9_]{8,}\b/gu, "[REDACTED]")
+    .replace(/\bxox[baprs]-[A-Za-z0-9-]{8,}\b/gu, "[REDACTED]")
+    .replace(/\bAKIA[0-9A-Z]{16}\b/gu, "[REDACTED]");
+
+  for (const [key, secret] of Object.entries(env)) {
+    if (secret && secret.length >= 8 && sensitiveEnvKey.test(key)) {
+      redacted = redacted.replace(new RegExp(escapeRegExp(secret), "gu"), "[REDACTED]");
+    }
+  }
+
+  return redacted;
+}
+
 function appendOutputTail(
   current: string,
   chunk: Buffer,
   maxBytes: number,
+  env?: NodeJS.ProcessEnv | undefined,
 ): {
   value: string;
   truncated: boolean;
 } {
-  return trimOutputTail(`${current}${chunk.toString("utf8")}`, maxBytes);
+  return trimOutputTail(redactVerifyOutput(`${current}${chunk.toString("utf8")}`, env), maxBytes);
 }
 
 function executedStatus(command: VerifyCommandResult): boolean {
@@ -272,6 +340,7 @@ export async function runVerifyCommand(
     let timedOut = false;
     const child = spawn(command.command, command.args, {
       cwd: input.cwd,
+      env: buildVerifyEnvironment(input.env),
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -292,8 +361,8 @@ export async function runVerifyCommand(
         commandText,
         allowed: true,
         durationMs: Math.max(0, nowMs() - startedAt),
-        ...(stdoutTail ? { stdoutTail } : {}),
-        ...(stderrTail ? { stderrTail } : {}),
+        ...(stdoutTail ? { stdoutTail: redactVerifyOutput(stdoutTail, input.env) } : {}),
+        ...(stderrTail ? { stderrTail: redactVerifyOutput(stderrTail, input.env) } : {}),
         ...(stdoutTruncated ? { stdoutTruncated } : {}),
         ...(stderrTruncated ? { stderrTruncated } : {}),
         ...result,
@@ -301,13 +370,13 @@ export async function runVerifyCommand(
     };
 
     child.stdout?.on("data", (chunk: Buffer) => {
-      const next = appendOutputTail(stdoutTail, chunk, streamLimit);
+      const next = appendOutputTail(stdoutTail, chunk, streamLimit, input.env);
       stdoutTail = next.value;
       stdoutTruncated = stdoutTruncated || next.truncated;
     });
 
     child.stderr?.on("data", (chunk: Buffer) => {
-      const next = appendOutputTail(stderrTail, chunk, streamLimit);
+      const next = appendOutputTail(stderrTail, chunk, streamLimit, input.env);
       stderrTail = next.value;
       stderrTruncated = stderrTruncated || next.truncated;
     });

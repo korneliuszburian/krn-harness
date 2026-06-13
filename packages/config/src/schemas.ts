@@ -4,7 +4,7 @@ export interface KRNConfig {
     name?: string;
   };
   runtime?: {
-    dir?: string;
+    dir?: ".krn";
   };
   verify?: {
     commands?: VerifyCommandConfig[];
@@ -142,8 +142,8 @@ export function validateKRNConfig(value: unknown): string[] {
   if (value.runtime !== undefined) {
     if (!isRecord(value.runtime)) {
       issues.push("runtime must be an object");
-    } else if (value.runtime.dir !== undefined && typeof value.runtime.dir !== "string") {
-      issues.push("runtime.dir must be a string");
+    } else if (value.runtime.dir !== undefined && value.runtime.dir !== ".krn") {
+      issues.push("runtime.dir must be .krn in P0");
     }
   }
 

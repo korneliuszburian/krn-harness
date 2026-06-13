@@ -27,6 +27,7 @@ export interface DogfoodTaskSpec {
   requireHandoffContent?: string[] | undefined;
   hooksExpected: boolean;
   expectedContextStop: boolean;
+  minTaskIntentQuality?: "medium" | "high" | undefined;
 }
 
 export interface DogfoodRunRecord {
@@ -73,6 +74,11 @@ interface VerifyShape {
   summary?: {
     executedCommands?: number;
   };
+}
+
+interface TaskContractShape {
+  intentQuality?: "low" | "medium" | "high";
+  intentWarnings?: string[];
 }
 
 interface ContextShape {
@@ -226,6 +232,9 @@ export async function gradeDogfoodRun(input: {
   const verify = await readJson<VerifyShape>(
     path.join(input.repoPath, ".krn", "current", "verify-result.json"),
   );
+  const taskContract = await readJson<TaskContractShape>(
+    path.join(input.repoPath, ".krn", "current", "task-contract.json"),
+  );
   const context = await readJson<ContextShape>(
     path.join(input.repoPath, ".krn", "current", "context-package.json"),
   );
@@ -247,6 +256,10 @@ export async function gradeDogfoodRun(input: {
     context?.buckets?.doNotUse?.flatMap((item) => (item.path ? [item.path] : [])) ?? [];
   const missingDoNotUsePaths = missingValues(input.task.requiredDoNotUsePaths ?? [], doNotUsePaths);
   const missingTraceEvents = missingValues(input.task.requiredTraceEvents ?? [], traceEventNames);
+  const taskIntentRank = { low: 0, medium: 1, high: 2 } as const;
+  const taskIntentQuality = taskContract?.intentQuality;
+  const minTaskIntentQuality = input.task.minTaskIntentQuality;
+  const taskSpecHasDoNotUsePaths = (input.task.requiredDoNotUsePaths?.length ?? 0) > 0;
   const handoffText = await readFile(
     path.join(input.repoPath, ".krn", "current", "handoff.md"),
     "utf8",
@@ -372,6 +385,27 @@ export async function gradeDogfoodRun(input: {
             missingDoNotUsePaths.length === 0,
             "Required do-not-use context is present",
             `Missing do-not-use path(s): ${missingDoNotUsePaths.join(", ")}`,
+          ),
+        ]
+      : []),
+    ...(minTaskIntentQuality
+      ? [
+          grade(
+            "task-spec-do-not-use-paths",
+            taskSpecHasDoNotUsePaths,
+            "Task spec declares required do-not-use paths",
+            "Task spec is missing requiredDoNotUsePaths for context-quality grading",
+          ),
+        ]
+      : []),
+    ...(minTaskIntentQuality
+      ? [
+          grade(
+            "task-intent-quality",
+            taskIntentQuality !== undefined &&
+              taskIntentRank[taskIntentQuality] >= taskIntentRank[minTaskIntentQuality],
+            `Task intent quality is at least ${minTaskIntentQuality}`,
+            `Expected task intent quality at least ${minTaskIntentQuality}, got ${taskIntentQuality ?? "missing"}`,
           ),
         ]
       : []),

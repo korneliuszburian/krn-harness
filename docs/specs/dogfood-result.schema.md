@@ -30,11 +30,12 @@ Task specs may also request stricter optional checks:
 - `requiredTraceEvents`
 - `expectedVerifyMode`
 - `minExecutedCommands`
+- `minTaskIntentQuality`
 - `requireHandoffContent`
 
 ## Grader Behavior
 
-The dogfood grader inspects a downstream repo and a run record. It checks current KRN artifacts, run trace presence, `hook.received` events when expected, touched-file expectations, expected untouched files when configured, forbidden-file violations, verify status, verify mode, executed verify command count, handoff presence/content, command observations, required trace events, required `do-not-use` context paths, and context STOP state.
+The dogfood grader inspects a downstream repo and a run record. It checks current KRN artifacts, run trace presence, `hook.received` events when expected, touched-file expectations, expected untouched files when configured, forbidden-file violations, verify status, verify mode, executed verify command count, task intent quality, whether context-quality task specs declare required `do-not-use` paths, handoff presence/content, command observations, required trace events, required `do-not-use` context paths, and context STOP state.
 
 If `touchedFiles` is empty in the run record, the grader may read `git diff --name-only` from the downstream repo as local evidence.
 

@@ -17,7 +17,7 @@ function expectKRNCommandFlow(output: string): void {
   for (const phrase of [
     "KRN Harness",
     "krn status",
-    'krn start "<task>"',
+    "krn start",
     "krn context",
     "STOP",
     "krn verify",
@@ -36,6 +36,8 @@ describe("Codex adapter generation", () => {
     expectKRNCommandFlow(output);
     expect(output).toContain(".krn/current/task-contract.md");
     expect(output).toContain(".krn/current/context-package.md");
+    expect(output).toContain('krn start "<full user intent>"');
+    expect(output).toContain("Do not pass only a task id, slug, or title");
     expect(output).toContain("320-480px");
     expect(output).toContain("1280-1440px");
     expect(output.length).toBeLessThan(2200);
@@ -68,11 +70,13 @@ describe("Codex adapter generation", () => {
     const output = generateRuntimeSkillTemplate();
     const nonBlankLines = output.split("\n").filter((line) => line.trim().length > 0);
 
-    expect(nonBlankLines.length).toBeLessThanOrEqual(26);
+    expect(nonBlankLines.length).toBeLessThanOrEqual(30);
     expectKRNCommandFlow(output);
     expect(output).toContain("name: krn-harness");
     expect(output).toContain(".krn/current/task-contract.md");
     expect(output).toContain(".krn/current/context-package.md");
+    expect(output).toContain('krn start "<full user intent>"');
+    expect(output).toContain('Bad: `krn start "wp-acf-field-mapping"`');
     expect(output).toContain("320-480px");
     expect(output).not.toContain("dashboard");
     expect(output).not.toContain("MCP server");

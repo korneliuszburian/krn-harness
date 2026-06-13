@@ -6,7 +6,9 @@ import type { ContextPackage } from "../../context/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { parseVerifyCommandString, verifyCommandPolicy } from "./command-policy.js";
 import {
+  buildVerifyEnvironment,
   buildVerifyResult,
+  redactVerifyOutput,
   renderVerifyResultMarkdown,
   resolveVerifyProfile,
   runVerifyCommand,
@@ -298,6 +300,88 @@ describe("verify result", () => {
       stdoutTail: "cdef",
       stdoutTruncated: true,
     });
+  });
+
+  it("scrubs sensitive environment before executing verify commands", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(
+      path.join(cwd, "env.cjs"),
+      'process.stdout.write(process.env.OPENAI_API_KEY ?? "missing");\n',
+    );
+    const result = await runVerifyCommand(
+      { command: "node", args: ["env.cjs"] },
+      {
+        cwd,
+        env: {
+          PATH: process.env.PATH,
+          OPENAI_API_KEY: "sk-should-not-reach-child-process",
+        },
+        limits: { timeoutMs: 5000, maxOutputBytes: 2000 },
+        nowMs: () => 0,
+      },
+    );
+
+    expect(buildVerifyEnvironment({ PATH: "/bin", OPENAI_API_KEY: "secret" })).toEqual({
+      PATH: "/bin",
+    });
+    expect(result).toMatchObject({
+      status: "passed",
+      stdoutTail: "missing",
+    });
+  });
+
+  it("redacts secret-shaped verify output before artifact persistence", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(
+      path.join(cwd, "secret.cjs"),
+      'process.stdout.write("OPENAI_API_KEY=sk-testsecret1234567890\\n");\n',
+    );
+    const result = await runVerifyCommand(
+      { command: "node", args: ["secret.cjs"] },
+      {
+        cwd,
+        limits: { timeoutMs: 5000, maxOutputBytes: 2000 },
+        nowMs: () => 0,
+      },
+    );
+
+    expect(redactVerifyOutput("token=github_pat_1234567890abcdef")).toBe("token=[REDACTED]");
+    expect(result.stdoutTail).toContain("OPENAI_API_KEY=[REDACTED]");
+    expect(result.stdoutTail).not.toContain("sk-testsecret");
+    expect(
+      renderVerifyResultMarkdown(
+        buildVerifyResult({
+          profile: resolveVerifyProfile({
+            commands: [{ command: "node", args: ["secret.cjs"] }],
+            mode: "execute",
+          }).profile,
+          commandResults: [result],
+        }),
+      ),
+    ).not.toContain("sk-testsecret");
+  });
+
+  it("redacts verify output before compacting stdout tails", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-verify-"));
+    await writeFile(
+      path.join(cwd, "tail-secret.cjs"),
+      'process.stdout.write("x".repeat(80) + " OPENAI_API_KEY=sk-tailsecret1234567890\\n");\n',
+    );
+    const result = await runVerifyCommand(
+      { command: "node", args: ["tail-secret.cjs"] },
+      {
+        cwd,
+        limits: { timeoutMs: 5000, maxOutputBytes: 80 },
+        nowMs: () => 0,
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: "passed",
+      stdoutTruncated: true,
+    });
+    expect(result.stdoutTail).toContain("[REDACTED]");
+    expect(result.stdoutTail).not.toContain("sk-tailsecret");
   });
 
   it("does not execute any profile command when one command is blocked", async () => {

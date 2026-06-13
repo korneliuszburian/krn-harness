@@ -9,8 +9,8 @@ The context package identifies the smallest high-value context Codex should read
 - `taskId`: optional task contract id.
 - `items`: ranked context entries with `path`, `reason`, `priority`, `bucket`, and `status`.
   Optional explainability fields:
-  - `source`: `base`, `graph`, `memory`, or `task-policy`
-  - `selector`: shallow selector name such as `style-related-to`, `acf-group`, `package-owned-source`, `package-owned-test`, `tests-source-for-owned-source`, `package-owned-config`, `package-owned-doc`, `package-owned-deprecated-doc`, `approved-memory-task-match`, `approved-memory-explicit`, or `missing-context-policy`
+  - `source`: `base`, `graph`, `memory`, `task-contract`, or `task-policy`
+  - `selector`: shallow selector name such as `style-related-to`, `acf-group`, `package-owned-source`, `package-owned-test`, `tests-source-for-owned-source`, `package-owned-config`, `package-owned-doc`, `package-owned-deprecated-doc`, `required-do-not-use-path`, `approved-memory-task-match`, `approved-memory-explicit`, or `missing-context-policy`
   - `matchedTerms`: task terms matched by the selector
   - `relationKind`: graph edge relation kind when relevant
   - `sourceNode`: graph source node id when relevant
@@ -42,6 +42,8 @@ JSON remains the full machine artifact. Markdown is the compact operator artifac
 Over-inclusion metrics are deterministic counters only. They do not change selector semantics or ranking; they make noisy context packages visible to the operator.
 
 Graph selector matching is shallow and deterministic. Generic terms such as `section` are treated as too broad for graph promotion. P0 does not normalize Polish morphology or perform semantic search.
+
+Task-contract metadata may add explicit `requiredDoNotUsePaths` into the `doNotUse` bucket. This preserves dogfood/task-spec constraints as context evidence without adding graph semantics.
 
 Package-owned graph selectors use deterministic graph-lite ownership edges. Matching package-owned source files become `must-read`, package-owned tests and config files become `should-read`, package-owned available docs become `reference-only`, and package-owned deprecated docs become `do-not-use`. When a `tests-source` path-convention edge points to an already selected package-owned source, the paired test may be ranked as `tests-source-for-owned-source` support. This is path-convention-only and must not become AST, import graph, Tree-sitter, embeddings, or semantic retrieval in P0.
 

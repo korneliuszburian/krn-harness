@@ -21,7 +21,7 @@ describe("loadConfig", () => {
         name: "valid-fixture",
       },
       runtime: {
-        dir: ".krn-fixture",
+        dir: ".krn",
       },
       verify: {
         commands: ["pnpm test"],
@@ -47,7 +47,22 @@ describe("loadConfig", () => {
     await expect(loadConfig(path.join(fixturesRoot, "invalid-shape"))).rejects.toMatchObject({
       name: "ValidationError",
       code: "KRN_VALIDATION_ERROR",
-      message: "krn.config.json is invalid: runtime.dir must be a string",
+      message: "krn.config.json is invalid: runtime.dir must be .krn in P0",
+    } satisfies Partial<ValidationError>);
+  });
+
+  it("rejects custom runtime dirs because P0 hardcodes .krn artifacts", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-config-runtime-dir-"));
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify({ version: 1, runtime: { dir: ".custom-krn" } }),
+      "utf8",
+    );
+
+    await expect(loadConfig(cwd)).rejects.toMatchObject({
+      name: "ValidationError",
+      code: "KRN_VALIDATION_ERROR",
+      message: "krn.config.json is invalid: runtime.dir must be .krn in P0",
     } satisfies Partial<ValidationError>);
   });
 

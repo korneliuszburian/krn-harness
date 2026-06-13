@@ -9,6 +9,7 @@ RESULT_JSON="$RESULT_DIR/result.json"
 
 mkdir -p "$WORKDIR"
 cp -R "$ROOT/fixtures/repos/downstream-basic" "$DOWNSTREAM"
+rm -rf "$DOWNSTREAM/.krn"
 mkdir -p "$RESULT_DIR" "$WORKDIR/bin"
 
 cat > "$WORKDIR/bin/krn" <<SH
@@ -21,7 +22,7 @@ export PATH="$WORKDIR/bin:$PATH"
 cd "$DOWNSTREAM"
 krn --help >/dev/null
 krn install >/dev/null
-krn start "Dogfood smoke task" >/dev/null
+krn start "Dogfood smoke task: install KRN in downstream-basic, build graph and context, and verify required current artifacts." >/dev/null
 krn graph >/dev/null
 krn context >/dev/null
 

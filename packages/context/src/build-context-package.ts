@@ -232,6 +232,18 @@ function taskPolicyItems(task: string): ContextItem[] {
   return [];
 }
 
+function taskContractMetadataItems(contract?: TaskContract): ContextItem[] {
+  return (
+    contract?.metadata?.requiredDoNotUsePaths?.map((path) =>
+      item("do-not-use", path, "Task contract marks this path do-not-use", 101, "deprecated", {
+        source: "task-contract",
+        selector: "required-do-not-use-path",
+        operatorMessage: "Do not use this path as active context; it is forbidden by the task.",
+      }),
+    ) ?? []
+  );
+}
+
 function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
   if (!graph) {
     return [];
@@ -836,6 +848,7 @@ export function buildContextPackage(
     dedupeItems([
       ...baseItems(),
       ...taskPolicyItems(task),
+      ...taskContractMetadataItems(contract),
       ...graphItemsForTask(task, graph),
       ...memoryItemsForTask(task, options.approvedMemory),
     ]),

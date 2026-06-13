@@ -7,7 +7,11 @@ description: Downstream KRN Harness runtime workflow. Use in repositories where 
 
 1. Run `krn status`.
 2. If the task is visual or layout-related, include concrete sizes or pixel ranges in the task, such as mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or a specific element tolerance.
-3. Run `krn start "<task>"`.
+3. Run `krn start "<full user intent>"`.
+   - Do not pass only a task id, slug, or title when the user gave richer instructions.
+   - Include expected outcome, constraints, forbidden files, required proof, and task-specific context.
+   - Good: `krn start "Update ACF hero field mapping: edit src/theme/... and tests/..., avoid docs/stale-acf-notes.md and acf/legacy_group.json, verify with configured profile."`
+   - Bad: `krn start "wp-acf-field-mapping"`
 4. Run `krn context`.
 5. Read `.krn/current/task-contract.md`.
 6. Read `.krn/current/context-package.md`.

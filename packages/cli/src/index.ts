@@ -21,6 +21,7 @@ Usage:
   krn --help
   krn status
   krn start "<task>"
+  krn start --task-spec <json>
   krn graph
   krn context
   krn verify [--profile <name>] [--execute]

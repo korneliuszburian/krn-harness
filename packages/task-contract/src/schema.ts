@@ -1,4 +1,5 @@
 export type TaskClassification = "implementation" | "docs" | "research" | "review" | "unknown";
+export type TaskIntentQuality = "low" | "medium" | "high";
 export type TaskMode = "edit" | "read-only" | "review" | "unknown";
 
 export interface StopCondition {
@@ -11,6 +12,14 @@ export interface TaskContract {
   id: string;
   rawUserIntent: string;
   task: string;
+  intentQuality: TaskIntentQuality;
+  intentWarnings: string[];
+  metadata?: {
+    taskSpecPath?: string;
+    expectedTouchedFiles?: string[];
+    forbiddenTouchedFiles?: string[];
+    requiredDoNotUsePaths?: string[];
+  };
   interpretation: string;
   classification: TaskClassification;
   mode: TaskMode;

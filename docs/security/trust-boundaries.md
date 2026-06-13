@@ -9,6 +9,7 @@
 - Generated `AGENTS.md`: downstream guidance, not enforcement.
 - Generated hooks template: local command execution that requires repo-owner review.
 - Generated runtime skill: workflow adapter, not the product brain.
+- Verify execution: trusted local repo code run only through explicit `krn verify --execute`, narrow command policy, `shell: false`, scrubbed environment, timeout, and redacted compact output tails. It is validation evidence, not a sandbox.
 - Future MCP: external tool boundary requiring separate auth and policy.
 - Memory: local recall that requires governance before active truth.
 

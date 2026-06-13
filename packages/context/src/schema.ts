@@ -13,7 +13,7 @@ export interface ContextItem {
   priority: number;
   bucket: ContextBucket;
   status: ContextItemStatus;
-  source?: "base" | "graph" | "memory" | "task-policy" | undefined;
+  source?: "base" | "graph" | "memory" | "task-contract" | "task-policy" | undefined;
   selector?: string | undefined;
   matchedTerms?: string[] | undefined;
   relationKind?: string | undefined;

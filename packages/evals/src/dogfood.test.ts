@@ -164,7 +164,11 @@ describe("dogfood eval artifacts", () => {
 
   it("grades realistic dogfood evidence beyond self-report fields", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
-    await writeJson(cwd, ".krn/current/task-contract.json", { id: "task-wp" });
+    await writeJson(cwd, ".krn/current/task-contract.json", {
+      id: "task-wp",
+      intentQuality: "high",
+      intentWarnings: [],
+    });
     await writeJson(cwd, ".krn/current/context-package.json", {
       stop: false,
       buckets: {
@@ -197,6 +201,7 @@ describe("dogfood eval artifacts", () => {
         requiredTraceEvents: ["task.started", "graph.built", "context.built", "verify.ran"],
         expectedVerifyMode: "execute",
         minExecutedCommands: 1,
+        minTaskIntentQuality: "medium",
         requireHandoffContent: ["Status: pass", "Mode: execute"],
         hooksExpected: false,
       }),
@@ -218,8 +223,91 @@ describe("dogfood eval artifacts", () => {
         expect.objectContaining({ name: "handoff-content", status: "pass" }),
         expect.objectContaining({ name: "trace-events", status: "pass" }),
         expect.objectContaining({ name: "context-do-not-use", status: "pass" }),
+        expect.objectContaining({ name: "task-spec-do-not-use-paths", status: "pass" }),
+        expect.objectContaining({ name: "task-intent-quality", status: "pass" }),
       ]),
     );
+  });
+
+  it("separates low task intent from context do-not-use failures", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", {
+      id: "task-wp",
+      intentQuality: "low",
+      intentWarnings: [
+        "Task intent looks like a slug or task id; pass the full user intent to krn start.",
+      ],
+    });
+    await writeJson(cwd, ".krn/current/context-package.json", {
+      stop: false,
+      buckets: {
+        doNotUse: [{ path: "docs/stale-acf-notes.md" }],
+      },
+    });
+    await writeJson(cwd, ".krn/current/verify-result.json", { status: "pass" });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-wp", ["task.started", "context.built"]);
+
+    const result = await gradeDogfoodRun({
+      repoPath: cwd,
+      task: task({
+        id: "wp-acf-field-mapping",
+        requiredDoNotUsePaths: ["docs/stale-acf-notes.md", "acf/legacy_group.json"],
+        minTaskIntentQuality: "medium",
+        hooksExpected: false,
+      }),
+      run: run({
+        taskId: "wp-acf-field-mapping",
+        hookTraceEvents: 0,
+      }),
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.grades).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "context-do-not-use", status: "fail" }),
+        expect.objectContaining({ name: "task-intent-quality", status: "fail" }),
+      ]),
+    );
+  });
+
+  it("separates missing task-spec do-not-use requirements from context failures", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-dogfood-"));
+    await writeJson(cwd, ".krn/current/task-contract.json", {
+      id: "task-wp",
+      intentQuality: "high",
+      intentWarnings: [],
+    });
+    await writeJson(cwd, ".krn/current/context-package.json", {
+      stop: false,
+      buckets: { doNotUse: [] },
+    });
+    await writeJson(cwd, ".krn/current/verify-result.json", { status: "pass" });
+    await writeText(cwd, ".krn/current/handoff.md", "# Handoff\n");
+    await writeTrace(cwd, "task-wp", ["task.started", "context.built"]);
+
+    const result = await gradeDogfoodRun({
+      repoPath: cwd,
+      task: task({
+        id: "wp-acf-field-mapping",
+        requiredDoNotUsePaths: undefined,
+        minTaskIntentQuality: "medium",
+        hooksExpected: false,
+      }),
+      run: run({
+        taskId: "wp-acf-field-mapping",
+        hookTraceEvents: 0,
+      }),
+    });
+
+    expect(result.status).toBe("fail");
+    expect(result.grades).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "task-spec-do-not-use-paths", status: "fail" }),
+        expect.objectContaining({ name: "task-intent-quality", status: "pass" }),
+      ]),
+    );
+    expect(result.grades.some((item) => item.name === "context-do-not-use")).toBe(false);
   });
 
   it("fails when executable verification is required but verify stayed record-only", async () => {

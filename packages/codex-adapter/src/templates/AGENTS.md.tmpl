@@ -5,7 +5,9 @@ This repository uses KRN Harness.
 ## KRN Workflow
 
 - Before non-trivial work, run `krn status`.
-- Start the task with `krn start "<task>"`, then run `krn context`.
+- Start with `krn start "<full user intent>"`, then run `krn context`.
+- Do not pass only a task id, slug, or title when the user gave richer instructions.
+- Include expected outcome, constraints, forbidden files, required proof, and task-specific context in the start string.
 - Read `.krn/current/task-contract.md` and `.krn/current/context-package.md`.
 - Use `.agents/skills/krn-harness/SKILL.md` for the KRN workflow if available.
 - Do not edit if KRN reports STOP.

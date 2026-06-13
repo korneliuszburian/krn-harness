@@ -7,7 +7,7 @@
 3. Review generated `AGENTS.md`, `.codex/hooks.json`, and `.agents/skills/krn-harness/SKILL.md`.
 4. Keep or adapt generated hooks only if the repo owner trusts the local command.
 5. Run `krn status`.
-6. Start work with `krn start "<task>"`.
+6. Start work with `krn start "<full user intent>"`.
 7. Build shallow graph evidence with `krn graph`.
 8. Build context with `krn context`.
 9. Record P0 verification with `krn verify`.

@@ -4,7 +4,7 @@
     "name": "valid-fixture"
   },
   "runtime": {
-    "dir": ".krn-fixture"
+    "dir": ".krn"
   },
   "verify": {
     "commands": ["pnpm test"]

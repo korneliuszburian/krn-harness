@@ -37,7 +37,8 @@ pnpm test
 pnpm --silent krn --help
 pnpm --silent krn status
 pnpm --silent krn install
-pnpm --silent krn start "example task"
+pnpm --silent krn start "Update example task with explicit outcome, constraints, and validation proof."
+pnpm --silent krn start --task-spec <json>
 pnpm --silent krn graph
 pnpm --silent krn context
 pnpm --silent krn verify

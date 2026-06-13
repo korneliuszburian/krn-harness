@@ -13,7 +13,7 @@ pnpm test
 pnpm --silent krn --help
 pnpm --silent krn status
 pnpm --silent krn install
-pnpm --silent krn start "release checklist smoke"
+pnpm --silent krn start "Run release checklist smoke with graph, context, hooks, verify, handoff, doctor, eval, and diff-check proof."
 pnpm --silent krn graph
 pnpm --silent krn context
 pnpm --silent krn hook codex SessionStart

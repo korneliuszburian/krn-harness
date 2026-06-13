@@ -32,7 +32,9 @@
 
 ## P0 Rule
 
-P0 resolves verify profiles and blocks unsafe commands before execution. Record-only mode is the default and does not execute commands. Execute mode runs only allowlisted command/args through `child_process.spawn` with `shell: false`, a timeout, and compact stdout/stderr tails.
+P0 resolves verify profiles and blocks unsafe commands before execution. Record-only mode is the default and does not execute commands. The CLI treats `--execute` as the only execution gate; a config value such as `verify.mode: "execute"` does not run commands unless the operator passes `krn verify --execute`.
+
+Execute mode runs only allowlisted command/args through `child_process.spawn` with `shell: false`, a timeout, a scrubbed allowlisted environment, and compact redacted stdout/stderr tails. Verify commands still execute trusted local repository code; this is not a sandbox.
 
 Before execute mode runs, the whole profile is policy-checked. If any command is blocked, no command in the profile is executed.
 
@@ -47,4 +49,4 @@ Allowed P0 command forms are intentionally narrow:
 
 Shell syntax, redirects, pipes, destructive git commands, `rm`, `scp`, `curl`, `wget`, and unknown commands are blocked.
 
-Verify artifacts never store environment variables or full command output.
+Verify artifacts never store environment variables or full command output. Output tails are redacted for common secret/token shapes before they are written to `.krn/current/verify-result.*`.

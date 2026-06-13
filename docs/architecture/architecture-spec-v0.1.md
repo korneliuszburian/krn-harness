@@ -10,7 +10,7 @@ No dashboard, MCP server, multi-agent orchestrator, vector DB, semantic embeddin
 
 ## Runtime Model
 
-Downstream repositories use `krn.config.json` for stable config and `.krn/` for local runtime state. `.krn/current/` contains current task, context, verify, handoff, doctor, and eval artifacts. `.krn/runs/<task_id>/` contains run-scoped trace and metadata for the current task. `.krn/traces/trace.jsonl` remains the global trace for install, hooks, memory commands, and compatibility events.
+Downstream repositories use `krn.config.json` for stable config and `.krn/` for local runtime state. `.krn/` is the fixed P0 runtime directory; `runtime.dir` is not configurable until a later ADR accepts a runtime path resolver. `.krn/current/` contains current task, context, verify, handoff, doctor, and eval artifacts. `.krn/runs/<task_id>/` contains run-scoped trace and metadata for the current task. `.krn/traces/trace.jsonl` remains the global trace for install, hooks, memory commands, and compatibility events.
 
 ## File Layout
 
@@ -46,7 +46,7 @@ The context package ranks minimal context items and records STOP state before ed
 
 ## Graph-Lite
 
-Graph-lite exposes nodes, edges, and detector interfaces. P0 ships file and package-json detectors plus no-op detector placeholders for future framework hints.
+Graph-lite exposes nodes, edges, and detector interfaces. P0 ships shallow deterministic detectors for filesystem, docs links/status, package conventions, package and Composer scripts, CSS class relations, and tiny WordPress/ACF-style fixture relations. It does not inspect imports, build AST/callgraph/dataflow, use Tree-sitter, or perform semantic graph ranking.
 
 ## Trace
 
@@ -54,7 +54,7 @@ Trace writes JSONL events. Task-loop commands write run-scoped events under `.kr
 
 ## Verify/Evidence
 
-Verify records deterministic P0 result artifacts from current task/context/config state. It resolves named profiles, applies a narrow command allowlist, records limits, and defaults to record-only mode. `execute` mode runs only allowlisted command/args with no shell mode, timeout enforcement, and compact stdout/stderr tails. P0 evidence is local validation only and must not be called production proof.
+Verify records deterministic P0 result artifacts from current task/context/config state. It resolves named profiles, applies a narrow command allowlist, records limits, and defaults to record-only mode. The CLI executes commands only when the operator passes `krn verify --execute`; config `execute` mode alone is not an execution gate. Execute mode runs only allowlisted command/args with no shell mode, timeout enforcement, a scrubbed environment, and compact redacted stdout/stderr tails. P0 evidence is local validation only and must not be called production proof.
 
 ## Memory
 

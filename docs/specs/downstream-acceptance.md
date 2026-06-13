@@ -25,7 +25,7 @@ A downstream acceptance smoke can run this deterministic local loop:
 ```txt
 krn install
 krn status
-krn start "<task>"
+krn start "Run downstream acceptance smoke with install, graph, context, hook, verify, handoff, doctor, and eval evidence."
 krn graph
 krn context
 krn hook codex SessionStart

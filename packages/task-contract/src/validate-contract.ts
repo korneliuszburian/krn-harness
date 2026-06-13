@@ -15,6 +15,14 @@ export function validateContract(contract: TaskContract): string[] {
     issues.push("contract.rawUserIntent is required unless STOP is set");
   }
 
+  if (!["low", "medium", "high"].includes(contract.intentQuality)) {
+    issues.push("contract.intentQuality must be low, medium, or high");
+  }
+
+  if (!Array.isArray(contract.intentWarnings)) {
+    issues.push("contract.intentWarnings must be an array");
+  }
+
   if (!contract.interpretation) {
     issues.push("contract.interpretation is required");
   }

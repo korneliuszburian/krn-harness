@@ -758,6 +758,41 @@ describe("context package", () => {
     ]);
   });
 
+  it("adds task-contract required do-not-use paths without graph expansion", () => {
+    const contract = buildTaskContract(
+      "Update active hero ACF field mapping with paired static proof.",
+      {
+        metadata: {
+          requiredDoNotUsePaths: [
+            "acf/legacy_group.json",
+            "docs/stale-acf-notes.md",
+            "docs/do-not-use.md",
+          ],
+        },
+      },
+    );
+    const pkg = buildContextPackage(contract);
+
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(["AGENTS.md"]);
+    expect(pkg.buckets.doNotUse).toEqual([
+      expect.objectContaining({
+        path: "acf/legacy_group.json",
+        source: "task-contract",
+        selector: "required-do-not-use-path",
+      }),
+      expect.objectContaining({
+        path: "docs/do-not-use.md",
+        source: "task-contract",
+        selector: "required-do-not-use-path",
+      }),
+      expect.objectContaining({
+        path: "docs/stale-acf-notes.md",
+        source: "task-contract",
+        selector: "required-do-not-use-path",
+      }),
+    ]);
+  });
+
   it("sets STOP when required context is missing", () => {
     const fixture = readTaskFixture("missing-context-stop");
     const contract = buildTaskContract(fixture.task);

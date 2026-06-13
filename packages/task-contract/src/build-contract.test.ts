@@ -11,6 +11,8 @@ describe("task contract", () => {
       id: "task-1354ea37dd50",
       rawUserIntent: "goal 2 smoke task",
       task: "goal 2 smoke task",
+      intentQuality: "medium",
+      intentWarnings: ["Task intent is very short."],
       interpretation: "Treat this as implementation work and gather context before edits.",
       classification: "implementation",
       mode: "edit",
@@ -65,6 +67,27 @@ describe("task contract", () => {
         active: true,
       },
     ]);
+  });
+
+  it("warns when task intent looks like a slug-only dogfood id", () => {
+    const contract = buildTaskContract("wp-acf-field-mapping");
+
+    expect(contract.intentQuality).toBe("low");
+    expect(contract.intentWarnings).toEqual(
+      expect.arrayContaining([
+        "Task intent looks like a slug or task id; pass the full user intent to krn start.",
+        "Dogfood-shaped task id lacks prompt, constraints, and proof requirements.",
+      ]),
+    );
+  });
+
+  it("keeps full task intent above the low quality warning path", () => {
+    const contract = buildTaskContract(
+      "Update ACF hero field mapping: edit src/theme/acf-fields.php and tests/theme.test.js, avoid docs/stale-acf-notes.md and acf/legacy_group.json, verify with configured profile.",
+    );
+
+    expect(contract.intentQuality).toBe("high");
+    expect(contract.intentWarnings).toEqual([]);
   });
 
   it("reports validation gaps for malformed contracts", () => {
