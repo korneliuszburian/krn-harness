@@ -128,9 +128,13 @@ describe("P0 docs anti-regression", () => {
     expect(schema).toContain("Self-report is not sufficient evidence");
     expect(schema).toContain("must not make `pnpm test` or CI depend on Codex CLI");
     expect(realRepo).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
+    expect(realRepo).toContain("scripts/krn-real-repo-dogfood.sh");
     expect(realRepo).toContain("Do not use this with protected data");
     expect(realRepo).toContain("filename/path heuristics only");
     expect(realRepo).toContain("KRN_REAL_REPO_DOGFOOD_APPROVED=1");
+    expect(realRepo).toContain("skipped report");
+    expect(realRepo).toContain("blocked report");
+    expect(realRepo).toContain("readiness report");
     expect(realRepo).toContain("Baseline no-KRN");
     expect(realRepo).toContain("KRN explicit with no safe verify");
     expect(realRepo).toContain("Never run `composer install`, `npm install`");
@@ -165,6 +169,11 @@ describe("P0 docs anti-regression", () => {
 
   it("keeps operator console and WP ACF handoff data-only and honest", async () => {
     const operator = await readDoc("docs/product/operator-console.md");
+    const p0Exit = await readDoc("docs/product/p0-exit-criteria.md");
+    const p1Entry = await readDoc("docs/product/p1-entry-contract.md");
+    const reviewers = await readDoc("docs/product/reviewers.md");
+    const subagents = await readDoc("docs/product/subagent-contracts.md");
+    const condensation = await readDoc("docs/product/knowledge-condensation.md");
     const handoff = await readDoc("docs/handoffs/2026-06-13-wp-acf-dogfood-evidence.md");
     const readme = await readDoc("README.md");
 
@@ -173,6 +182,21 @@ describe("P0 docs anti-regression", () => {
     expect(operator).toContain("Missing artifacts are allowed");
     expect(operator).toContain("Do not duplicate full trace content");
     expect(operator).toContain("future `krn summary` or `krn operator` command");
+    expect(p0Exit).toContain("P0 is not production readiness");
+    expect(p0Exit).toContain("Global `krn` fallback invalidates KRN dogfood");
+    expect(p1Entry).toContain(
+      "P1 starts product surfaces without turning experiments into production systems",
+    );
+    expect(p1Entry).toContain("No production MCP server");
+    expect(p1Entry).toContain("No mandatory vector DB");
+    expect(reviewers).toContain("They are not autonomous agents");
+    expect(reviewers).toContain("normal tests must not call paid models");
+    expect(subagents).toContain("not as an autonomous execution framework");
+    expect(subagents).toContain(
+      "must not edit files, spawn agents, approve memory, or call models by default",
+    );
+    expect(condensation).toContain("does not auto-update active truth");
+    expect(condensation).toContain("must not auto-approve memory");
 
     expect(handoff).toContain("not a production benchmark pass");
     expect(handoff).toContain("Completed for the full WP/ACF task index.");
@@ -187,6 +211,9 @@ describe("P0 docs anti-regression", () => {
     expect(readme).toContain("Global `krn` fallback invalidates the run");
     expect(readme).toContain("Real user-repo dogfood: pending");
     expect(readme).toContain("real Codex hook loading/trust remains unproven");
+    expect(readme).toContain("docs/product/p0-exit-criteria.md");
+    expect(readme).toContain("docs/product/p1-entry-contract.md");
+    expect(readme).toContain("No production dashboard");
   });
 
   it("keeps verify profile docs explicit about policy and non-execution", async () => {
@@ -214,6 +241,8 @@ describe("P0 docs anti-regression", () => {
 
     expect(checklist).toContain("pnpm verify:local");
     expect(checklist).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
+    expect(checklist).toContain("scripts/krn-real-repo-dogfood.sh");
+    expect(checklist).toContain("write a readiness report");
     expect(checklist).toContain("must not depend on paid Codex calls");
     expect(checklist).toContain("local `bin` metadata for dogfood linking only");
     expect(checklist).toContain("not a publish-ready package boundary");

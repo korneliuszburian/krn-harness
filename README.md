@@ -29,6 +29,14 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - Real user-repo dogfood: pending unless `KRN_REAL_REPO_DOGFOOD_PATH` and `KRN_REAL_REPO_DOGFOOD_APPROVED=1` are explicitly configured. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
 - Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
 
+## P0/P1 Transition
+
+- P0 exit criteria are tracked in `docs/product/p0-exit-criteria.md`.
+- Controlled P1 entry rules are tracked in `docs/product/p1-entry-contract.md`.
+- P1 starts with local, gated, artifact-first lanes: real-repo workflow, reviewer contracts, operator summaries, subagent/reviewer contracts, and knowledge condensation.
+- Dashboard-lite, MCP, and vector/retrieval remain contract or experiment lanes only until ADRs and tests accept a safe local shape.
+- No production dashboard, production MCP server, required vector DB, autonomous subagent swarm, protected-data workflow, or hook enforcement claim exists.
+
 ## Commands
 
 ```bash
@@ -38,6 +46,7 @@ pnpm typecheck
 pnpm test
 pnpm verify:local
 scripts/krn-real-repo-preflight.sh <repo-path>
+scripts/krn-real-repo-dogfood.sh
 pnpm --silent krn --help
 pnpm --silent krn status
 pnpm --silent krn install

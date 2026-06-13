@@ -50,6 +50,14 @@ scripts/krn-real-repo-preflight.sh <repo-path>
 
 This is a readiness check only. It uses filename/path heuristics, rejects the KRN source checkout as a target, reports pinned CLI identity, and writes `.krn/dogfood/real-repo-preflight/latest/summary.json` plus `summary.md` in the target repo.
 
+The real-repo dogfood scaffold is:
+
+```sh
+scripts/krn-real-repo-dogfood.sh
+```
+
+It must remain report-only unless explicit operator approvals are present. Missing approvals write a skipped report; preflight blockers write a blocked report; eligible repos without paid Codex execution write a readiness report. Do not make this command part of CI or `pnpm verify:local`.
+
 Do not include paid dogfood, real repo mutation beyond local `.krn` preflight state, or hook trust proof in CI/local release gates.
 
 ## CLI Metadata Decision

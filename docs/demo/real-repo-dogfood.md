@@ -58,6 +58,36 @@ It writes a JSON summary and Markdown summary under:
 
 If `KRN_REAL_REPO_PREFLIGHT_INSTALL=1` is not set, `krn install` is not run. The report lists what would be installed.
 
+## Scaffold Script
+
+The safe scaffold is:
+
+```sh
+scripts/krn-real-repo-dogfood.sh
+```
+
+It is report-only unless the required environment is present:
+
+```sh
+KRN_REAL_REPO_DOGFOOD_PATH=<repo-path>
+KRN_REAL_REPO_DOGFOOD_APPROVED=1
+scripts/krn-real-repo-dogfood.sh
+```
+
+Missing environment writes a skipped report under:
+
+```text
+.krn/dogfood/real-repo-skipped/<run-id>/
+```
+
+When environment is present, the scaffold runs `scripts/krn-real-repo-preflight.sh <repo-path>`. Preflight blockers produce a blocked report. Eligible repos produce a readiness report under the target repo:
+
+```text
+.krn/dogfood/real-repo-dogfood/<run-id>/
+```
+
+This scaffold does not execute Codex, commit, push, install dependencies, read `.env` contents, or validate real Codex hook loading. It exists to make skipped/blocked/readiness states machine-checkable before any paid real-repo run.
+
 ## Safe Verify Profiles
 
 Verify profiles are explicit allowlists. Do not execute project commands unless they are configured and pass KRN command policy.

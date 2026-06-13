@@ -116,6 +116,27 @@ interface RealRepoPreflightSummary {
   wouldInstall: string[];
 }
 
+interface RealRepoDogfoodSummary {
+  schema: string;
+  runId: string;
+  status: "skipped" | "blocked" | "readiness";
+  reason: string;
+  repoPath: string | null;
+  missingEnv: string[];
+  dogfoodApproved: boolean;
+  codexApproved: boolean;
+  preflightEligible: boolean | null;
+  blockers: string[];
+  warnings: string[];
+  requiredOperatorDecisions: string[];
+  pinnedKrnPath: string | null;
+  krnIdentityValid: boolean;
+  verifyProfileStatus: string | null;
+  safeVerifyCommands: string[];
+  summaryJsonPath: string;
+  summaryMarkdownPath: string;
+}
+
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
   const start = stdout.indexOf("{\n");
   const end = stdout.indexOf("\n--- markdown ---", start);
@@ -124,6 +145,16 @@ function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary
   expect(end).toBeGreaterThan(start);
 
   return JSON.parse(stdout.slice(start, end)) as RealRepoPreflightSummary;
+}
+
+function parseRealRepoDogfoodSummary(stdout: string): RealRepoDogfoodSummary {
+  const start = stdout.indexOf("{\n");
+  const end = stdout.indexOf("\n--- markdown ---", start);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+
+  return JSON.parse(stdout.slice(start, end)) as RealRepoDogfoodSummary;
 }
 
 async function createGitRepoForPreflight(
@@ -184,6 +215,22 @@ function runRealRepoPreflight(repoPath: string, env: Record<string, string> = {}
   return {
     result,
     summary: parseRealRepoPreflightSummary(result.stdout),
+  };
+}
+
+function runRealRepoDogfood(env: Record<string, string> = {}) {
+  const result = spawnSync(path.join(process.cwd(), "scripts/krn-real-repo-dogfood.sh"), {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...env,
+    },
+  });
+
+  return {
+    result,
+    summary: parseRealRepoDogfoodSummary(result.stdout),
   };
 }
 
@@ -432,6 +479,90 @@ describe("krn CLI", () => {
       safeVerifyCommands: ["pnpm lint"],
     });
     await expectFile(repo, ".krn/dogfood/real-repo-preflight/latest/summary.md");
+  }, 20_000);
+
+  it("writes a skipped real-repo dogfood report when approval env is missing", async () => {
+    const { result, summary } = runRealRepoDogfood({
+      KRN_REAL_REPO_DOGFOOD_RUN_ID: "test-missing-env",
+      KRN_REAL_REPO_DOGFOOD_PATH: "",
+      KRN_REAL_REPO_DOGFOOD_APPROVED: "",
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary).toMatchObject({
+      schema: "krn-real-repo-dogfood-v1",
+      runId: "test-missing-env",
+      status: "skipped",
+      dogfoodApproved: false,
+      preflightEligible: null,
+      krnIdentityValid: false,
+    });
+    expect(summary.missingEnv).toEqual([
+      "KRN_REAL_REPO_DOGFOOD_PATH",
+      "KRN_REAL_REPO_DOGFOOD_APPROVED=1",
+    ]);
+    expect(summary.requiredOperatorDecisions).toEqual(
+      expect.arrayContaining([
+        "set_KRN_REAL_REPO_DOGFOOD_PATH",
+        "set_KRN_REAL_REPO_DOGFOOD_APPROVED",
+      ]),
+    );
+    expect(summary.summaryJsonPath).toContain(".krn/dogfood/real-repo-skipped/test-missing-env");
+    await expectFile(process.cwd(), ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md");
+  });
+
+  it("blocks real-repo dogfood when preflight rejects the source checkout", () => {
+    const { result, summary } = runRealRepoDogfood({
+      KRN_REAL_REPO_DOGFOOD_RUN_ID: "test-source-checkout",
+      KRN_REAL_REPO_DOGFOOD_PATH: process.cwd(),
+      KRN_REAL_REPO_DOGFOOD_APPROVED: "1",
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary.status).toBe("blocked");
+    expect(summary.preflightEligible).toBe(false);
+    expect(summary.blockers).toContain("repo_path_is_krn_source_checkout");
+    expect(summary.pinnedKrnPath).toBeNull();
+    expect(summary.summaryJsonPath).toContain(
+      ".krn/dogfood/real-repo-skipped/test-source-checkout",
+    );
+  });
+
+  it("writes a real-repo dogfood readiness report for an eligible repo without paid Codex", async () => {
+    const repo = await createGitRepoForPreflight({
+      config: {
+        version: 1,
+        verify: {
+          defaultProfile: "unit",
+          profiles: {
+            unit: {
+              commands: [{ command: "node", args: ["src/index.test.ts"] }],
+            },
+          },
+        },
+      },
+    });
+    const { result, summary } = runRealRepoDogfood({
+      KRN_REAL_REPO_DOGFOOD_RUN_ID: "test-readiness",
+      KRN_REAL_REPO_DOGFOOD_PATH: repo,
+      KRN_REAL_REPO_DOGFOOD_APPROVED: "1",
+      KRN_REAL_REPO_PREFLIGHT_BIN_DIR: path.join(repo, "..", "bin-dogfood"),
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary.status).toBe("readiness");
+    expect(summary.preflightEligible).toBe(true);
+    expect(summary.codexApproved).toBe(false);
+    expect(summary.warnings).toContain("paid_codex_execution_not_approved");
+    expect(summary.requiredOperatorDecisions).toEqual(
+      expect.arrayContaining(["approve_paid_codex_or_run_manual_protocol", "krn_install_not_run"]),
+    );
+    expect(summary.pinnedKrnPath).toBe(path.join(repo, "..", "bin-dogfood", "krn"));
+    expect(summary.krnIdentityValid).toBe(true);
+    expect(summary.verifyProfileStatus).toBe("safe");
+    expect(summary.safeVerifyCommands).toEqual(["node src/index.test.ts"]);
+    await expectFile(repo, ".krn/dogfood/real-repo-dogfood/test-readiness/summary.json");
+    await expectFile(repo, ".krn/dogfood/real-repo-dogfood/test-readiness/summary.md");
   }, 20_000);
 
   it("prints helpful output for unknown commands", async () => {
