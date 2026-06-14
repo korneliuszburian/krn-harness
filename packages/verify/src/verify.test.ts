@@ -469,6 +469,7 @@ describe("verify command policy", () => {
       parseVerifyCommandString("npm test"),
       parseVerifyCommandString("npm run test"),
       parseVerifyCommandString("node src/index.test.ts"),
+      parseVerifyCommandString("python3 tools/check_all_readonly.py"),
     ]) {
       expect(verifyCommandPolicy(command)).toEqual({ allowed: true });
     }
@@ -493,6 +494,9 @@ describe("verify command policy", () => {
       ],
       ["git status", "unknown verify command: git status"],
       ["node ../secret.js", "unknown verify command: node ../secret.js"],
+      ["python3 ../secret.py", "unknown verify command: python3 ../secret.py"],
+      ["python3 scripts/check.py", "unknown verify command: python3 scripts/check.py"],
+      ["python3 -m pytest", "unknown verify command: python3 -m pytest"],
       ["pnpm test -- --runInBand", "unknown verify command: pnpm test -- --runInBand"],
       ["pnpm test --reporter=json", "unknown verify command: pnpm test --reporter=json"],
     ];

@@ -148,6 +148,7 @@ interface RealRepoDogfoodSummaryFixture {
   summaryJsonPath?: string | undefined;
   missingEnv?: unknown;
   nextCommand?: unknown;
+  nextActions?: unknown;
   blockers?: string[] | undefined;
   warnings?: string[] | undefined;
 }
@@ -467,6 +468,10 @@ function executionResultSignal(
   const forbiddenTouchedFiles = Array.isArray(latest.forbiddenTouchedFiles)
     ? latest.forbiddenTouchedFiles.filter((item): item is string => typeof item === "string")
     : [];
+  const nextActions = Array.isArray(latest.nextActions)
+    ? latest.nextActions.filter((item): item is string => typeof item === "string")
+    : [];
+  const nextAction = nextActions.at(0);
   const committedTargetRepo = latest.committedTargetRepo === true;
   const pushedTargetRepo = latest.pushedTargetRepo === true;
   const unsafe =
@@ -500,7 +505,7 @@ function executionResultSignal(
       ...base,
       status: "skipped",
       summary: "Real-repo execution result was skipped.",
-      nextAction: "Rerun the approved manual protocol when execution is allowed.",
+      nextAction: nextAction ?? "Rerun the approved manual protocol when execution is allowed.",
     };
   }
 
@@ -509,7 +514,7 @@ function executionResultSignal(
       ...base,
       status: "blocked",
       summary: "Real-repo execution result is blocked.",
-      nextAction: "Resolve execution blockers, then rerun the manual protocol.",
+      nextAction: nextAction ?? "Resolve execution blockers, then rerun the manual protocol.",
     };
   }
 

@@ -15,10 +15,13 @@ real repo proof -> hardening -> static report -> memory lifecycle -> retrieval e
 Goal: run KRN on an approved non-protected repository with a pinned local `krn`.
 
 Current evidence: manual KRN-assisted Codex execution has run on isolated
-`krn-llm-wiki` worktrees. The current execution-result artifact uses
+`krn-llm-wiki` worktrees. The execution-result artifact uses
 `krn-real-repo-execution-result-v1`, changed only `README.md`, used a pinned KRN
 pre-loop, passed the target repo read-only validation suite, and leaves
-`productionProof: false`.
+`productionProof: false`. A later isolated `krn-llm-wiki` worktree also proved a
+temporary safe `python3 tools/check_all_readonly.py` verify profile through
+`krn verify --execute`; the Codex edit step was blocked because
+`KRN_REAL_REPO_CODEX_APPROVED` was not set.
 
 Likely files:
 
@@ -48,7 +51,7 @@ Risk:
 - Treating skipped missing-env reports as real-repo proof.
 - Treating preflight-only reports as execution proof.
 - Treating local execution evidence as production proof.
-- Remaining without real target verify profiles or trusted hook evidence.
+- Remaining without committed real target verify profiles or trusted hook evidence.
 
 Stop conditions:
 

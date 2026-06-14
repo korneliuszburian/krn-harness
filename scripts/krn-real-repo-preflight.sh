@@ -158,6 +158,19 @@ function verifyCommandAllowed(tokens) {
     return { allowed: true };
   }
 
+  if (
+    command === "python3" &&
+    args.length === 1 &&
+    !path.isAbsolute(args[0]) &&
+    !args[0].startsWith("-") &&
+    !args[0].split(/[\\/]+/).includes("..") &&
+    /^[A-Za-z0-9._/-]+$/.test(args[0]) &&
+    args[0].startsWith("tools/") &&
+    /\.py$/.test(args[0])
+  ) {
+    return { allowed: true };
+  }
+
   return { allowed: false, reason: `unknown verify command: ${text}` };
 }
 

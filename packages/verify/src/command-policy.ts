@@ -28,6 +28,18 @@ function isSafeRelativeNodePath(filePath: string): boolean {
   );
 }
 
+function isSafeRelativePythonPath(filePath: string): boolean {
+  return (
+    filePath.length > 0 &&
+    !path.isAbsolute(filePath) &&
+    !filePath.startsWith("-") &&
+    !filePath.split(/[\\/]+/).includes("..") &&
+    /^[A-Za-z0-9._/-]+$/.test(filePath) &&
+    filePath.startsWith("tools/") &&
+    /\.py$/.test(filePath)
+  );
+}
+
 function commandText(command: VerifyProfileCommand): string {
   return [command.command, ...command.args].join(" ");
 }
@@ -82,6 +94,14 @@ export function verifyCommandPolicy(command: VerifyProfileCommand): VerifyComman
     command.command === "node" &&
     command.args.length === 1 &&
     isSafeRelativeNodePath(command.args[0] ?? "")
+  ) {
+    return { allowed: true };
+  }
+
+  if (
+    command.command === "python3" &&
+    command.args.length === 1 &&
+    isSafeRelativePythonPath(command.args[0] ?? "")
   ) {
     return { allowed: true };
   }

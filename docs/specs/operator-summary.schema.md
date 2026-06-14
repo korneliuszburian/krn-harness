@@ -118,6 +118,8 @@ No real-repo dogfood summary is `unproven`.
 
 Unsafe execution evidence is `fail` when forbidden files were touched, the target repo was committed, the target repo was pushed, or production proof is overclaimed.
 
+When execution-result artifacts include `nextActions`, `realRepoDogfood.nextAction` should preserve the most specific artifact next action before falling back to generic summary guidance.
+
 ## Example JSON
 
 ```json

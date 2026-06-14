@@ -50,3 +50,4 @@
 - `verify.timeoutMs` and `verify.maxOutputBytes` are positive integers.
 - Commands may be strings for simple allowlisted commands or exact `{ command, args, label }` objects.
 - `execute` mode still uses the narrow verify allowlist, never uses shell mode, scrubs inherited environment variables, and redacts compact output tails before writing verify artifacts.
+- `python3` verify commands are allowed only for a single safe repo-relative `tools/*.py` path, with no flags, shell syntax, absolute paths, or traversal.

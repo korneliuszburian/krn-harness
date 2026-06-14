@@ -106,6 +106,7 @@ interface RealRepoPreflightSummary {
   krnConfigExists: boolean;
   verifyProfileStatus: string;
   safeVerifyCommands: string[];
+  unsafeVerifyCommands: string[];
   blockers: string[];
   warnings: string[];
   requiredOperatorDecisions: string[];
@@ -508,6 +509,38 @@ describe("krn CLI", () => {
     expect(summary.safeVerifyCommands).toEqual(["node src/index.test.ts", "pnpm test --coverage"]);
     expect(summary.krnIdentityValid).toBe(true);
     expect(summary.pinnedKrnPath).toBe(path.join(repo, "..", "bin-safe", "krn"));
+  }, 20_000);
+
+  it("detects safe python3 readonly verify profile evidence in real-repo preflight", async () => {
+    const repo = await createGitRepoForPreflight({
+      config: {
+        version: 1,
+        verify: {
+          defaultProfile: "readonly",
+          profiles: {
+            readonly: {
+              commands: [
+                {
+                  command: "python3",
+                  args: ["tools/check_all_readonly.py"],
+                  label: "readonly suite",
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const { result, summary } = runRealRepoPreflight(repo, {
+      KRN_REAL_REPO_PREFLIGHT_BIN_DIR: path.join(repo, "..", "bin-python"),
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary.eligible).toBe(true);
+    expect(summary.krnConfigExists).toBe(true);
+    expect(summary.verifyProfileStatus).toBe("safe");
+    expect(summary.safeVerifyCommands).toEqual(["python3 tools/check_all_readonly.py"]);
+    expect(summary.unsafeVerifyCommands).toEqual([]);
   }, 20_000);
 
   it("writes deterministic real-repo preflight summary files", async () => {
@@ -1247,6 +1280,46 @@ describe("krn CLI", () => {
     });
     expect(summary.blockers).toContain(
       "realRepoDogfood: Real-repo execution result is unsafe: forbidden files, target commit/push, or production-proof overclaim detected.",
+    );
+  });
+
+  it("uses execution-result blocker next action in operator summary", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-execution", "blocked-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-execution-result-v1",
+          status: "blocked",
+          executionKind: "blocked",
+          targetRepoPath: cwd,
+          executionWorktreePath: cwd,
+          validationStatus: "pass",
+          forbiddenTouchedFiles: [],
+          committedTargetRepo: false,
+          pushedTargetRepo: false,
+          hookTrustStatus: "unproven",
+          productionProof: false,
+          nextActions: ["Set KRN_REAL_REPO_CODEX_APPROVED=1 only after operator approval."],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runInCwd(cwd, ["summary", "--json"]);
+    const summary = JSON.parse(result.stdout) as OperatorSummaryFixture;
+
+    expect(summary.realRepoDogfood).toMatchObject({
+      status: "blocked",
+      executionKind: "blocked",
+      validationStatus: "pass",
+      productionProof: false,
+    });
+    expect(summary.nextActions).toContain(
+      "Set KRN_REAL_REPO_CODEX_APPROVED=1 only after operator approval.",
     );
   });
 
