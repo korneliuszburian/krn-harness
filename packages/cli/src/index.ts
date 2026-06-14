@@ -11,6 +11,7 @@ import { handoffCommand } from "./commands/handoff.js";
 import { hookCommand } from "./commands/hook.js";
 import { installCommand } from "./commands/install.js";
 import { memoryCommand } from "./commands/memory.js";
+import { reportCommand } from "./commands/report.js";
 import { reviewCommand } from "./commands/review.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
@@ -35,6 +36,7 @@ Usage:
   krn install
   krn summary
   krn review
+  krn report
   krn artifacts <command>
   krn memory <command>
   krn hook codex <event>
@@ -93,6 +95,10 @@ export async function runCli(
 
   if (command === "review") {
     return reviewCommand(rest, runtime);
+  }
+
+  if (command === "report") {
+    return reportCommand(rest, runtime);
   }
 
   if (command === "artifacts") {

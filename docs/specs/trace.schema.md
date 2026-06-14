@@ -14,7 +14,7 @@ Trace JSONL records auditable KRN runtime events.
 
 ## Local Events
 
-`cli.status`, `task.started`, `graph.built`, `context.built`, `verify.ran`, `handoff.created`, `install.ran`, `doctor.ran`, `eval.ran`, `summary.ran`, `review.ran`, `memory.proposed`, `memory.approved`, `memory.deprecated`, `memory.listed`, and `hook.received`.
+`cli.status`, `task.started`, `graph.built`, `context.built`, `verify.ran`, `handoff.created`, `install.ran`, `doctor.ran`, `eval.ran`, `summary.ran`, `review.ran`, `report.ran`, `memory.proposed`, `memory.approved`, `memory.deprecated`, `memory.listed`, and `hook.received`.
 
 The local current-state loop records `task.started -> graph.built -> context.built -> verify.ran -> handoff.created -> doctor.ran -> eval.ran -> review.ran -> summary.ran` when the operator runs `krn start`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, `krn eval`, `krn review --write`, and `krn summary --write` in order.
 
@@ -47,6 +47,8 @@ The run summary Markdown records task id, event count, last event, artifact path
 `review.ran` records deterministic reviewer aggregate evidence: status, reviewer count, failure count, blocked count, and whether current review artifacts were written.
 
 `summary.ran` records operator-summary aggregate evidence: status, blocker count, warning count, hook status, real-repo dogfood status, reviewer status, and whether current summary artifacts were written.
+
+`report.ran` records operator-report aggregate evidence: verdict, blocker count, warning count, hook trust status, production-proof flag, and whether Markdown/JSON/HTML report artifacts were written.
 
 `hook.received` trace payloads must not include long operator text such as `userFacingMessage` or full `remediationHints`. Those belong in hook command output only.
 

@@ -22,6 +22,8 @@ It is local evidence only. It is not production proof.
 | Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; approved manual Codex README-only run completed on isolated `krn-llm-wiki` worktree with executable verify | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, approved manual `krn-llm-wiki` Codex run, isolated `krn verify --execute` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof; evidence is local only | non-bypass hook trust probe and repeat on target with committed verify profile |
 | Deterministic reviewers | executable | `.krn/current/review-summary.json` | CLI tests | `pnpm test` | usefulness beyond first records unproven | compare reviewer output to human review |
 | Operator summary | executable | `.krn/current/operator-summary.json` | CLI tests | `pnpm test` | summary prioritization unproven | run summary after real dogfood and review |
+| Operator report | executable static local report | `.krn/current/operator-report.md`, `.krn/current/operator-report.json`, `.krn/current/operator-report.html` | CLI tests | `pnpm test`, `krn report --write` | report can over-compress caveats | use on latest real-repo execution evidence |
+| Artifact lifecycle | executable list/archive plan | `.krn/archive/<timestamp>/` | CLI tests | `pnpm test`, `krn artifacts list`, `krn artifacts archive --dry-run` | archiving could hide useful history if overused | operator-confirmed archive only |
 | Dashboard-lite | ADR-only | ADR-0014 | docs regression | `pnpm test` | UI before stable data | consume `operator-summary.json` only |
 | MCP | ADR-only | ADR-0015 | docs regression | `pnpm test` | server before resource contract matures | fake adapter/schema tests only |
 | Retrieval/vector | ADR-only | ADR-0016 | docs regression | `pnpm test` | embeddings before eval | synthetic retrieval eval harness |
@@ -34,7 +36,7 @@ It is local evidence only. It is not production proof.
 P1 product value is now:
 
 ```txt
-review-summary.json -> operator-summary.json -> dashboard/MCP later
+review-summary.json -> operator-summary.json -> operator-report.{md,json,html} -> dashboard/MCP later
 ```
 
 Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data workflows, and CI remain intentionally unbuilt.

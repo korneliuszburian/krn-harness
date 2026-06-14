@@ -193,6 +193,7 @@ describe("P0 docs anti-regression", () => {
     const decision = await readDoc("docs/product/p0-p1-decision.md");
     const reviewers = await readDoc("docs/product/reviewers.md");
     const operatorSummarySchema = await readDoc("docs/specs/operator-summary.schema.md");
+    const operatorReportSchema = await readDoc("docs/specs/operator-report.schema.md");
     const reviewerResultSchema = await readDoc("docs/specs/reviewer-result.schema.md");
     const evidenceMatrix = await readDoc("docs/product/evidence-matrix.md");
     const doctrine = await readDoc("docs/product/research-backed-architecture.md");
@@ -210,9 +211,12 @@ describe("P0 docs anti-regression", () => {
     const readme = await readDoc("README.md");
 
     expect(operator).toContain("P1 executable summary artifact");
-    expect(operator).toContain("No UI, static HTML, frontend framework, server, database");
+    expect(operator).toContain("local static report artifact");
+    expect(operator).toContain("No frontend framework, server, database");
     expect(operator).toContain("`krn summary`");
+    expect(operator).toContain("`krn report --write`");
     expect(operator).toContain(".krn/current/operator-summary.json");
+    expect(operator).toContain(".krn/current/operator-report.html");
     expect(operator).toContain("Missing artifacts are allowed");
     expect(operator).toContain("Do not duplicate full trace content");
     expect(operatorSummarySchema).toContain("krn-operator-summary-v1");
@@ -222,6 +226,10 @@ describe("P0 docs anti-regression", () => {
     expect(operatorSummarySchema).toContain("Record-only verify is not execution proof");
     expect(operatorSummarySchema).toContain("No hook.received event exists");
     expect(operatorSummarySchema).toContain("trusted non-manual hook-load marker");
+    expect(operatorReportSchema).toContain("krn-operator-report-v1");
+    expect(operatorReportSchema).toContain("Historical source `.krn` dogfood blockers");
+    expect(operatorReportSchema).toContain("external CSS");
+    expect(operatorReportSchema).toContain("productionProof.value` must remain `false");
     expect(reviewerResultSchema).toContain("krn-reviewer-result-v1");
     expect(reviewerResultSchema).toContain("krn-review-summary-v1");
     expect(reviewerResultSchema).toContain("`krn review --llm` is intentionally unsupported");
@@ -242,6 +250,8 @@ describe("P0 docs anti-regression", () => {
     expect(reviewers).toContain("normal tests must not call paid models");
     expect(evidenceMatrix).toContain("Deterministic reviewers");
     expect(evidenceMatrix).toContain("Operator summary");
+    expect(evidenceMatrix).toContain("Operator report");
+    expect(evidenceMatrix).toContain("Artifact lifecycle");
     expect(evidenceMatrix).toContain("Dashboard-lite | ADR-only");
     expect(evidenceMatrix).toContain("MCP | ADR-only");
     expect(evidenceMatrix).toContain("Retrieval/vector | ADR-only");

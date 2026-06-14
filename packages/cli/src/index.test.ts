@@ -224,6 +224,18 @@ interface ArchivePlanFixture {
   refused: Array<{ path: string; reason: string }>;
 }
 
+interface OperatorReportFixture {
+  schema: string;
+  verdict: string;
+  task: { text?: string };
+  realRepoEvidence: { status: string; staleHistoricalBlocker: boolean };
+  hookTrust: { status: string };
+  productionProof: { value: boolean; summary: string };
+  blockers: string[];
+  warnings: string[];
+  historicalCaveats: Array<{ path: string; scope: string }>;
+}
+
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
   const start = stdout.indexOf("{\n");
   const end = stdout.indexOf("\n--- markdown ---", start);
@@ -373,6 +385,7 @@ describe("krn CLI", () => {
       "krn install",
       "krn summary",
       "krn review",
+      "krn report",
       "krn artifacts <command>",
       "krn memory <command>",
       "krn hook codex <event>",
@@ -491,6 +504,75 @@ describe("krn CLI", () => {
       expect.objectContaining({ path: unsafePath, reason: expect.stringContaining("not safe") }),
     ]);
     expect(artifactPathIsArchiveSafe("../outside.json")).toBe(false);
+  });
+
+  it("prints operator report JSON without requiring existing current state", async () => {
+    const result = await runInTemp(["report", "--json"]);
+    const report = JSON.parse(result.stdout) as OperatorReportFixture;
+
+    expect(result.code).toBe(0);
+    expect(report.schema).toBe("krn-operator-report-v1");
+    expect(report.verdict).toBe("warn");
+    expect(report.productionProof).toMatchObject({
+      value: false,
+      summary: expect.stringContaining("production proof remains false"),
+    });
+    expect(report.hookTrust.status).toBe("unproven");
+  });
+
+  it("writes markdown, JSON, and static HTML operator reports", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await runInCwd(cwd, ["start", "Review <script>alert(1)</script> report output"]);
+
+    const result = await runInCwd(cwd, ["report", "--write"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain(".krn/current/operator-report.md");
+    expect(result.stdout).toContain(".krn/current/operator-report.json");
+    expect(result.stdout).toContain(".krn/current/operator-report.html");
+
+    const report = await readJson<OperatorReportFixture>(cwd, ".krn/current/operator-report.json");
+    const markdown = await readFile(
+      path.join(cwd, ".krn", "current", "operator-report.md"),
+      "utf8",
+    );
+    const html = await readFile(path.join(cwd, ".krn", "current", "operator-report.html"), "utf8");
+
+    expect(report.schema).toBe("krn-operator-report-v1");
+    expect(markdown).toContain("# KRN Operator Report");
+    expect(markdown).toContain("Production proof: false");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).toContain("Local file only");
+    expect(html).not.toMatch(/https?:\/\//);
+  });
+
+  it("keeps stale source dogfood blockers as report caveats", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const stalePath = ".krn/dogfood/real-repo-skipped/test-source-checkout/summary.json";
+    await mkdir(path.dirname(path.join(cwd, stalePath)), { recursive: true });
+    await writeFile(
+      path.join(cwd, stalePath),
+      JSON.stringify({ schema: "krn-real-repo-dogfood-v1", status: "blocked" }),
+      "utf8",
+    );
+
+    const summary = await runInCwd(cwd, ["summary", "--write"]);
+    expect(summary.code).toBe(0);
+    expect(summary.stdout).toContain("KRN summary: blocked");
+
+    const result = await runInCwd(cwd, ["report", "--json"]);
+    const report = JSON.parse(result.stdout) as OperatorReportFixture;
+    expect(result.code).toBe(0);
+    expect(report.verdict).toBe("warn");
+    expect(report.realRepoEvidence).toMatchObject({
+      status: "warn",
+      staleHistoricalBlocker: true,
+    });
+    expect(report.blockers).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("realRepoDogfood")]),
+    );
+    expect(report.historicalCaveats).toEqual([
+      expect.objectContaining({ path: stalePath, scope: "stale-blocking" }),
+    ]);
   });
 
   it("keeps the local CLI bin entrypoint linkable for dogfood", async () => {

@@ -13,6 +13,7 @@ export const traceEventNames = [
   "eval.ran",
   "summary.ran",
   "review.ran",
+  "report.ran",
   "memory.proposed",
   "memory.approved",
   "memory.deprecated",

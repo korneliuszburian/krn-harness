@@ -20,6 +20,8 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - Verify execute policy documented in ADR-0017: record-only by default, explicit `--execute`, exact command allowlists, no shell mode, scrubbed env, and redacted compact output.
 - Hook guardrails with deterministic `allow`, `warn`, and `block` decisions, compact trace evidence, and operator guidance.
 - Dogfood evidence for tiny downstream fixture runs and a synthetic WordPress/ACF-style fixture.
+- Operator report command for local Markdown, JSON, and static HTML evidence projection.
+- Artifact lifecycle commands for listing and safely archiving historical `.krn` caveats.
 - Repo-scoped build-time skills in `.agents/skills/*`.
 
 ## Current Evidence Status
@@ -64,6 +66,10 @@ pnpm --silent krn doctor cli
 pnpm --silent krn eval
 pnpm --silent krn summary
 pnpm --silent krn review
+pnpm --silent krn report --write
+pnpm --silent krn report --json
+pnpm --silent krn artifacts list
+pnpm --silent krn artifacts archive --dry-run
 pnpm --silent krn memory list
 pnpm --silent krn hook codex SessionStart
 ```

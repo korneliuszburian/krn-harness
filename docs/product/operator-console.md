@@ -2,11 +2,11 @@
 
 ## Status
 
-P1 executable summary artifact plus data model. No UI, static HTML, frontend framework, server, database, or hosted service is implemented.
+P1 executable summary artifact plus local static report artifact. No frontend framework, server, database, or hosted service is implemented.
 
 ## Purpose
 
-The operator console model is currently exposed through `krn summary`. It summarizes existing local KRN artifacts so an operator can quickly decide what is safe to do next.
+The operator console model is currently exposed through `krn summary` and `krn report`. Summary preserves strict current-state signals. Report projects current evidence into Markdown, JSON, and local static HTML so an operator can quickly decide what is safe to do next.
 
 It must aggregate evidence already written by the CLI. It must not become a second source of truth.
 
@@ -50,7 +50,7 @@ It must aggregate evidence already written by the CLI. It must not become a seco
 
 ## Inputs
 
-`krn summary` may read only local artifacts:
+`krn summary` and `krn report` may read only local artifacts:
 
 - `.krn/current/run.json`
 - `.krn/current/task-contract.json`
@@ -83,6 +83,14 @@ Missing artifacts are allowed. The summary should report missing status instead 
 
 It writes a `summary.ran` trace event. It does not run verify commands, call Codex, call network, or inspect protected file contents.
 
+`krn report --write` writes:
+
+- `.krn/current/operator-report.md`
+- `.krn/current/operator-report.json`
+- `.krn/current/operator-report.html`
+
+It writes a `report.ran` trace event. The HTML is a local static file with inline CSS only.
+
 ## Limits
 
 - Do not duplicate full trace content.
@@ -91,6 +99,7 @@ It writes a `summary.ran` trace event. It does not run verify commands, call Cod
 - Do not run Codex.
 - Do not execute verification commands.
 - Do not add a database or server.
+- Do not use external CSS, external JS, or network assets in static report HTML.
 
 ## Deferred UI
 
