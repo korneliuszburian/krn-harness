@@ -14,17 +14,19 @@ real repo proof -> hardening -> static report -> memory lifecycle -> retrieval e
 
 Goal: run KRN on an approved non-protected repository with a pinned local `krn`.
 
-Current evidence: first manual KRN-assisted Codex execution ran on an isolated
-`krn-llm-wiki` worktree. It changed only `README.md`, used a pinned KRN
-pre-loop, and passed the target repo read-only validation suite. The run also
-showed that preflight-only dogfood summaries must not be treated as execution
-proof.
+Current evidence: manual KRN-assisted Codex execution has run on isolated
+`krn-llm-wiki` worktrees. The current execution-result artifact uses
+`krn-real-repo-execution-result-v1`, changed only `README.md`, used a pinned KRN
+pre-loop, passed the target repo read-only validation suite, and leaves
+`productionProof: false`.
 
 Likely files:
 
 - `docs/demo/real-repo-dogfood.md`
 - `scripts/krn-real-repo-dogfood.sh`
 - `.krn/dogfood/**/summary.json`
+- `docs/specs/real-repo-execution-result.schema.md`
+- `scripts/krn-real-repo-execution-report.sh`
 
 Acceptance:
 
@@ -33,6 +35,7 @@ Acceptance:
 - No protected data is used.
 - Summary records `readiness`, `blocked`, `skipped`, or executed result honestly.
 - Missing-env skipped reports include exact env instructions and an explicit not-validation claim.
+- Execution-result reports distinguish manual Codex evidence from production proof.
 
 Tests:
 
@@ -44,7 +47,8 @@ Risk:
 - Overclaiming readiness as validation.
 - Treating skipped missing-env reports as real-repo proof.
 - Treating preflight-only reports as execution proof.
-- Lacking a first-class execution-result dogfood summary schema.
+- Treating local execution evidence as production proof.
+- Remaining without real target verify profiles or trusted hook evidence.
 
 Stop conditions:
 

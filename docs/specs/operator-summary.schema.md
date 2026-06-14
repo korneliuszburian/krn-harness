@@ -4,7 +4,7 @@
 
 `krn-operator-summary-v1` is the stable local artifact for executable P1 operator intelligence.
 
-It summarizes current KRN artifacts so a human operator can see what is true, risky, missing, blocked, skipped, readiness-only, or unproven.
+It summarizes current KRN artifacts so a human operator can see what is true, risky, missing, blocked, skipped, readiness-only, execution-evidence, or unproven.
 
 It is not production proof.
 
@@ -53,6 +53,7 @@ The command writes `summary.ran` and does not run verify commands, call Codex, c
 - `skipped`: a run explicitly skipped.
 - `readiness`: preflight/readiness exists but execution is not proven.
 - `unproven`: no evidence proves the surface yet.
+- `execution-evidence`: local real-repo execution evidence exists, with production proof still false.
 
 Skipped, readiness, missing, and unproven are never pass states.
 
@@ -79,6 +80,9 @@ Surfaces may add typed fields. Examples:
 - `verify.executedCommands`
 - `hooks.hookReceivedCount`
 - `realRepoDogfood.latestPath`
+- `realRepoDogfood.executionKind`
+- `realRepoDogfood.validationStatus`
+- `realRepoDogfood.productionProof`
 - `reviewers.total`
 - `memory.pending`
 
@@ -109,6 +113,10 @@ No real-repo dogfood summary is `unproven`.
 `readiness` is not pass; it means preflight/readiness exists but paid/manual execution is not proven.
 
 `blocked` must include an actionable next step.
+
+`execution-evidence` means a `krn-real-repo-execution-result-v1` artifact exists and target validation passed. It is local evidence only. `productionProof` must remain `false`.
+
+Unsafe execution evidence is `fail` when forbidden files were touched, the target repo was committed, the target repo was pushed, or production proof is overclaimed.
 
 ## Example JSON
 

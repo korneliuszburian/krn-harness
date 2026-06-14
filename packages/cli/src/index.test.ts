@@ -140,6 +140,26 @@ interface RealRepoDogfoodSummary {
   summaryMarkdownPath: string;
 }
 
+interface RealRepoExecutionResultSummary {
+  schema: string;
+  runId: string;
+  status: string;
+  executionKind: string;
+  targetRepoPath: string | null;
+  executionWorktreePath: string | null;
+  targetRepoCleanBefore: boolean;
+  targetRepoCleanAfter: boolean;
+  validationStatus: string;
+  changedFiles: string[];
+  forbiddenTouchedFiles: string[];
+  committedTargetRepo: boolean;
+  pushedTargetRepo: boolean;
+  hookTrustStatus: string;
+  productionProof: boolean;
+  summaryJsonPath: string;
+  summaryMarkdownPath: string;
+}
+
 interface ReviewResultFixture {
   schema: string;
   status: string;
@@ -167,10 +187,17 @@ interface OperatorSummaryFixture {
   realRepoDogfood: {
     status: string;
     summary?: string;
+    repoPath?: string | null;
+    executionWorktreePath?: string | null;
     outcomeKind?: string;
+    executionKind?: string;
+    validationStatus?: string;
+    productionProof?: boolean;
+    hookTrustStatus?: string;
     missingEnv?: string[];
   };
   reviewers: { status: string; total?: number };
+  blockers: string[];
   warnings: string[];
   nextActions: string[];
 }
@@ -193,6 +220,16 @@ function parseRealRepoDogfoodSummary(stdout: string): RealRepoDogfoodSummary {
   expect(end).toBeGreaterThan(start);
 
   return JSON.parse(stdout.slice(start, end)) as RealRepoDogfoodSummary;
+}
+
+function parseRealRepoExecutionResultSummary(stdout: string): RealRepoExecutionResultSummary {
+  const start = stdout.indexOf("{\n");
+  const end = stdout.indexOf("\n--- markdown ---", start);
+
+  expect(start).toBeGreaterThanOrEqual(0);
+  expect(end).toBeGreaterThan(start);
+
+  return JSON.parse(stdout.slice(start, end)) as RealRepoExecutionResultSummary;
 }
 
 async function createGitRepoForPreflight(
@@ -269,6 +306,22 @@ function runRealRepoDogfood(env: Record<string, string> = {}) {
   return {
     result,
     summary: parseRealRepoDogfoodSummary(result.stdout),
+  };
+}
+
+function runRealRepoExecutionReport(env: Record<string, string> = {}) {
+  const result = spawnSync(path.join(process.cwd(), "scripts/krn-real-repo-execution-report.sh"), {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...env,
+    },
+  });
+
+  return {
+    result,
+    summary: parseRealRepoExecutionResultSummary(result.stdout),
   };
 }
 
@@ -622,6 +675,52 @@ describe("krn CLI", () => {
     await expectFile(repo, ".krn/dogfood/real-repo-dogfood/test-readiness/summary.md");
   }, 20_000);
 
+  it("writes a manual real-repo execution result without committing or claiming production proof", async () => {
+    const repo = await createGitRepoForPreflight();
+    await writeFile(path.join(repo, "README.md"), "# Fixture\n\nTiny wording change.\n", "utf8");
+
+    const { result, summary } = runRealRepoExecutionReport({
+      KRN_REAL_REPO_EXECUTION_RUN_ID: "test-manual-execution",
+      KRN_REAL_REPO_EXECUTION_TARGET_REPO_PATH: repo,
+      KRN_REAL_REPO_EXECUTION_WORKTREE_PATH: repo,
+      KRN_REAL_REPO_EXECUTION_TARGET_CLEAN_BEFORE: "1",
+      KRN_REAL_REPO_EXECUTION_KIND: "manual-codex",
+      KRN_REAL_REPO_EXECUTION_CODEX_SESSION_ID: "session-test",
+      KRN_REAL_REPO_EXECUTION_CODEX_EXIT_CODE: "0",
+      KRN_REAL_REPO_EXECUTION_CODEX_COMMAND_SHAPE:
+        "codex -a never -s workspace-write -C <repo> exec <prompt>",
+      KRN_REAL_REPO_EXECUTION_PINNED_KRN_PATH: path.join(repo, "..", "bin", "krn"),
+      KRN_REAL_REPO_EXECUTION_KRN_IDENTITY_VALID: "1",
+      KRN_REAL_REPO_EXECUTION_VALIDATION_COMMAND: "python3 tools/check_all_readonly.py",
+      KRN_REAL_REPO_EXECUTION_VALIDATION_STATUS: "pass",
+      KRN_REAL_REPO_EXECUTION_VALIDATION_DURATION_SECONDS: "1.25",
+      KRN_REAL_REPO_EXECUTION_HOOK_TRUST_STATUS: "unproven",
+    });
+
+    expect(result.status).toBe(0);
+    expect(summary).toMatchObject({
+      schema: "krn-real-repo-execution-result-v1",
+      runId: "test-manual-execution",
+      status: "pass",
+      executionKind: "manual-codex",
+      targetRepoPath: repo,
+      executionWorktreePath: repo,
+      targetRepoCleanBefore: true,
+      targetRepoCleanAfter: false,
+      validationStatus: "pass",
+      changedFiles: ["README.md"],
+      forbiddenTouchedFiles: [],
+      committedTargetRepo: false,
+      pushedTargetRepo: false,
+      hookTrustStatus: "unproven",
+      productionProof: false,
+    });
+    expect(summary.summaryJsonPath).toBe(
+      path.join(repo, ".krn/dogfood/real-repo-execution/test-manual-execution/summary.json"),
+    );
+    await expectFile(repo, ".krn/dogfood/real-repo-execution/test-manual-execution/summary.md");
+  });
+
   it("prints helpful output for unknown commands", async () => {
     const result = await runInTemp(["unknown-command"]);
 
@@ -796,7 +895,7 @@ describe("krn CLI", () => {
     expect(dogfood).toMatchObject({
       status: "warn",
       summary:
-        "Found 3 dogfood summary artifact(s): 0 failing, 0 invalid, 3 skipped, 0 readiness-only, 0 preflight-only.",
+        "Found 3 dogfood summary artifact(s): 0 failing, 0 invalid, 0 blocked, 3 skipped, 0 readiness-only, 0 preflight-only, 0 execution-result.",
     });
     expect(dogfood?.evidence).toHaveLength(3);
     expect(dogfood?.findings).toEqual([
@@ -830,12 +929,12 @@ describe("krn CLI", () => {
     expect(dogfood).toMatchObject({
       status: "warn",
       summary:
-        "Found 1 dogfood summary artifact(s): 0 failing, 0 invalid, 0 skipped, 1 readiness-only, 0 preflight-only.",
+        "Found 1 dogfood summary artifact(s): 0 failing, 0 invalid, 0 blocked, 0 skipped, 1 readiness-only, 0 preflight-only, 0 execution-result.",
       findings: [
         "readiness-only dogfood summary: .krn/dogfood/real-repo-dogfood/readiness-run/summary.json",
       ],
       nextActions: [
-        "Review skipped/readiness/preflight dogfood reports before claiming execution proof.",
+        "Review blocked/skipped/readiness/preflight/execution dogfood reports before claiming execution proof.",
       ],
     });
   });
@@ -866,13 +965,89 @@ describe("krn CLI", () => {
     expect(dogfood).toMatchObject({
       status: "warn",
       summary:
-        "Found 1 dogfood summary artifact(s): 0 failing, 0 invalid, 0 skipped, 0 readiness-only, 1 preflight-only.",
+        "Found 1 dogfood summary artifact(s): 0 failing, 0 invalid, 0 blocked, 0 skipped, 0 readiness-only, 1 preflight-only, 0 execution-result.",
       findings: [
         "preflight-only dogfood summary: .krn/dogfood/real-repo-preflight/latest/summary.json",
       ],
       nextActions: [
-        "Review skipped/readiness/preflight dogfood reports before claiming execution proof.",
+        "Review blocked/skipped/readiness/preflight/execution dogfood reports before claiming execution proof.",
       ],
+    });
+  });
+
+  it("treats manual execution with unproven hook trust as warning evidence", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-execution", "manual-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-execution-result-v1",
+          status: "pass",
+          executionKind: "manual-codex",
+          validationStatus: "pass",
+          forbiddenTouchedFiles: [],
+          committedTargetRepo: false,
+          pushedTargetRepo: false,
+          hookTrustStatus: "unproven",
+          productionProof: false,
+        },
+        null,
+        2,
+      ),
+    );
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const dogfood = result.reviewers.find((item) => item.reviewer === "dogfood");
+
+    expect(dogfood).toMatchObject({
+      status: "warn",
+      summary:
+        "Found 1 dogfood summary artifact(s): 0 failing, 0 invalid, 0 blocked, 0 skipped, 0 readiness-only, 0 preflight-only, 1 execution-result.",
+      findings: [
+        "execution-result warning: .krn/dogfood/real-repo-execution/manual-run/summary.json",
+      ],
+      nextActions: [
+        "Review blocked/skipped/readiness/preflight/execution dogfood reports before claiming execution proof.",
+      ],
+    });
+  });
+
+  it("fails unsafe real-repo execution results", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-execution", "unsafe-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-execution-result-v1",
+          status: "pass",
+          executionKind: "manual-codex",
+          validationStatus: "pass",
+          forbiddenTouchedFiles: [".env"],
+          committedTargetRepo: false,
+          pushedTargetRepo: false,
+          hookTrustStatus: "trusted",
+          productionProof: false,
+        },
+        null,
+        2,
+      ),
+    );
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const dogfood = result.reviewers.find((item) => item.reviewer === "dogfood");
+
+    expect(dogfood).toMatchObject({
+      status: "fail",
+      findings: [
+        "unsafe execution result: .krn/dogfood/real-repo-execution/unsafe-run/summary.json",
+      ],
+      nextActions: ["Inspect failing, invalid, or unsafe dogfood reports."],
     });
   });
 
@@ -990,6 +1165,88 @@ describe("krn CLI", () => {
     });
     expect(summary.nextActions).toContain(
       "Run scripts/krn-real-repo-dogfood.sh with approved env to produce readiness or execution state.",
+    );
+  });
+
+  it("surfaces manual real-repo execution evidence without production proof", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-execution", "manual-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-execution-result-v1",
+          status: "pass",
+          executionKind: "manual-codex",
+          targetRepoPath: cwd,
+          executionWorktreePath: cwd,
+          validationStatus: "pass",
+          forbiddenTouchedFiles: [],
+          committedTargetRepo: false,
+          pushedTargetRepo: false,
+          hookTrustStatus: "unproven",
+          productionProof: false,
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runInCwd(cwd, ["summary", "--json"]);
+    const summary = JSON.parse(result.stdout) as OperatorSummaryFixture;
+
+    expect(summary.realRepoDogfood).toMatchObject({
+      status: "execution-evidence",
+      repoPath: cwd,
+      executionWorktreePath: cwd,
+      outcomeKind: "manual-codex",
+      executionKind: "manual-codex",
+      validationStatus: "pass",
+      productionProof: false,
+      hookTrustStatus: "unproven",
+      summary:
+        "Real-repo dogfood has manual-codex execution evidence; production proof remains false.",
+    });
+    expect(summary.nextActions).toContain(
+      "Run a non-bypass Codex hook trust probe before claiming hook validation.",
+    );
+  });
+
+  it("fails unsafe real-repo execution evidence in operator summary", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-execution", "unsafe-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-execution-result-v1",
+          status: "pass",
+          executionKind: "manual-codex",
+          repoPath: cwd,
+          validationStatus: "pass",
+          forbiddenTouchedFiles: [".env"],
+          committedTargetRepo: false,
+          pushedTargetRepo: false,
+          hookTrustStatus: "trusted",
+          productionProof: false,
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runInCwd(cwd, ["summary", "--json"]);
+    const summary = JSON.parse(result.stdout) as OperatorSummaryFixture;
+
+    expect(summary.realRepoDogfood).toMatchObject({
+      status: "fail",
+      summary:
+        "Real-repo execution result is unsafe: forbidden files, target commit/push, or production-proof overclaim detected.",
+    });
+    expect(summary.blockers).toContain(
+      "realRepoDogfood: Real-repo execution result is unsafe: forbidden files, target commit/push, or production-proof overclaim detected.",
     );
   });
 

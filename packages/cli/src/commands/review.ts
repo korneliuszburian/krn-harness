@@ -377,6 +377,13 @@ interface DogfoodSummary {
   schema?: string | undefined;
   status?: string | undefined;
   outcomeKind?: string | undefined;
+  executionKind?: string | undefined;
+  validationStatus?: string | undefined;
+  forbiddenTouchedFiles?: string[] | undefined;
+  committedTargetRepo?: boolean | undefined;
+  pushedTargetRepo?: boolean | undefined;
+  hookTrustStatus?: string | undefined;
+  productionProof?: boolean | undefined;
   results?: { globalKrnFallbackUsed?: boolean | undefined }[] | undefined;
   aggregates?: { mode?: string; taskPasses?: number; tasks?: number; invalidRuns?: number }[];
 }
@@ -431,6 +438,43 @@ function summarizeDogfoodFindings(label: string, summaries: DogfoodSummary[]): s
   ];
 }
 
+function isExecutionResult(summary: DogfoodSummary): boolean {
+  return (
+    summary.schema === "krn-real-repo-execution-result-v1" ||
+    summary.path.includes("/real-repo-execution/")
+  );
+}
+
+function isUnsafeExecutionResult(summary: DogfoodSummary): boolean {
+  return (
+    isExecutionResult(summary) &&
+    ((summary.forbiddenTouchedFiles?.length ?? 0) > 0 ||
+      summary.committedTargetRepo === true ||
+      summary.pushedTargetRepo === true ||
+      summary.productionProof === true)
+  );
+}
+
+function isBlockedDogfood(summary: DogfoodSummary): boolean {
+  return summary.status === "blocked" || summary.executionKind === "blocked";
+}
+
+function isSkippedDogfood(summary: DogfoodSummary): boolean {
+  return summary.status === "skipped" || summary.executionKind === "skipped";
+}
+
+function isExecutionWarning(summary: DogfoodSummary): boolean {
+  return (
+    isExecutionResult(summary) &&
+    !isUnsafeExecutionResult(summary) &&
+    !isBlockedDogfood(summary) &&
+    !isSkippedDogfood(summary) &&
+    (summary.validationStatus !== "pass" ||
+      summary.hookTrustStatus === "unproven" ||
+      summary.executionKind === "manual-no-codex")
+  );
+}
+
 async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
   const summaries = await collectDogfoodSummaries(cwd);
 
@@ -450,7 +494,8 @@ async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
   const invalid = summaries.filter((summary) =>
     summary.aggregates?.some((aggregate) => (aggregate.invalidRuns ?? 0) > 0),
   );
-  const skipped = summaries.filter((summary) => summary.status === "skipped");
+  const blocked = summaries.filter(isBlockedDogfood);
+  const skipped = summaries.filter(isSkippedDogfood);
   const readiness = summaries.filter(
     (summary) => summary.status === "readiness" || summary.outcomeKind === "readiness-only",
   );
@@ -459,30 +504,46 @@ async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
       summary.schema === "krn-real-repo-preflight-v1" ||
       summary.path.includes("/real-repo-preflight/"),
   );
+  const executionResults = summaries.filter(isExecutionResult);
+  const unsafeExecutionResults = executionResults.filter(isUnsafeExecutionResult);
+  const executionWarnings = executionResults.filter(isExecutionWarning);
 
   return record({
     reviewer: "dogfood",
     status:
-      failing.length > 0 || invalid.length > 0
+      failing.length > 0 || invalid.length > 0 || unsafeExecutionResults.length > 0
         ? "fail"
-        : skipped.length > 0 || readiness.length > 0 || preflightOnly.length > 0
+        : blocked.length > 0 ||
+            skipped.length > 0 ||
+            readiness.length > 0 ||
+            preflightOnly.length > 0 ||
+            executionWarnings.length > 0
           ? "warn"
           : "pass",
     confidence: "medium",
-    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${skipped.length} skipped, ${readiness.length} readiness-only, ${preflightOnly.length} preflight-only.`,
+    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${blocked.length} blocked, ${skipped.length} skipped, ${readiness.length} readiness-only, ${preflightOnly.length} preflight-only, ${executionResults.length} execution-result.`,
     evidence: summaries.map((summary) => summary.path),
     findings: [
       ...summarizeDogfoodFindings("failing dogfood summary", failing),
       ...summarizeDogfoodFindings("invalid dogfood runs in", invalid),
+      ...summarizeDogfoodFindings("unsafe execution result", unsafeExecutionResults),
+      ...summarizeDogfoodFindings("blocked dogfood summary", blocked),
       ...summarizeDogfoodFindings("skipped dogfood summary", skipped),
       ...summarizeDogfoodFindings("readiness-only dogfood summary", readiness),
       ...summarizeDogfoodFindings("preflight-only dogfood summary", preflightOnly),
+      ...summarizeDogfoodFindings("execution-result warning", executionWarnings),
     ],
     nextActions:
-      failing.length > 0 || invalid.length > 0
-        ? ["Inspect failing or invalid dogfood reports."]
-        : skipped.length > 0 || readiness.length > 0 || preflightOnly.length > 0
-          ? ["Review skipped/readiness/preflight dogfood reports before claiming execution proof."]
+      failing.length > 0 || invalid.length > 0 || unsafeExecutionResults.length > 0
+        ? ["Inspect failing, invalid, or unsafe dogfood reports."]
+        : blocked.length > 0 ||
+            skipped.length > 0 ||
+            readiness.length > 0 ||
+            preflightOnly.length > 0 ||
+            executionWarnings.length > 0
+          ? [
+              "Review blocked/skipped/readiness/preflight/execution dogfood reports before claiming execution proof.",
+            ]
           : [],
   });
 }

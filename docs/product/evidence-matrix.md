@@ -19,7 +19,7 @@ It is local evidence only. It is not production proof.
 | Memory | executable governed store | `.krn/memory/*.json` | memory and CLI tests | `pnpm test` | usefulness unproven | operator-approved memory examples |
 | Hooks | executable trace receiver, unproven real loading | `.krn/traces/trace.jsonl` | hook tests | `pnpm test` | real Codex trust/loading unproven | non-bypass hook trust probe |
 | Install adapter | executable downstream scaffold | `AGENTS.md`, `.codex/hooks.json`, `.krn/bin/krn`, runtime skill template | CLI tests | `pnpm test`, dogfood preflight | downstream trust assumptions | approved real repo install review |
-| Real-repo workflow | preflight/scaffold executable; first approved manual Codex execution evidence captured on isolated `krn-llm-wiki` worktree | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, manual `krn-llm-wiki` execution run | skipped/readiness/preflight can be overclaimed; execution still lacks first-class dogfood execution summary schema | add execution-result artifact schema after one more run |
+| Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured on isolated `krn-llm-wiki` worktree | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, manual `krn-llm-wiki` execution run | skipped/readiness/preflight can be overclaimed; hook trust and target verify remain unproven | rerun on another safe repo with real verify profile |
 | Deterministic reviewers | executable | `.krn/current/review-summary.json` | CLI tests | `pnpm test` | usefulness beyond first records unproven | compare reviewer output to human review |
 | Operator summary | executable | `.krn/current/operator-summary.json` | CLI tests | `pnpm test` | summary prioritization unproven | run summary after real dogfood and review |
 | Dashboard-lite | ADR-only | ADR-0014 | docs regression | `pnpm test` | UI before stable data | consume `operator-summary.json` only |
@@ -41,10 +41,10 @@ Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data work
 
 ## Open Proof Gaps
 
-- Repeatable real user-repo dogfood execution schema.
-- Approved real-repo execution beyond one isolated `krn-llm-wiki` docs task.
+- Approved real-repo execution beyond isolated `krn-llm-wiki` docs tasks.
 - Real non-bypass Codex hook loading/trust.
 - Noisy large repo context behavior.
+- Real target verify profile beyond record-only.
 - Production WordPress/ACF behavior.
 - Reviewer usefulness beyond deterministic local records.
 - Operator summary usefulness beyond first deterministic artifact.

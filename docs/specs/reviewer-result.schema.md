@@ -59,7 +59,7 @@ The command writes `review.ran` and does not run verify commands, call Codex, ca
 ## Status Enum
 
 - `pass`: evidence supports the check.
-- `warn`: evidence is incomplete, unproven, skipped, readiness-only, or lower confidence.
+- `warn`: evidence is incomplete, unproven, skipped, blocked, readiness-only, preflight-only, execution evidence with caveats, or lower confidence.
 - `fail`: evidence contradicts the requirement.
 - `blocked`: required evidence cannot be inspected safely or an unsafe state blocks completion.
 - `skipped`: reserved for future reviewer records that intentionally skip.
@@ -80,6 +80,19 @@ The aggregate status is:
 - `handoff`
 - `dogfood`
 - `release`
+
+## Dogfood Reviewer Semantics
+
+The dogfood reviewer reads `.krn/dogfood/**/summary.json`.
+
+- `krn-real-repo-preflight-v1` is preflight-only and warns.
+- `krn-real-repo-dogfood-v1` with `readiness-only` warns.
+- skipped and blocked dogfood artifacts warn unless they contain unsafe evidence.
+- `krn-real-repo-execution-result-v1` can be execution evidence.
+- forbidden touched files, target commits, target pushes, or `productionProof: true` fail.
+- `hookTrustStatus: "unproven"` warns, but does not fail.
+
+Reviewer output is still local operator guidance, not production proof.
 
 ## Example
 

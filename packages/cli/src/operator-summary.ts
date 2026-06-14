@@ -16,7 +16,8 @@ export type OperatorSummaryStatus =
   | "missing"
   | "skipped"
   | "readiness"
-  | "unproven";
+  | "unproven"
+  | "execution-evidence";
 
 export type OperatorSummaryConfidence = "high" | "medium" | "low" | "unknown";
 
@@ -78,7 +79,12 @@ export interface OperatorSummary {
     latestStatus?: string | undefined;
     latestPath?: string | undefined;
     repoPath?: string | null | undefined;
+    executionWorktreePath?: string | null | undefined;
     outcomeKind?: string | undefined;
+    executionKind?: string | undefined;
+    validationStatus?: string | undefined;
+    productionProof?: boolean | undefined;
+    hookTrustStatus?: string | undefined;
     missingEnv?: string[] | undefined;
     nextAction?: string | undefined;
   };
@@ -128,8 +134,17 @@ interface RealRepoDogfoodSummaryFixture {
   schema?: unknown;
   status?: unknown;
   outcomeKind?: unknown;
+  executionKind?: unknown;
+  validationStatus?: unknown;
+  forbiddenTouchedFiles?: unknown;
+  committedTargetRepo?: unknown;
+  pushedTargetRepo?: unknown;
+  hookTrustStatus?: unknown;
+  productionProof?: unknown;
   eligible?: unknown;
   repoPath?: string | null | undefined;
+  targetRepoPath?: string | null | undefined;
+  executionWorktreePath?: string | null | undefined;
   summaryJsonPath?: string | undefined;
   missingEnv?: unknown;
   nextCommand?: unknown;
@@ -424,7 +439,8 @@ async function collectRealRepoDogfoodSummaries(
         const summary = await readJson<RealRepoDogfoodSummaryFixture>(cwd, relativePath);
         if (
           summary?.schema === "krn-real-repo-dogfood-v1" ||
-          summary?.schema === "krn-real-repo-preflight-v1"
+          summary?.schema === "krn-real-repo-preflight-v1" ||
+          summary?.schema === "krn-real-repo-execution-result-v1"
         ) {
           const info = await stat(entryPath);
           summaries.push({ path: relativePath, mtimeMs: info.mtimeMs, ...summary });
@@ -439,9 +455,91 @@ async function collectRealRepoDogfoodSummaries(
   );
 }
 
+function executionResultSignal(
+  latest: RealRepoDogfoodSummaryFixture & { path: string; mtimeMs: number },
+): OperatorSummary["realRepoDogfood"] {
+  const executionKind = typeof latest.executionKind === "string" ? latest.executionKind : "blocked";
+  const validationStatus =
+    typeof latest.validationStatus === "string" ? latest.validationStatus : "not-run";
+  const productionProof = latest.productionProof === true;
+  const hookTrustStatus =
+    typeof latest.hookTrustStatus === "string" ? latest.hookTrustStatus : undefined;
+  const forbiddenTouchedFiles = Array.isArray(latest.forbiddenTouchedFiles)
+    ? latest.forbiddenTouchedFiles.filter((item): item is string => typeof item === "string")
+    : [];
+  const committedTargetRepo = latest.committedTargetRepo === true;
+  const pushedTargetRepo = latest.pushedTargetRepo === true;
+  const unsafe =
+    forbiddenTouchedFiles.length > 0 || committedTargetRepo || pushedTargetRepo || productionProof;
+  const base = {
+    confidence: "medium" as const,
+    artifacts: [latest.path],
+    latestStatus: typeof latest.status === "string" ? latest.status : executionKind,
+    latestPath: latest.path,
+    repoPath: latest.targetRepoPath ?? latest.repoPath,
+    executionWorktreePath: latest.executionWorktreePath,
+    outcomeKind: executionKind,
+    executionKind,
+    validationStatus,
+    productionProof,
+    hookTrustStatus,
+  };
+
+  if (unsafe) {
+    return {
+      ...base,
+      status: "fail",
+      summary:
+        "Real-repo execution result is unsafe: forbidden files, target commit/push, or production-proof overclaim detected.",
+      nextAction: "Inspect the execution-result artifact and discard unsafe target changes.",
+    };
+  }
+
+  if (executionKind === "skipped") {
+    return {
+      ...base,
+      status: "skipped",
+      summary: "Real-repo execution result was skipped.",
+      nextAction: "Rerun the approved manual protocol when execution is allowed.",
+    };
+  }
+
+  if (executionKind === "blocked") {
+    return {
+      ...base,
+      status: "blocked",
+      summary: "Real-repo execution result is blocked.",
+      nextAction: "Resolve execution blockers, then rerun the manual protocol.",
+    };
+  }
+
+  if (validationStatus === "pass") {
+    return {
+      ...base,
+      status: "execution-evidence",
+      summary: `Real-repo dogfood has ${executionKind} execution evidence; production proof remains false.`,
+      nextAction:
+        hookTrustStatus === "unproven"
+          ? "Run a non-bypass Codex hook trust probe before claiming hook validation."
+          : undefined,
+    };
+  }
+
+  return {
+    ...base,
+    status: "warn",
+    summary: "Real-repo execution result exists, but target validation did not pass.",
+    nextAction: "Run or repair target validation before claiming execution evidence.",
+  };
+}
+
 async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["realRepoDogfood"]> {
   const summaries = await collectRealRepoDogfoodSummaries(cwd);
   const latest = summaries.at(-1);
+
+  if (latest?.schema === "krn-real-repo-execution-result-v1") {
+    return executionResultSignal(latest);
+  }
 
   if (!latest || typeof latest.status !== "string") {
     if (latest?.schema === "krn-real-repo-preflight-v1") {
@@ -622,6 +720,15 @@ function summarizeProblems(
       realRepoDogfood?.nextAction ??
         "Run real-repo dogfood on an approved non-protected repository.",
     );
+  }
+
+  if (realRepoDogfood?.status === "execution-evidence") {
+    risks.push(
+      "Real-repo execution evidence is local evidence only; production proof remains false.",
+    );
+    if (realRepoDogfood.nextAction) {
+      nextActions.push(realRepoDogfood.nextAction);
+    }
   }
 
   if (reviewers?.status === "missing") {
