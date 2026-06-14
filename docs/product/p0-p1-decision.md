@@ -36,6 +36,7 @@ P1 starts only through gated local artifacts and contracts:
 - real-repo workflow: preflight plus skipped/blocked/readiness scaffold;
 - reviewers: deterministic `krn review --write` artifact records;
 - operator summary: deterministic `krn summary --write` artifact;
+- verify execute policy: ADR-0017 documents explicit `--execute`, exact allowlists, no shell mode, scrubbed env, redaction, and the narrow coverage exception;
 - dashboard-lite: ADR for static local generated HTML only;
 - MCP: read-only resource contract only, no server;
 - vector/retrieval: synthetic experiment contract only, no vector DB or embeddings dependency;
@@ -64,6 +65,7 @@ KRN must not claim:
 - production readiness;
 - real-repo validation;
 - hook enforcement;
+- arbitrary verify command execution;
 - dashboard product readiness;
 - MCP server readiness;
 - vector retrieval quality;

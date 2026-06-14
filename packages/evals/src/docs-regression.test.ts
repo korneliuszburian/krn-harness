@@ -279,6 +279,9 @@ describe("P0 docs anti-regression", () => {
   it("keeps verify profile docs explicit about policy and non-execution", async () => {
     const verifySpec = await readDoc("docs/specs/verify-result.schema.md");
     const configSpec = await readDoc("docs/specs/krn-config.schema.md");
+    const verifyAdr = await readDoc("docs/adr/ADR-0017-verify-execute-policy.md");
+    const adrIndex = await readDoc("docs/adr/README.md");
+    const decision = await readDoc("docs/product/p0-p1-decision.md");
 
     expect(verifySpec).toContain("record-only");
     expect(verifySpec).toContain("Execute mode runs only allowlisted command/args");
@@ -286,6 +289,15 @@ describe("P0 docs anti-regression", () => {
     expect(verifySpec).toContain("never store environment variables");
     expect(configSpec).toContain("verify.profiles");
     expect(configSpec).toContain("verify.defaultProfile");
+    expect(verifyAdr).toContain("Keep verify record-only by default");
+    expect(verifyAdr).toContain("pnpm test --coverage");
+    expect(verifyAdr).toContain("Do not allow arbitrary package script arguments");
+    expect(verifyAdr).toContain("shell: false");
+    expect(verifyAdr).toContain("scrubbed allowlisted environment");
+    expect(verifyAdr).toContain("redacted compact stdout/stderr tails");
+    expect(verifyAdr).toContain("Treat verify output as local validation evidence only");
+    expect(adrIndex).toContain("ADR-0017: Verify Execute Policy");
+    expect(decision).toContain("verify execute policy: ADR-0017");
   });
 
   it("does not describe current P0 docs as skeleton-only output", async () => {

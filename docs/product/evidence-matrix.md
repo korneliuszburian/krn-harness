@@ -12,7 +12,7 @@ It is local evidence only. It is not production proof.
 | Task contract | executable | `.krn/current/task-contract.json` | CLI tests | `pnpm test` | weak task intent can still pass schema | richer task-spec fixtures |
 | Graph-lite | executable | `.krn/graph/repo-graph.json` | graph and CLI tests | `pnpm test` | shallow detectors only | real repo graph noise review |
 | Context package | executable | `.krn/current/context-package.json` | context and CLI tests | `pnpm test` | over-inclusion and stale docs | real repo context review |
-| Verify | executable | `.krn/current/verify-result.json` | verify and CLI tests | `pnpm test`, `pnpm verify:local` | local command evidence only | safe real repo verify profiles |
+| Verify | executable, ADR-0017 governed | `.krn/current/verify-result.json` | verify and CLI tests | `pnpm test`, `pnpm verify:local` | local command evidence only | safe real repo verify profiles |
 | Handoff | executable | `.krn/current/handoff.md` | CLI tests | `pnpm test` | generated summary may miss nuance | compare against human review |
 | Doctor | executable | `.krn/current/doctor-result.json` | doctor and CLI tests | `pnpm test` | local checks only | add checks after real dogfood findings |
 | Eval | executable fixture gate | `.krn/current/eval-result.json` | eval tests | `pnpm test` | fixture coverage only | expand fixtures after real failures |

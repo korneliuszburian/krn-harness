@@ -465,6 +465,7 @@ describe("verify command policy", () => {
       parseVerifyCommandString("pnpm lint"),
       parseVerifyCommandString("pnpm typecheck"),
       parseVerifyCommandString("pnpm test"),
+      parseVerifyCommandString("pnpm test --coverage"),
       parseVerifyCommandString("npm test"),
       parseVerifyCommandString("npm run test"),
       parseVerifyCommandString("node src/index.test.ts"),
@@ -492,6 +493,8 @@ describe("verify command policy", () => {
       ],
       ["git status", "unknown verify command: git status"],
       ["node ../secret.js", "unknown verify command: node ../secret.js"],
+      ["pnpm test -- --runInBand", "unknown verify command: pnpm test -- --runInBand"],
+      ["pnpm test --reporter=json", "unknown verify command: pnpm test --reporter=json"],
     ];
 
     for (const [input, reason] of blockedCases) {

@@ -17,6 +17,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - `krn.config.json` schema and `.krn/` runtime layout.
 - Safe downstream install for `AGENTS.md`, hooks, runtime skill, and runtime directories.
 - Task contract, context package, graph-lite, trace, verify, handoff, doctor, memory, and eval contracts.
+- Verify execute policy documented in ADR-0017: record-only by default, explicit `--execute`, exact command allowlists, no shell mode, scrubbed env, and redacted compact output.
 - Hook guardrails with deterministic `allow`, `warn`, and `block` decisions, compact trace evidence, and operator guidance.
 - Dogfood evidence for tiny downstream fixture runs and a synthetic WordPress/ACF-style fixture.
 - Repo-scoped build-time skills in `.agents/skills/*`.

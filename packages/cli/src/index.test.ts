@@ -425,7 +425,10 @@ describe("krn CLI", () => {
           defaultProfile: "unit",
           profiles: {
             unit: {
-              commands: [{ command: "node", args: ["src/index.test.ts"] }],
+              commands: [
+                { command: "node", args: ["src/index.test.ts"] },
+                { command: "pnpm", args: ["test", "--coverage"] },
+              ],
             },
           },
         },
@@ -439,7 +442,7 @@ describe("krn CLI", () => {
     expect(summary.eligible).toBe(true);
     expect(summary.krnConfigExists).toBe(true);
     expect(summary.verifyProfileStatus).toBe("safe");
-    expect(summary.safeVerifyCommands).toEqual(["node src/index.test.ts"]);
+    expect(summary.safeVerifyCommands).toEqual(["node src/index.test.ts", "pnpm test --coverage"]);
     expect(summary.krnIdentityValid).toBe(true);
     expect(summary.pinnedKrnPath).toBe(path.join(repo, "..", "bin-safe", "krn"));
   }, 20_000);

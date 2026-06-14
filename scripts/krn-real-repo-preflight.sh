@@ -134,7 +134,11 @@ function verifyCommandAllowed(tokens) {
     return { allowed: false, reason: "git clean is not allowed" };
   }
 
-  if (command === "pnpm" && args.length === 1 && ["lint", "typecheck", "test"].includes(args[0])) {
+  if (
+    command === "pnpm" &&
+    ((args.length === 1 && ["lint", "typecheck", "test"].includes(args[0])) ||
+      (args.length === 2 && args[0] === "test" && args[1] === "--coverage"))
+  ) {
     return { allowed: true };
   }
 

@@ -65,8 +65,8 @@ export function verifyCommandPolicy(command: VerifyProfileCommand): VerifyComman
 
   if (
     command.command === "pnpm" &&
-    command.args.length === 1 &&
-    ["lint", "typecheck", "test"].includes(command.args[0] ?? "")
+    ((command.args.length === 1 && ["lint", "typecheck", "test"].includes(command.args[0] ?? "")) ||
+      (command.args.length === 2 && command.args[0] === "test" && command.args[1] === "--coverage"))
   ) {
     return { allowed: true };
   }
