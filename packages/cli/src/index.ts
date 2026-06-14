@@ -10,6 +10,7 @@ import { handoffCommand } from "./commands/handoff.js";
 import { hookCommand } from "./commands/hook.js";
 import { installCommand } from "./commands/install.js";
 import { memoryCommand } from "./commands/memory.js";
+import { reviewCommand } from "./commands/review.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
 import { verifyCommand } from "./commands/verify.js";
@@ -30,6 +31,7 @@ Usage:
   krn doctor cli
   krn eval
   krn install
+  krn review
   krn memory <command>
   krn hook codex <event>
 `;
@@ -79,6 +81,10 @@ export async function runCli(
 
   if (command === "install") {
     return installCommand(runtime);
+  }
+
+  if (command === "review") {
+    return reviewCommand(rest, runtime);
   }
 
   if (command === "memory") {

@@ -65,6 +65,13 @@ Confidence is `low`, `medium`, or `high`.
 
 An LLM reviewer is dry-run only until explicitly approved. It must receive sanitized summaries, not protected repo contents, and normal tests must not call paid models.
 
-## Future CLI
+## CLI
 
-A future `krn review` may run deterministic reviewers and emit JSON/Markdown. `krn review --llm` requires explicit approval and a stubbed/no-model test path before it exists.
+`krn review` runs deterministic reviewers and emits:
+
+- `.krn/current/review-result.json`
+- `.krn/current/review-result.md`
+
+It writes a `review.ran` trace event. It does not edit source files, execute verify commands, call models, commit, or push.
+
+`krn review --llm` does not exist. It would require explicit approval and a stubbed/no-model test path before it can be added.

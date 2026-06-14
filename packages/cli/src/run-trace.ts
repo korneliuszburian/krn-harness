@@ -83,6 +83,8 @@ function runArtifactPaths(taskId: string): Record<string, string> {
     runMetadata: `.krn/runs/${taskId}/run.json`,
     runSummary: `.krn/runs/${taskId}/summary.md`,
     runTrace: `.krn/runs/${taskId}/trace.jsonl`,
+    reviewResultJson: ".krn/current/review-result.json",
+    reviewResultMarkdown: ".krn/current/review-result.md",
     taskContractJson: ".krn/current/task-contract.json",
     taskContractMarkdown: ".krn/current/task-contract.md",
     verifyResultJson: ".krn/current/verify-result.json",

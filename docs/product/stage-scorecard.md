@@ -20,7 +20,7 @@ Hard boundary violations: none found in the current source-controlled slice.
 | 5 | Real-repo protocol and scaffold | pass | passed | 4 | 5 | 5 | 4 | 4 | 4 | low | `docs/demo/real-repo-dogfood.md`, `scripts/krn-real-repo-dogfood.sh` | CLI tests | report-only scaffold first | continue |
 | 6 | First real-repo attempt or exact skip | partial | passed as readiness/skipped | 3 | 5 | 4 | 3 | 3 | 3 | medium | skipped/readiness reports under `.krn/dogfood` | script smoke | no real repo validation claim | harden |
 | 7 | Hardening after skipped/blocked/readiness | pass | passed | 4 | 5 | 4 | 3 | 4 | 4 | low | next-action output and tests | CLI tests | readiness is actionable | continue |
-| 8 | Reviewer framework v0 | partial | passed as contract | 3 | 5 | 4 | 4 | 3 | 4 | medium | `docs/product/reviewers.md` | docs regression | reviewers are not agents | harden |
+| 8 | Reviewer framework v0 | pass | passed | 4 | 5 | 4 | 4 | 4 | 4 | low | `docs/product/reviewers.md`, `krn review` | CLI and docs tests | reviewers are deterministic, not agents | continue |
 | 9 | Subagent/reviewer contracts | partial | passed as contract | 3 | 5 | 3 | 4 | 3 | 4 | medium | `docs/product/subagent-contracts.md` | docs regression | no autonomous swarm | harden |
 | 10 | Operator summary/data model | partial | passed as doc model | 3 | 5 | 4 | 3 | 3 | 3 | medium | `docs/product/operator-console.md` | docs regression | summary before UI | harden |
 | 11 | Dashboard-lite read-only prototype | partial | ADR accepted, implementation deferred | 3 | 5 | 3 | 3 | 3 | 4 | medium | ADR-0014 | docs regression | static local viewer only | harden |

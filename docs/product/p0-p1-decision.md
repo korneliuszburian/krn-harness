@@ -34,7 +34,7 @@ This is not production readiness.
 P1 starts only through gated local artifacts and contracts:
 
 - real-repo workflow: preflight plus skipped/blocked/readiness scaffold;
-- reviewers: deterministic artifact-review contract;
+- reviewers: deterministic `krn review` artifact records;
 - operator summary: data model only;
 - dashboard-lite: ADR for static local generated HTML only;
 - MCP: read-only resource contract only, no server;
@@ -52,7 +52,7 @@ P1 starts only through gated local artifacts and contracts:
 - Dashboard-lite usefulness beyond ADR.
 - MCP usefulness beyond contract.
 - Retrieval/vector usefulness beyond experiment contract.
-- Reviewer usefulness beyond contracts.
+- Reviewer usefulness beyond first deterministic records.
 
 ## Product Decision
 

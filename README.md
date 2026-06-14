@@ -61,6 +61,7 @@ pnpm --silent krn handoff
 pnpm --silent krn doctor
 pnpm --silent krn doctor cli
 pnpm --silent krn eval
+pnpm --silent krn review
 pnpm --silent krn memory list
 pnpm --silent krn hook codex SessionStart
 ```

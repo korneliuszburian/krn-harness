@@ -137,6 +137,16 @@ interface RealRepoDogfoodSummary {
   summaryMarkdownPath: string;
 }
 
+interface ReviewResultFixture {
+  schema: string;
+  status: string;
+  records: Array<{
+    reviewer: string;
+    status: string;
+    findings: string[];
+  }>;
+}
+
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
   const start = stdout.indexOf("{\n");
   const end = stdout.indexOf("\n--- markdown ---", start);
@@ -258,6 +268,7 @@ describe("krn CLI", () => {
       "krn doctor cli",
       "krn eval",
       "krn install",
+      "krn review",
       "krn memory <command>",
       "krn hook codex <event>",
     ]) {
@@ -595,6 +606,7 @@ describe("krn CLI", () => {
       ["handoff"],
       ["doctor"],
       ["eval"],
+      ["review"],
     ]) {
       await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
     }
@@ -615,6 +627,8 @@ describe("krn CLI", () => {
       ".krn/current/doctor-result.md",
       ".krn/current/eval-result.json",
       ".krn/current/eval-result.md",
+      ".krn/current/review-result.json",
+      ".krn/current/review-result.md",
       ".krn/traces/trace.jsonl",
       `.krn/runs/${contract.id}/trace.jsonl`,
       `.krn/runs/${contract.id}/run.json`,
@@ -634,6 +648,7 @@ describe("krn CLI", () => {
       "handoff.created",
       "doctor.ran",
       "eval.ran",
+      "review.ran",
     ]);
     expect((await readRunTraceEvents(cwd, contract.id)).map((event) => event.name)).toEqual([
       "task.started",
@@ -643,8 +658,61 @@ describe("krn CLI", () => {
       "handoff.created",
       "doctor.ran",
       "eval.ran",
+      "review.ran",
     ]);
   });
+
+  it("rejects unsupported review options", async () => {
+    const result = await runInTemp(["review", "--llm"]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("KRN review: expected `krn review`");
+  });
+
+  it("runs deterministic reviewers without executing model or verify commands", async () => {
+    const cwd = await copyFixtureRepo("downstream-basic");
+
+    for (const args of [
+      ["install"],
+      ["start", "Review deterministic local artifacts after safe fixture verification."],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const review = await runInCwd(cwd, ["review"]);
+
+    expect(review.code).toBe(0);
+    expect(review.stdout).toContain("KRN review:");
+    expect(review.stdout).toContain("records: 7");
+    await expectFile(cwd, ".krn/current/review-result.json");
+    await expectFile(cwd, ".krn/current/review-result.md");
+
+    const result = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-result.json");
+    expect(result.schema).toBe("krn-review-result-v0");
+    expect(result.records.map((item) => item.reviewer)).toEqual([
+      "safety",
+      "evidence",
+      "context",
+      "verify",
+      "handoff",
+      "dogfood",
+      "release",
+    ]);
+    expect(result.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ reviewer: "evidence", status: "pass" }),
+        expect.objectContaining({ reviewer: "verify", status: "pass" }),
+        expect.objectContaining({ reviewer: "handoff", status: "pass" }),
+        expect.objectContaining({ reviewer: "release", status: "warn" }),
+      ]),
+    );
+    expect(result.records.find((item) => item.reviewer === "dogfood")?.status).toBe("warn");
+    expect((await readTraceEvents(cwd)).map((event) => event.name)).toContain("review.ran");
+  }, 20_000);
 
   it("runs graph and writes deterministic graph artifacts", async () => {
     const result = await runInTemp(["graph"]);
