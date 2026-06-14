@@ -1,7 +1,7 @@
 import type { Dirent } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import { pathExists, readJsonFile } from "../../../core/src/index.js";
+import { classifyExecutionResult, pathExists, readJsonFile } from "../../../core/src/index.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -446,13 +446,7 @@ function isExecutionResult(summary: DogfoodSummary): boolean {
 }
 
 function isUnsafeExecutionResult(summary: DogfoodSummary): boolean {
-  return (
-    isExecutionResult(summary) &&
-    ((summary.forbiddenTouchedFiles?.length ?? 0) > 0 ||
-      summary.committedTargetRepo === true ||
-      summary.pushedTargetRepo === true ||
-      summary.productionProof === true)
-  );
+  return isExecutionResult(summary) && classifyExecutionResult(summary).severity === "fail";
 }
 
 function isBlockedDogfood(summary: DogfoodSummary): boolean {
@@ -464,16 +458,14 @@ function isSkippedDogfood(summary: DogfoodSummary): boolean {
 }
 
 function isExecutionWarning(summary: DogfoodSummary): boolean {
-  const hookTrustStatus = summary.hookTrustStatus ?? "unproven";
+  const classification = classifyExecutionResult(summary);
   return (
     isExecutionResult(summary) &&
     !isUnsafeExecutionResult(summary) &&
     !isBlockedDogfood(summary) &&
     !isSkippedDogfood(summary) &&
-    (summary.validationStatus !== "pass" ||
-      hookTrustStatus === "unproven" ||
-      hookTrustStatus === "manual-diagnostic-only" ||
-      hookTrustStatus === "blocked" ||
+    (classification.severity === "warn" ||
+      classification.nextAction !== undefined ||
       summary.executionKind === "manual-no-codex")
   );
 }

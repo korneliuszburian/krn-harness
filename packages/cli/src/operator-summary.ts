@@ -2,7 +2,13 @@ import type { Dirent } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../context/src/index.js";
-import { pathExists, readJsonFile } from "../../core/src/index.js";
+import {
+  classifyExecutionResult,
+  classifyHookTrust,
+  isHookTrustSufficient,
+  pathExists,
+  readJsonFile,
+} from "../../core/src/index.js";
 import { memoryCounts } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
@@ -408,12 +414,11 @@ function hooksSignal(rawTrace: string | undefined): OperatorSummary["hooks"] {
   );
   const diagnosticOnly =
     hookReceivedCount > 0 && trustedHookEvents.length === 0 && diagnosticHookEvents.length > 0;
-  const hookTrustStatus =
-    trustedHookEvents.length > 0
-      ? "partially-proven"
-      : diagnosticOnly
-        ? "manual-diagnostic-only"
-        : "unproven";
+  const hookTrustStatus = classifyHookTrust({
+    hookReceivedCount,
+    trustedHookCount: trustedHookEvents.length,
+    diagnosticHookCount: diagnosticHookEvents.length,
+  }) as OperatorSummary["hooks"]["hookTrustStatus"];
 
   return {
     status: hookTrustStatus,
@@ -494,8 +499,17 @@ function executionResultSignal(
   const nextAction = nextActions.at(0);
   const committedTargetRepo = latest.committedTargetRepo === true;
   const pushedTargetRepo = latest.pushedTargetRepo === true;
-  const unsafe =
-    forbiddenTouchedFiles.length > 0 || committedTargetRepo || pushedTargetRepo || productionProof;
+  const proof = classifyExecutionResult({
+    ...latest,
+    executionKind,
+    validationStatus,
+    forbiddenTouchedFiles,
+    committedTargetRepo,
+    pushedTargetRepo,
+    hookTrustStatus,
+    productionProof,
+  });
+  const unsafe = proof.severity === "fail";
   const base = {
     confidence: "medium" as const,
     artifacts: [latest.path],
@@ -543,10 +557,7 @@ function executionResultSignal(
       ...base,
       status: "execution-evidence",
       summary: `Real-repo dogfood has ${executionKind} execution evidence; production proof remains false.`,
-      nextAction:
-        hookTrustStatus !== "partially-proven"
-          ? "Run a non-bypass Codex hook trust probe before claiming hook validation."
-          : undefined,
+      nextAction: isHookTrustSufficient(hookTrustStatus) ? undefined : proof.nextAction,
     };
   }
 
