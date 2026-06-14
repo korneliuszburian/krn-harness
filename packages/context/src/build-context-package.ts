@@ -24,6 +24,13 @@ export interface BuildContextPackageOptions {
   approvedMemory?: MemoryRecord[] | undefined;
 }
 
+interface ContextSelectionHints {
+  explicitTaskPaths: Set<string>;
+  expectedTouchedPaths: Set<string>;
+  doNotUsePaths: string[];
+  verifyProfileFocused: boolean;
+}
+
 const bucketNames = [
   "mustRead",
   "shouldRead",
@@ -79,6 +86,18 @@ const taskStopWords = new Set([
   "fixtures",
   "wordpress",
   "acf",
+]);
+
+const broadVerifyProfileDocTerms = new Set([
+  "approval",
+  "path",
+  "prove",
+  "read",
+  "readme",
+  "readonly",
+  "repo",
+  "tools",
+  "validation",
 ]);
 
 function item(
@@ -159,6 +178,70 @@ function matchedTermsForText(text: string, terms: string[]): string[] {
   return terms.filter((term) => normalized.includes(term));
 }
 
+function normalizeContextPath(value: string): string {
+  return value.replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/+$/, "");
+}
+
+function explicitRepoPathsForTask(task: string): string[] {
+  const paths = new Set<string>();
+  const pathPattern =
+    /(?:^|[\s`"'(])((?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+|[A-Za-z0-9._-]+\.(?:cjs|js|json|md|mjs|py|toml|ts|tsx|yaml|yml))(?:$|[\s`"',.;:)])/g;
+
+  for (const match of task.matchAll(pathPattern)) {
+    const rawPath = match[1];
+    if (!rawPath) {
+      continue;
+    }
+
+    const normalized = normalizeContextPath(rawPath);
+    if (normalized.length > 0 && !normalized.startsWith("-")) {
+      paths.add(normalized);
+    }
+  }
+
+  return [...paths].sort((left, right) => left.localeCompare(right));
+}
+
+function isPathWithin(pathValue: string, parentPath: string): boolean {
+  const pathName = normalizeContextPath(pathValue);
+  const parent = normalizeContextPath(parentPath);
+
+  return pathName === parent || pathName.startsWith(`${parent}/`);
+}
+
+function isVerifyProfileFocusedTask(task: string): boolean {
+  const normalized = task.toLowerCase();
+
+  return (
+    normalized.includes("verify") &&
+    (normalized.includes("verify --execute") ||
+      normalized.includes("verify profile") ||
+      normalized.includes("readonly profile") ||
+      normalized.includes("check_all_readonly"))
+  );
+}
+
+function selectionHintsFor(contract: TaskContract | undefined): ContextSelectionHints {
+  const task = contract?.task ?? "";
+  const expectedTouchedPaths = new Set(
+    (contract?.metadata?.expectedTouchedFiles ?? []).map(normalizeContextPath),
+  );
+  const doNotUsePaths = (contract?.metadata?.requiredDoNotUsePaths ?? []).map(normalizeContextPath);
+  const explicitTaskPaths = new Set(
+    explicitRepoPathsForTask(task).filter(
+      (explicitPath) =>
+        !doNotUsePaths.some((doNotUsePath) => isPathWithin(explicitPath, doNotUsePath)),
+    ),
+  );
+
+  return {
+    explicitTaskPaths,
+    expectedTouchedPaths,
+    doNotUsePaths,
+    verifyProfileFocused: isVerifyProfileFocusedTask(task),
+  };
+}
+
 function graphNodeText(node: { label: string; evidencePath: string } | undefined): string {
   return node ? `${node.label} ${node.evidencePath}` : "";
 }
@@ -233,18 +316,74 @@ function taskPolicyItems(task: string): ContextItem[] {
 }
 
 function taskContractMetadataItems(contract?: TaskContract): ContextItem[] {
-  return (
-    contract?.metadata?.requiredDoNotUsePaths?.map((path) =>
+  const items: ContextItem[] =
+    contract?.metadata?.expectedTouchedFiles?.map((path) =>
+      item(
+        "must-read",
+        normalizeContextPath(path),
+        "Task contract expects this file may be touched",
+        99,
+        "available",
+        {
+          source: "task-contract",
+          selector: "expected-touched-file",
+        },
+      ),
+    ) ?? [];
+
+  items.push(
+    ...(contract?.metadata?.requiredDoNotUsePaths?.map((path) =>
       item("do-not-use", path, "Task contract marks this path do-not-use", 101, "deprecated", {
         source: "task-contract",
         selector: "required-do-not-use-path",
         operatorMessage: "Do not use this path as active context; it is forbidden by the task.",
       }),
-    ) ?? []
+    ) ?? []),
   );
+
+  return items;
 }
 
-function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
+function explicitTaskPathItems(hints: ContextSelectionHints): ContextItem[] {
+  return [...hints.explicitTaskPaths]
+    .filter((path) => !hints.expectedTouchedPaths.has(path))
+    .map((path) =>
+      item("should-read", path, "Task text explicitly references this repo path", 78, "available", {
+        source: "task-policy",
+        selector: "explicit-task-path",
+      }),
+    );
+}
+
+function shouldSuppressVerifyProfileDocMatch(
+  evidencePath: string,
+  matchedTerms: string[],
+  hints: ContextSelectionHints,
+): boolean {
+  if (!hints.verifyProfileFocused) {
+    return false;
+  }
+
+  const normalizedPath = normalizeContextPath(evidencePath);
+  if (
+    hints.expectedTouchedPaths.has(normalizedPath) ||
+    hints.explicitTaskPaths.has(normalizedPath)
+  ) {
+    return false;
+  }
+
+  if (hints.doNotUsePaths.some((doNotUsePath) => isPathWithin(normalizedPath, doNotUsePath))) {
+    return true;
+  }
+
+  return matchedTerms.every((term) => broadVerifyProfileDocTerms.has(term));
+}
+
+function graphItemsForTask(
+  task: string,
+  graph: GraphLite | undefined,
+  hints: ContextSelectionHints,
+): ContextItem[] {
   if (!graph) {
     return [];
   }
@@ -610,7 +749,8 @@ function graphItemsForTask(task: string, graph?: GraphLite): ContextItem[] {
       node.kind === "doc" &&
       node.status !== "deprecated" &&
       matchedTerms.length > 0 &&
-      !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms)
+      !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
+      !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
     ) {
       items.push(
         item(
@@ -844,12 +984,14 @@ export function buildContextPackage(
   options: BuildContextPackageOptions = {},
 ): ContextPackage {
   const task = contract?.task ?? "";
+  const selectionHints = selectionHintsFor(contract);
   const items = rankContext(
     dedupeItems([
       ...baseItems(),
       ...taskPolicyItems(task),
       ...taskContractMetadataItems(contract),
-      ...graphItemsForTask(task, graph),
+      ...explicitTaskPathItems(selectionHints),
+      ...graphItemsForTask(task, graph, selectionHints),
       ...memoryItemsForTask(task, options.approvedMemory),
     ]),
   );

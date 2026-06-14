@@ -11,7 +11,7 @@ It is local evidence only. It is not production proof.
 | CLI identity | executable | `krn doctor cli` | CLI tests | `pnpm test`, dogfood preflight | global `krn` collision | keep pinned shim evidence in dogfood |
 | Task contract | executable | `.krn/current/task-contract.json` | CLI tests | `pnpm test` | weak task intent can still pass schema | richer task-spec fixtures |
 | Graph-lite | executable | `.krn/graph/repo-graph.json` | graph and CLI tests | `pnpm test` | shallow detectors only | real repo graph noise review |
-| Context package | executable | `.krn/current/context-package.json` | context and CLI tests | `pnpm test` | over-inclusion and stale docs | real repo context review |
+| Context package | executable; verify-profile doc-match noise narrowed from real-repo finding | `.krn/current/context-package.json` | context and CLI tests | `pnpm test`, isolated `krn-llm-wiki` before/after context comparison | broad tasks can still over-include shallow graph docs | repeat on approved Codex run |
 | Verify | executable, ADR-0017 governed; safe Python readonly target profile proven locally | `.krn/current/verify-result.json` | verify and CLI tests | `pnpm test`, `pnpm verify:local`, isolated `krn-llm-wiki` `krn verify --execute` | local command evidence only | repeat on approved target with committed target config |
 | Handoff | executable | `.krn/current/handoff.md` | CLI tests | `pnpm test` | generated summary may miss nuance | compare against human review |
 | Doctor | executable | `.krn/current/doctor-result.json` | doctor and CLI tests | `pnpm test` | local checks only | add checks after real dogfood findings |
@@ -19,7 +19,7 @@ It is local evidence only. It is not production proof.
 | Memory | executable governed store | `.krn/memory/*.json` | memory and CLI tests | `pnpm test` | usefulness unproven | operator-approved memory examples |
 | Hooks | executable trace receiver, unproven real loading | `.krn/traces/trace.jsonl` | hook tests | `pnpm test` | real Codex trust/loading unproven | non-bypass hook trust probe |
 | Install adapter | executable downstream scaffold | `AGENTS.md`, `.codex/hooks.json`, `.krn/bin/krn`, runtime skill template | CLI tests | `pnpm test`, dogfood preflight | downstream trust assumptions | approved real repo install review |
-| Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; executable verify profile proven on isolated `krn-llm-wiki` worktree | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, manual `krn-llm-wiki` execution run, isolated `krn verify --execute` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof | rerun on approved target with committed config and explicit Codex execution gate |
+| Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; executable verify profile proven on isolated `krn-llm-wiki` worktree; second Codex task blocked by missing approval env after executable verify | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, manual `krn-llm-wiki` execution run, isolated `krn verify --execute` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof; approved second Codex run still pending | rerun on approved target with explicit `KRN_REAL_REPO_CODEX_APPROVED=1` |
 | Deterministic reviewers | executable | `.krn/current/review-summary.json` | CLI tests | `pnpm test` | usefulness beyond first records unproven | compare reviewer output to human review |
 | Operator summary | executable | `.krn/current/operator-summary.json` | CLI tests | `pnpm test` | summary prioritization unproven | run summary after real dogfood and review |
 | Dashboard-lite | ADR-only | ADR-0014 | docs regression | `pnpm test` | UI before stable data | consume `operator-summary.json` only |
@@ -41,7 +41,7 @@ Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data work
 
 ## Open Proof Gaps
 
-- Approved real-repo execution beyond isolated `krn-llm-wiki` docs tasks.
+- Approved second real-repo execution beyond isolated `krn-llm-wiki` docs tasks when `KRN_REAL_REPO_CODEX_APPROVED=1` is set.
 - Real non-bypass Codex hook loading/trust.
 - Noisy large repo context behavior.
 - Committed real target verify profile beyond isolated-worktree temporary config.

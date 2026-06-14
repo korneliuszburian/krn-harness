@@ -21,7 +21,11 @@ pre-loop, passed the target repo read-only validation suite, and leaves
 `productionProof: false`. A later isolated `krn-llm-wiki` worktree also proved a
 temporary safe `python3 tools/check_all_readonly.py` verify profile through
 `krn verify --execute`; the Codex edit step was blocked because
-`KRN_REAL_REPO_CODEX_APPROVED` was not set.
+`KRN_REAL_REPO_CODEX_APPROVED` was not set. The same blocked run measured and
+hardened verify-profile-only context over-inclusion from 26 total / 24
+reference-only / high risk to 12 total / 2 reference-only / low risk while
+preserving `AGENTS.md`, `README.md`, `krn.config.json`,
+`tools/check_all_readonly.py`, and do-not-use constraints.
 
 Likely files:
 
@@ -52,6 +56,7 @@ Risk:
 - Treating preflight-only reports as execution proof.
 - Treating local execution evidence as production proof.
 - Remaining without committed real target verify profiles or trusted hook evidence.
+- Remaining without an approved second Codex execution when `KRN_REAL_REPO_CODEX_APPROVED=1`.
 
 Stop conditions:
 

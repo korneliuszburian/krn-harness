@@ -793,6 +793,135 @@ describe("context package", () => {
     ]);
   });
 
+  it("reduces verify-profile-only graph doc noise while keeping required context and constraints", () => {
+    const contract = buildTaskContract(
+      [
+        "Docs-only verify profile task for README.md.",
+        "Use krn.config.json and prove python3 tools/check_all_readonly.py with krn verify --execute.",
+        "Keep raw/ and wiki governance paths do-not-use.",
+      ].join(" "),
+      {
+        metadata: {
+          expectedTouchedFiles: ["README.md"],
+          requiredDoNotUsePaths: [
+            "raw/",
+            "wiki/_approvals/",
+            "wiki/_proposals/",
+            "wiki/_transactions/",
+          ],
+        },
+      },
+    );
+    const graph = {
+      nodes: [
+        {
+          id: "doc:README.md",
+          kind: "doc",
+          label: "README.md",
+          evidencePath: "README.md",
+          status: "available",
+        },
+        {
+          id: "doc:tools/README.md",
+          kind: "doc",
+          label: "Tools README",
+          evidencePath: "tools/README.md",
+          status: "available",
+        },
+        {
+          id: "doc:docs/r2c-update-page-post-apply-validation-contract.md",
+          kind: "doc",
+          label: "Post apply validation contract",
+          evidencePath: "docs/r2c-update-page-post-apply-validation-contract.md",
+          status: "available",
+        },
+        {
+          id: "doc:raw/README.md",
+          kind: "doc",
+          label: "Raw README",
+          evidencePath: "raw/README.md",
+          status: "available",
+        },
+        {
+          id: "doc:wiki/_approvals/README.md",
+          kind: "doc",
+          label: "Approval README",
+          evidencePath: "wiki/_approvals/README.md",
+          status: "available",
+        },
+        {
+          id: "doc:docs/stale-readme.md",
+          kind: "doc",
+          label: "Stale README",
+          evidencePath: "docs/stale-readme.md",
+          status: "deprecated",
+        },
+      ],
+      edges: [],
+    } satisfies GraphLite;
+
+    const pkg = buildContextPackage(contract, graph);
+    const activePaths = [...pkg.buckets.mustRead, ...pkg.buckets.shouldRead].map(
+      (item) => item.path,
+    );
+    const referenceOnlyPaths = pkg.buckets.referenceOnly.map((item) => item.path);
+    const doNotUsePaths = pkg.buckets.doNotUse.map((item) => item.path);
+
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "AGENTS.md",
+        source: "base",
+      }),
+    );
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "README.md",
+        source: "task-contract",
+        selector: "expected-touched-file",
+      }),
+    );
+    expect(pkg.buckets.shouldRead).toContainEqual(
+      expect.objectContaining({
+        path: "krn.config.json",
+        source: "task-policy",
+        selector: "explicit-task-path",
+      }),
+    );
+    expect(pkg.buckets.shouldRead).toContainEqual(
+      expect.objectContaining({
+        path: "tools/check_all_readonly.py",
+        source: "task-policy",
+        selector: "explicit-task-path",
+      }),
+    );
+    expect(referenceOnlyPaths).toEqual(["docs/specs/context-package.schema.md", "README.md"]);
+    expect(referenceOnlyPaths).not.toEqual(
+      expect.arrayContaining([
+        "docs/r2c-update-page-post-apply-validation-contract.md",
+        "raw/README.md",
+        "tools/README.md",
+        "wiki/_approvals/README.md",
+      ]),
+    );
+    expect(activePaths).not.toContain("docs/stale-readme.md");
+    expect(referenceOnlyPaths).not.toContain("docs/stale-readme.md");
+    expect(doNotUsePaths).toEqual(
+      expect.arrayContaining([
+        "docs/stale-readme.md",
+        "raw/",
+        "wiki/_approvals/",
+        "wiki/_proposals/",
+        "wiki/_transactions/",
+      ]),
+    );
+    expect(pkg.overInclusion).toMatchObject({
+      activeItems: 5,
+      referenceOnlyItems: 2,
+      risk: "low",
+    });
+    expect(pkg.stop).toBe(false);
+  });
+
   it("sets STOP when required context is missing", () => {
     const fixture = readTaskFixture("missing-context-stop");
     const contract = buildTaskContract(fixture.task);
