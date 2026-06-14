@@ -500,7 +500,8 @@ function executionResultSignal(
   const committedTargetRepo = latest.committedTargetRepo === true;
   const pushedTargetRepo = latest.pushedTargetRepo === true;
   const proof = classifyExecutionResult({
-    ...latest,
+    schema: typeof latest.schema === "string" ? latest.schema : undefined,
+    path: latest.path,
     executionKind,
     validationStatus,
     forbiddenTouchedFiles,

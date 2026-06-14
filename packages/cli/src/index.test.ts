@@ -3,6 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { artifactPathIsArchiveSafe } from "./artifact-scope.js";
 import { parseGitStatusPath } from "./commands/handoff.js";
 import { runCli } from "./index.js";
 
@@ -208,6 +209,21 @@ interface OperatorSummaryFixture {
   nextActions: string[];
 }
 
+interface ArtifactsListFixture {
+  schema: string;
+  scope: string;
+  artifacts: Array<{ path: string; scope: string; reason: string }>;
+}
+
+interface ArchivePlanFixture {
+  schema: string;
+  dryRun: boolean;
+  confirm: boolean;
+  archiveDir: string;
+  candidates: Array<{ path: string; scope: string; archivePath: string }>;
+  refused: Array<{ path: string; reason: string }>;
+}
+
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
   const start = stdout.indexOf("{\n");
   const end = stdout.indexOf("\n--- markdown ---", start);
@@ -357,11 +373,124 @@ describe("krn CLI", () => {
       "krn install",
       "krn summary",
       "krn review",
+      "krn artifacts <command>",
       "krn memory <command>",
       "krn hook codex <event>",
     ]) {
       expect(result.stdout).toContain(command);
     }
+  });
+
+  it("lists current and historical runtime artifacts by scope", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await mkdir(path.join(cwd, ".krn", "dogfood", "real-repo-skipped", "test-source-checkout"), {
+      recursive: true,
+    });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "operator-summary.json"),
+      JSON.stringify({ schema: "krn-operator-summary-v1" }),
+      "utf8",
+    );
+    await writeFile(
+      path.join(
+        cwd,
+        ".krn",
+        "dogfood",
+        "real-repo-skipped",
+        "test-source-checkout",
+        "summary.json",
+      ),
+      JSON.stringify({ schema: "krn-real-repo-dogfood-v1", status: "blocked" }),
+      "utf8",
+    );
+
+    const all = await runInCwd(cwd, ["artifacts", "list", "--json", "--scope", "all"]);
+    const current = await runInCwd(cwd, ["artifacts", "list", "--json", "--scope", "current"]);
+    const historical = await runInCwd(cwd, [
+      "artifacts",
+      "list",
+      "--json",
+      "--scope",
+      "historical",
+    ]);
+
+    expect(all.code).toBe(0);
+    expect(current.code).toBe(0);
+    expect(historical.code).toBe(0);
+    expect((JSON.parse(all.stdout) as ArtifactsListFixture).artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ".krn/current/operator-summary.json",
+          scope: "current",
+        }),
+        expect.objectContaining({
+          path: ".krn/dogfood/real-repo-skipped/test-source-checkout/summary.json",
+          scope: "stale-blocking",
+        }),
+      ]),
+    );
+    expect((JSON.parse(current.stdout) as ArtifactsListFixture).artifacts).toEqual([
+      expect.objectContaining({ path: ".krn/current/operator-summary.json", scope: "current" }),
+    ]);
+    expect((JSON.parse(historical.stdout) as ArtifactsListFixture).artifacts).toEqual([
+      expect.objectContaining({
+        path: ".krn/dogfood/real-repo-skipped/test-source-checkout/summary.json",
+        scope: "stale-blocking",
+      }),
+    ]);
+  });
+
+  it("archives historical artifacts only when confirmed", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const historicalPath = ".krn/dogfood/real-repo-skipped/test-missing-env/summary.json";
+    await mkdir(path.dirname(path.join(cwd, historicalPath)), { recursive: true });
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, historicalPath),
+      JSON.stringify({ schema: "krn-real-repo-dogfood-v1", status: "skipped" }),
+      "utf8",
+    );
+    await writeFile(path.join(cwd, ".krn", "current", "operator-summary.json"), "{}", "utf8");
+
+    const dryRun = await runInCwd(cwd, ["artifacts", "archive", "--dry-run", "--json"]);
+    const dryRunPlan = JSON.parse(dryRun.stdout) as ArchivePlanFixture;
+    expect(dryRun.code).toBe(0);
+    expect(dryRunPlan.dryRun).toBe(true);
+    expect(dryRunPlan.candidates).toEqual([
+      expect.objectContaining({ path: historicalPath, scope: "stale-blocking" }),
+    ]);
+    await expectFile(cwd, historicalPath);
+
+    const confirmed = await runInCwd(cwd, ["artifacts", "archive", "--confirm", "--json"]);
+    const confirmedPlan = JSON.parse(confirmed.stdout) as ArchivePlanFixture;
+    expect(confirmed.code).toBe(0);
+    expect(confirmedPlan.confirm).toBe(true);
+    const archivedPath = confirmedPlan.candidates[0]?.archivePath;
+    expect(archivedPath).toBeDefined();
+    await expect(stat(path.join(cwd, historicalPath))).rejects.toThrow();
+    await expectFile(cwd, archivedPath ?? "");
+    await expectFile(cwd, ".krn/current/operator-summary.json");
+  });
+
+  it("refuses unsafe artifact archive candidates", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const unsafePath = ".krn/dogfood/secret-run/summary.json";
+    await mkdir(path.dirname(path.join(cwd, unsafePath)), { recursive: true });
+    await writeFile(
+      path.join(cwd, unsafePath),
+      JSON.stringify({ schema: "krn-real-repo-dogfood-v1", status: "skipped" }),
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["artifacts", "archive", "--dry-run", "--json"]);
+    const plan = JSON.parse(result.stdout) as ArchivePlanFixture;
+    expect(result.code).toBe(0);
+    expect(plan.candidates).toEqual([]);
+    expect(plan.refused).toEqual([
+      expect.objectContaining({ path: unsafePath, reason: expect.stringContaining("not safe") }),
+    ]);
+    expect(artifactPathIsArchiveSafe("../outside.json")).toBe(false);
   });
 
   it("keeps the local CLI bin entrypoint linkable for dogfood", async () => {

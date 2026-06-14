@@ -2,6 +2,7 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { artifactsCommand } from "./commands/artifacts.js";
 import { contextCommand } from "./commands/context.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { evalCommand } from "./commands/eval.js";
@@ -34,6 +35,7 @@ Usage:
   krn install
   krn summary
   krn review
+  krn artifacts <command>
   krn memory <command>
   krn hook codex <event>
 `;
@@ -91,6 +93,10 @@ export async function runCli(
 
   if (command === "review") {
     return reviewCommand(rest, runtime);
+  }
+
+  if (command === "artifacts") {
+    return artifactsCommand(rest, runtime);
   }
 
   if (command === "memory") {
