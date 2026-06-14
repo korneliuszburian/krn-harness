@@ -61,9 +61,19 @@ describe("P0 docs anti-regression", () => {
   it("keeps hook trace and sandbox boundaries explicit", async () => {
     const hooksSpec = await readDoc("docs/specs/hooks-pack.md");
     const traceSpec = await readDoc("docs/specs/trace.schema.md");
+    const hookAdr = await readDoc("docs/adr/ADR-0004-codex-hooks-as-guardrails.md");
+    const operatorSummarySchema = await readDoc("docs/specs/operator-summary.schema.md");
 
     expect(hooksSpec).toContain("not a complete security boundary or sandbox");
     expect(hooksSpec).toContain("must not change allow/warn/block semantics");
+    expect(hooksSpec).toContain("Hook decisions can be `allow`, `warn`, or `block`");
+    expect(hooksSpec).toContain("P1 still records `enforced: false`");
+    expect(hooksSpec).toContain("Manual `krn hook codex <event>` probes");
+    expect(hooksSpec).not.toMatch(/hooks are enforced/i);
+    expect(hookAdr).toContain("not as a sandbox or full policy engine");
+    expect(operatorSummarySchema).toContain(
+      "Manual `krn hook codex <event>` traces are also `unproven`",
+    );
     expect(traceSpec).toContain("must not include long operator text");
     expect(traceSpec).toContain("buildHookTracePayload(result)");
     expect(hooksSpec).toContain("./.krn/bin/krn hook codex <event>");
@@ -185,6 +195,7 @@ describe("P0 docs anti-regression", () => {
     const backlog = await readDoc("docs/product/next-implementation-backlog.md");
     const subagents = await readDoc("docs/product/subagent-contracts.md");
     const condensation = await readDoc("docs/product/knowledge-condensation.md");
+    const refactorBacklog = await readDoc("docs/product/refactor-backlog.md");
     const dashboardAdr = await readDoc(
       "docs/adr/ADR-0014-dashboard-lite-read-only-report-viewer.md",
     );
@@ -244,6 +255,11 @@ describe("P0 docs anti-regression", () => {
     );
     expect(condensation).toContain("does not auto-update active truth");
     expect(condensation).toContain("must not auto-approve memory");
+    expect(refactorBacklog).toContain("packages/doctor/src/doctor.ts");
+    expect(refactorBacklog).toContain("packages/context/src/build-context-package.ts");
+    expect(refactorBacklog).toContain("packages/hooks/src/codex-hook-entry.ts");
+    expect(refactorBacklog).toContain("stop the refactor if");
+    expect(refactorBacklog).toContain("not permission for a broad rewrite");
     expect(dashboardAdr).toContain("generated local static HTML report viewer");
     expect(dashboardAdr).toContain("No hosted dashboard");
     expect(mcpAdr).toContain("No MCP server is implemented");

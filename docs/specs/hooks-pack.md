@@ -45,6 +45,12 @@ Trace payloads stay compact. `hook.received` records `operatorMessageVersion` an
 
 `krn hook codex <event>` must build trace data through `buildHookTracePayload(result)`. The helper is the writer-side budget boundary for hook traces. It preserves the machine decision fields, finding codes, compact ownership hints, and compact remediation codes while keeping stdout/API output full.
 
+## Hook Truth Status
+
+Hook decisions can be `allow`, `warn`, or `block`, but P1 still records `enforced: false`. That field means KRN does not claim sandbox enforcement, process isolation, or guaranteed Codex policy blocking.
+
+Real Codex hook loading/trust remains unproven until a trusted non-bypass Codex hook path emits `hook.received` with trusted provenance. Manual `krn hook codex <event>` probes and fixture traces are diagnostics only; they are not proof that Codex loaded or trusted project hooks.
+
 P0 records `block` decisions for:
 
 - edit-intent `PreToolUse` without `.krn/current/task-contract.json`;

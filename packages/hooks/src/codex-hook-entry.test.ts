@@ -62,6 +62,19 @@ describe("Codex hook entry guardrails", () => {
     expect(barrel).not.toContain("guardrail-fixtures");
   });
 
+  it("keeps hook decisions non-enforced until a later ADR changes the contract", () => {
+    const allowed = handleCodexHook("SessionStart", { state: readyState });
+    const blocked = handleCodexHook("PreToolUse", {
+      payload: parseCodexHookPayload(JSON.stringify({ toolName: "Write", filePath: "outside.ts" })),
+      state: readyState,
+    });
+
+    expect(allowed.decision).toBe("allow");
+    expect(allowed.enforced).toBe(false);
+    expect(blocked.decision).toBe("block");
+    expect(blocked.enforced).toBe(false);
+  });
+
   it("ignores unsupported events without crashing", () => {
     expect(handleCodexHook("PermissionRequest", { state: readyState })).toMatchObject({
       provider: "codex",
