@@ -14,6 +14,12 @@ real repo proof -> hardening -> static report -> memory lifecycle -> retrieval e
 
 Goal: run KRN on an approved non-protected repository with a pinned local `krn`.
 
+Current evidence: first manual KRN-assisted Codex execution ran on an isolated
+`krn-llm-wiki` worktree. It changed only `README.md`, used a pinned KRN
+pre-loop, and passed the target repo read-only validation suite. The run also
+showed that preflight-only dogfood summaries must not be treated as execution
+proof.
+
 Likely files:
 
 - `docs/demo/real-repo-dogfood.md`
@@ -37,6 +43,8 @@ Risk:
 
 - Overclaiming readiness as validation.
 - Treating skipped missing-env reports as real-repo proof.
+- Treating preflight-only reports as execution proof.
+- Lacking a first-class execution-result dogfood summary schema.
 
 Stop conditions:
 

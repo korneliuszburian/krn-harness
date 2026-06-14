@@ -128,6 +128,7 @@ interface RealRepoDogfoodSummaryFixture {
   schema?: unknown;
   status?: unknown;
   outcomeKind?: unknown;
+  eligible?: unknown;
   repoPath?: string | null | undefined;
   summaryJsonPath?: string | undefined;
   missingEnv?: unknown;
@@ -421,7 +422,10 @@ async function collectRealRepoDogfoodSummaries(
       if (entry.isFile() && entry.name === "summary.json") {
         const relativePath = path.relative(cwd, entryPath).split(path.sep).join("/");
         const summary = await readJson<RealRepoDogfoodSummaryFixture>(cwd, relativePath);
-        if (summary?.schema === "krn-real-repo-dogfood-v1") {
+        if (
+          summary?.schema === "krn-real-repo-dogfood-v1" ||
+          summary?.schema === "krn-real-repo-preflight-v1"
+        ) {
           const info = await stat(entryPath);
           summaries.push({ path: relativePath, mtimeMs: info.mtimeMs, ...summary });
         }
@@ -440,6 +444,21 @@ async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["real
   const latest = summaries.at(-1);
 
   if (!latest || typeof latest.status !== "string") {
+    if (latest?.schema === "krn-real-repo-preflight-v1") {
+      return {
+        status: "unproven",
+        confidence: "medium",
+        summary: "Only real-repo preflight summary exists; readiness/execution remains unproven.",
+        artifacts: [latest.path],
+        latestStatus: "preflight-only",
+        latestPath: latest.path,
+        repoPath: latest.repoPath,
+        outcomeKind: "preflight-only",
+        nextAction:
+          "Run scripts/krn-real-repo-dogfood.sh with approved env to produce readiness or execution state.",
+      };
+    }
+
     return {
       status: "unproven",
       confidence: "high",

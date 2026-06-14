@@ -374,6 +374,7 @@ async function handoffReview(cwd: string): Promise<ReviewRecord> {
 interface DogfoodSummary {
   path: string;
   mtimeMs: number;
+  schema?: string | undefined;
   status?: string | undefined;
   outcomeKind?: string | undefined;
   results?: { globalKrnFallbackUsed?: boolean | undefined }[] | undefined;
@@ -453,29 +454,35 @@ async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
   const readiness = summaries.filter(
     (summary) => summary.status === "readiness" || summary.outcomeKind === "readiness-only",
   );
+  const preflightOnly = summaries.filter(
+    (summary) =>
+      summary.schema === "krn-real-repo-preflight-v1" ||
+      summary.path.includes("/real-repo-preflight/"),
+  );
 
   return record({
     reviewer: "dogfood",
     status:
       failing.length > 0 || invalid.length > 0
         ? "fail"
-        : skipped.length > 0 || readiness.length > 0
+        : skipped.length > 0 || readiness.length > 0 || preflightOnly.length > 0
           ? "warn"
           : "pass",
     confidence: "medium",
-    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${skipped.length} skipped, ${readiness.length} readiness-only.`,
+    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${skipped.length} skipped, ${readiness.length} readiness-only, ${preflightOnly.length} preflight-only.`,
     evidence: summaries.map((summary) => summary.path),
     findings: [
       ...summarizeDogfoodFindings("failing dogfood summary", failing),
       ...summarizeDogfoodFindings("invalid dogfood runs in", invalid),
       ...summarizeDogfoodFindings("skipped dogfood summary", skipped),
       ...summarizeDogfoodFindings("readiness-only dogfood summary", readiness),
+      ...summarizeDogfoodFindings("preflight-only dogfood summary", preflightOnly),
     ],
     nextActions:
       failing.length > 0 || invalid.length > 0
         ? ["Inspect failing or invalid dogfood reports."]
-        : skipped.length > 0 || readiness.length > 0
-          ? ["Review skipped/readiness dogfood reports before claiming execution proof."]
+        : skipped.length > 0 || readiness.length > 0 || preflightOnly.length > 0
+          ? ["Review skipped/readiness/preflight dogfood reports before claiming execution proof."]
           : [],
   });
 }
