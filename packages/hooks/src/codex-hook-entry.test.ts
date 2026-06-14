@@ -53,6 +53,15 @@ const readyState: HookCurrentState = {
 };
 
 describe("Codex hook entry guardrails", () => {
+  it("keeps guardrail fixtures out of the public hooks barrel", () => {
+    const barrel = readFileSync(
+      path.join(repoRoot, "packages", "hooks", "src", "index.ts"),
+      "utf8",
+    );
+
+    expect(barrel).not.toContain("guardrail-fixtures");
+  });
+
   it("ignores unsupported events without crashing", () => {
     expect(handleCodexHook("PermissionRequest", { state: readyState })).toMatchObject({
       provider: "codex",

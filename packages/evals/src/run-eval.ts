@@ -9,12 +9,15 @@ import {
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
-  buildHookTracePayload,
   type HookGuardrailMatrix,
   type HookRemediationTaxonomyFixture,
   hookFindingCodes,
-  hookOperatorMessageVersion,
   hookProofPathOwnershipHints,
+  runHookGuardrailFixtureCase,
+} from "../../hooks/src/guardrail-fixtures.js";
+import {
+  buildHookTracePayload,
+  hookOperatorMessageVersion,
   hookRemediationCodeTaxonomy,
   hookRemediationHintCatalog,
   hookTracePayloadByteLength,
@@ -22,7 +25,6 @@ import {
   maxHookTracePayloadBytes,
   maxOwnedProofPathHints,
   remediationCodesForFindingCodes,
-  runHookGuardrailFixtureCase,
   supportedCodexHookEvents,
 } from "../../hooks/src/index.js";
 import {
