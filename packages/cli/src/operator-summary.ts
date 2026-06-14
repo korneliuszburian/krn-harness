@@ -78,6 +78,9 @@ export interface OperatorSummary {
     latestStatus?: string | undefined;
     latestPath?: string | undefined;
     repoPath?: string | null | undefined;
+    outcomeKind?: string | undefined;
+    missingEnv?: string[] | undefined;
+    nextAction?: string | undefined;
   };
   reviewers: OperatorSummarySignal & {
     total?: number | undefined;
@@ -124,8 +127,10 @@ interface ReviewSummaryFixture {
 interface RealRepoDogfoodSummaryFixture {
   schema?: unknown;
   status?: unknown;
+  outcomeKind?: unknown;
   repoPath?: string | null | undefined;
   summaryJsonPath?: string | undefined;
+  missingEnv?: unknown;
   blockers?: string[] | undefined;
   warnings?: string[] | undefined;
 }
@@ -452,6 +457,13 @@ async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["real
           : latest.status === "pass"
             ? "pass"
             : "warn";
+  const outcomeKind = typeof latest.outcomeKind === "string" ? latest.outcomeKind : undefined;
+  const missingEnv = Array.isArray(latest.missingEnv)
+    ? latest.missingEnv.filter((item): item is string => typeof item === "string")
+    : [];
+  const missingEnvText =
+    missingEnv.length > 0 ? missingEnv.join(", ") : "required real-repo dogfood env";
+  const skippedMissingEnv = status === "skipped" && outcomeKind === "skipped-missing-env";
 
   return {
     status,
@@ -461,15 +473,22 @@ async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["real
         ? "Real-repo dogfood summary reports execution pass."
         : status === "readiness"
           ? "Real-repo dogfood is readiness-only; paid/manual execution remains unproven."
-          : status === "skipped"
-            ? "Real-repo dogfood was skipped."
-            : status === "blocked"
-              ? "Real-repo dogfood is blocked."
-              : "Real-repo dogfood summary needs review.",
+          : skippedMissingEnv
+            ? `Real-repo dogfood was skipped because required environment is missing: ${missingEnvText}.`
+            : status === "skipped"
+              ? "Real-repo dogfood was skipped."
+              : status === "blocked"
+                ? "Real-repo dogfood is blocked."
+                : "Real-repo dogfood summary needs review.",
     artifacts: [latest.path],
     latestStatus: latest.status,
     latestPath: latest.path,
     repoPath: latest.repoPath,
+    outcomeKind,
+    missingEnv,
+    nextAction: skippedMissingEnv
+      ? "Set KRN_REAL_REPO_DOGFOOD_PATH and KRN_REAL_REPO_DOGFOOD_APPROVED=1, then rerun scripts/krn-real-repo-dogfood.sh."
+      : undefined,
   };
 }
 
@@ -534,7 +553,12 @@ async function memorySignal(cwd: string): Promise<OperatorSummary["memory"]> {
 }
 
 function summarizeProblems(
-  signals: Array<{ label: string; status: OperatorSummaryStatus; summary: string }>,
+  signals: Array<{
+    label: string;
+    status: OperatorSummaryStatus;
+    summary: string;
+    nextAction?: string | undefined;
+  }>,
 ): { risks: string[]; blockers: string[]; warnings: string[]; nextActions: string[] } {
   const blockers: string[] = [];
   const warnings: string[] = [];
@@ -561,6 +585,7 @@ function summarizeProblems(
     warnings.some((warning) => warning.startsWith(`${label}:`)) ||
     blockers.some((blocker) => blocker.startsWith(`${label}:`));
   const reviewers = signals.find((signal) => signal.label === "reviewers");
+  const realRepoDogfood = signals.find((signal) => signal.label === "realRepoDogfood");
 
   if (hasWarningOrBlocker("hooks")) {
     risks.push("Hooks are not validated until real hook.received events appear without bypass.");
@@ -569,7 +594,10 @@ function summarizeProblems(
 
   if (hasWarningOrBlocker("realRepoDogfood")) {
     risks.push("Real user-repo behavior remains unproven until approved dogfood executes.");
-    nextActions.push("Run real-repo dogfood on an approved non-protected repository.");
+    nextActions.push(
+      realRepoDogfood?.nextAction ??
+        "Run real-repo dogfood on an approved non-protected repository.",
+    );
   }
 
   if (reviewers?.status === "missing") {

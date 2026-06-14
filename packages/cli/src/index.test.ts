@@ -147,6 +147,8 @@ interface ReviewResultFixture {
     reviewer: string;
     reviewerId: string;
     status: string;
+    summary: string;
+    evidence: string[];
     findings: string[];
   }>;
   records: Array<{
@@ -162,7 +164,12 @@ interface OperatorSummaryFixture {
   currentTask: { status: string; id?: string };
   verify: { status: string; mode?: string; executedCommands?: number };
   hooks: { status: string; hookReceivedCount: number; summary: string };
-  realRepoDogfood: { status: string };
+  realRepoDogfood: {
+    status: string;
+    summary?: string;
+    outcomeKind?: string;
+    missingEnv?: string[];
+  };
   reviewers: { status: string; total?: number };
   warnings: string[];
   nextActions: string[];
@@ -762,6 +769,41 @@ describe("krn CLI", () => {
     expect((await readTraceEvents(cwd)).map((event) => event.name)).toContain("review.ran");
   }, 20_000);
 
+  it("keeps dogfood reviewer findings focused when historical skips accumulate", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+
+    for (const runId of ["run-1", "run-2", "run-3"]) {
+      const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-skipped", runId);
+      await mkdir(runDir, { recursive: true });
+      await writeFile(
+        path.join(runDir, "summary.json"),
+        JSON.stringify(
+          {
+            schema: "krn-real-repo-dogfood-v1",
+            status: "skipped",
+            outcomeKind: "skipped-missing-env",
+          },
+          null,
+          2,
+        ),
+      );
+    }
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const dogfood = result.reviewers.find((item) => item.reviewer === "dogfood");
+
+    expect(dogfood).toMatchObject({
+      status: "warn",
+      summary: "Found 3 dogfood summary artifact(s): 0 failing, 0 invalid, 3 skipped.",
+    });
+    expect(dogfood?.evidence).toHaveLength(3);
+    expect(dogfood?.findings).toEqual([
+      "skipped dogfood summary: .krn/dogfood/real-repo-skipped/run-3/summary.json",
+      "skipped dogfood summary: 2 older artifact(s) omitted; see evidence list.",
+    ]);
+  });
+
   it("prints operator summary JSON without requiring existing .krn state", async () => {
     const result = await runInTemp(["summary", "--json"]);
 
@@ -776,6 +818,41 @@ describe("krn CLI", () => {
     await expect(
       stat(path.join(result.cwd, ".krn", "current", "operator-summary.json")),
     ).rejects.toThrow();
+  });
+
+  it("surfaces missing real-repo dogfood env in operator summary", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-skipped", "missing-env");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-dogfood-v1",
+          status: "skipped",
+          outcomeKind: "skipped-missing-env",
+          missingEnv: ["KRN_REAL_REPO_DOGFOOD_PATH", "KRN_REAL_REPO_DOGFOOD_APPROVED=1"],
+          repoPath: null,
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runInCwd(cwd, ["summary", "--json"]);
+    const summary = JSON.parse(result.stdout) as OperatorSummaryFixture;
+
+    expect(summary.realRepoDogfood).toMatchObject({
+      status: "skipped",
+      outcomeKind: "skipped-missing-env",
+      missingEnv: ["KRN_REAL_REPO_DOGFOOD_PATH", "KRN_REAL_REPO_DOGFOOD_APPROVED=1"],
+    });
+    expect(summary.realRepoDogfood.summary).toBe(
+      "Real-repo dogfood was skipped because required environment is missing: KRN_REAL_REPO_DOGFOOD_PATH, KRN_REAL_REPO_DOGFOOD_APPROVED=1.",
+    );
+    expect(summary.nextActions).toContain(
+      "Set KRN_REAL_REPO_DOGFOOD_PATH and KRN_REAL_REPO_DOGFOOD_APPROVED=1, then rerun scripts/krn-real-repo-dogfood.sh.",
+    );
   });
 
   it("writes operator summary with reviewer aggregate when review summary exists", async () => {

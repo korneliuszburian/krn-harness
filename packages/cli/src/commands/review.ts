@@ -1,5 +1,5 @@
 import type { Dirent } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { pathExists, readJsonFile } from "../../../core/src/index.js";
 import {
@@ -373,10 +373,13 @@ async function handoffReview(cwd: string): Promise<ReviewRecord> {
 
 interface DogfoodSummary {
   path: string;
+  mtimeMs: number;
   status?: string | undefined;
   results?: { globalKrnFallbackUsed?: boolean | undefined }[] | undefined;
   aggregates?: { mode?: string; taskPasses?: number; tasks?: number; invalidRuns?: number }[];
 }
+
+type DogfoodSummaryJson = Omit<DogfoodSummary, "path" | "mtimeMs">;
 
 async function collectDogfoodSummaries(cwd: string): Promise<DogfoodSummary[]> {
   const root = path.join(cwd, ".krn", "dogfood");
@@ -401,14 +404,29 @@ async function collectDogfoodSummaries(cwd: string): Promise<DogfoodSummary[]> {
 
       if (entry.isFile() && entry.name === "summary.json") {
         const relativePath = path.relative(cwd, entryPath).split(path.sep).join("/");
-        const summary = await readJson<Omit<DogfoodSummary, "path">>(cwd, relativePath);
-        summaries.push({ path: relativePath, ...summary });
+        const summary = await readJson<DogfoodSummaryJson>(cwd, relativePath);
+        const info = await stat(entryPath);
+        summaries.push({ path: relativePath, mtimeMs: info.mtimeMs, ...summary });
       }
     }
   }
 
   await walk(root, 0);
-  return summaries.sort((a, b) => a.path.localeCompare(b.path));
+  return summaries.sort(
+    (left, right) => left.mtimeMs - right.mtimeMs || left.path.localeCompare(right.path),
+  );
+}
+
+function summarizeDogfoodFindings(label: string, summaries: DogfoodSummary[]): string[] {
+  const latest = summaries.at(-1);
+  if (!latest) return [];
+
+  return [
+    `${label}: ${latest.path}`,
+    ...(summaries.length > 1
+      ? [`${label}: ${summaries.length - 1} older artifact(s) omitted; see evidence list.`]
+      : []),
+  ];
 }
 
 async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
@@ -437,12 +455,12 @@ async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
     status:
       failing.length > 0 || invalid.length > 0 ? "fail" : skipped.length > 0 ? "warn" : "pass",
     confidence: "medium",
-    summary: `Found ${summaries.length} dogfood summary artifact(s).`,
+    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${skipped.length} skipped.`,
     evidence: summaries.map((summary) => summary.path),
     findings: [
-      ...failing.map((summary) => `failing dogfood summary: ${summary.path}`),
-      ...invalid.map((summary) => `invalid dogfood runs in: ${summary.path}`),
-      ...skipped.map((summary) => `skipped dogfood summary: ${summary.path}`),
+      ...summarizeDogfoodFindings("failing dogfood summary", failing),
+      ...summarizeDogfoodFindings("invalid dogfood runs in", invalid),
+      ...summarizeDogfoodFindings("skipped dogfood summary", skipped),
     ],
     nextActions:
       failing.length > 0 || invalid.length > 0
