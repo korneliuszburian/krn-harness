@@ -26,6 +26,7 @@ Acceptance:
 - Operator approval is explicit.
 - No protected data is used.
 - Summary records `readiness`, `blocked`, `skipped`, or executed result honestly.
+- Missing-env skipped reports include exact env instructions and an explicit not-validation claim.
 
 Tests:
 
@@ -35,6 +36,7 @@ Tests:
 Risk:
 
 - Overclaiming readiness as validation.
+- Treating skipped missing-env reports as real-repo proof.
 
 Stop conditions:
 

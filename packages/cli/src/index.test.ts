@@ -120,9 +120,12 @@ interface RealRepoDogfoodSummary {
   schema: string;
   runId: string;
   status: "skipped" | "blocked" | "readiness";
+  outcomeKind: string;
   reason: string;
+  validationClaim: string;
   repoPath: string | null;
   missingEnv: string[];
+  missingEnvInstructions: string[];
   dogfoodApproved: boolean;
   codexApproved: boolean;
   preflightEligible: boolean | null;
@@ -526,6 +529,8 @@ describe("krn CLI", () => {
       schema: "krn-real-repo-dogfood-v1",
       runId: "test-missing-env",
       status: "skipped",
+      outcomeKind: "skipped-missing-env",
+      validationClaim: "not validated; no real repository was preflighted or executed",
       dogfoodApproved: false,
       preflightEligible: null,
       krnIdentityValid: false,
@@ -533,6 +538,12 @@ describe("krn CLI", () => {
     expect(summary.missingEnv).toEqual([
       "KRN_REAL_REPO_DOGFOOD_PATH",
       "KRN_REAL_REPO_DOGFOOD_APPROVED=1",
+    ]);
+    expect(summary.missingEnvInstructions).toEqual([
+      "Choose an absolute path to a safe non-protected git repository.",
+      "export KRN_REAL_REPO_DOGFOOD_PATH=/absolute/path/to/safe-non-protected-repo",
+      "export KRN_REAL_REPO_DOGFOOD_APPROVED=1",
+      "scripts/krn-real-repo-dogfood.sh",
     ]);
     expect(summary.requiredOperatorDecisions).toEqual(
       expect.arrayContaining([
@@ -542,6 +553,12 @@ describe("krn CLI", () => {
     );
     expect(summary.summaryJsonPath).toContain(".krn/dogfood/real-repo-skipped/test-missing-env");
     await expectFile(process.cwd(), ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md");
+    await expect(
+      readFile(
+        path.join(process.cwd(), ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md"),
+        "utf8",
+      ),
+    ).resolves.toContain("Skipped and readiness reports are not real-repo validation.");
   });
 
   it("blocks real-repo dogfood when preflight rejects the source checkout", () => {

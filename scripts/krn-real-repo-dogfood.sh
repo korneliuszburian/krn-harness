@@ -60,6 +60,15 @@ function reportRootFor(status, repoPath, preflight) {
 const missingEnv = [];
 if (!repoPathInput) missingEnv.push("KRN_REAL_REPO_DOGFOOD_PATH");
 if (!dogfoodApproved) missingEnv.push("KRN_REAL_REPO_DOGFOOD_APPROVED=1");
+const missingEnvInstructions =
+  missingEnv.length > 0
+    ? [
+        "Choose an absolute path to a safe non-protected git repository.",
+        "export KRN_REAL_REPO_DOGFOOD_PATH=/absolute/path/to/safe-non-protected-repo",
+        "export KRN_REAL_REPO_DOGFOOD_APPROVED=1",
+        "scripts/krn-real-repo-dogfood.sh",
+      ]
+    : [];
 
 let status = "skipped";
 let reason = "Missing required real-repo dogfood configuration.";
@@ -119,20 +128,35 @@ if (missingEnv.length === 0) {
 const reportRoot = reportRootFor(status, repoPath, preflight);
 const summaryJsonPath = path.join(reportRoot, "summary.json");
 const summaryMarkdownPath = path.join(reportRoot, "summary.md");
+const outcomeKind =
+  missingEnv.length > 0
+    ? "skipped-missing-env"
+    : status === "readiness"
+      ? "readiness-only"
+      : status;
+const validationClaim =
+  status === "readiness"
+    ? "readiness-only; not real-repo execution validation"
+    : status === "skipped"
+      ? "not validated; no real repository was preflighted or executed"
+      : "blocked; not validated";
 const nextCommand =
   status === "readiness" && repoPath
     ? `Review ${summaryMarkdownPath}, then run the manual protocol in docs/demo/real-repo-dogfood.md or set KRN_REAL_REPO_CODEX_APPROVED=1 after implementation exists.`
     : missingEnv.length > 0
-      ? "Set KRN_REAL_REPO_DOGFOOD_PATH and KRN_REAL_REPO_DOGFOOD_APPROVED=1, then rerun scripts/krn-real-repo-dogfood.sh."
+      ? "Set KRN_REAL_REPO_DOGFOOD_PATH to an absolute safe non-protected git repo path and KRN_REAL_REPO_DOGFOOD_APPROVED=1, then rerun scripts/krn-real-repo-dogfood.sh."
       : "Resolve blockers, then rerun scripts/krn-real-repo-dogfood.sh.";
 const summary = {
   schema: "krn-real-repo-dogfood-v1",
   runId,
   status,
+  outcomeKind,
   reason,
+  validationClaim,
   sourceRootPath: sourceRoot,
   repoPath,
   missingEnv,
+  missingEnvInstructions,
   dogfoodApproved,
   codexApproved,
   preflightExitStatus,
@@ -156,7 +180,9 @@ const markdown = [
   "# KRN Real-Repo Dogfood",
   "",
   `Status: ${summary.status}`,
+  `Outcome: ${summary.outcomeKind}`,
   `Reason: ${summary.reason}`,
+  `Validation claim: ${summary.validationClaim}`,
   `Repo: ${summary.repoPath ?? "none"}`,
   `Dogfood approved: ${String(summary.dogfoodApproved)}`,
   `Codex execution approved: ${String(summary.codexApproved)}`,
@@ -168,6 +194,10 @@ const markdown = [
   "## Missing Environment",
   "",
   list(summary.missingEnv),
+  "",
+  "## Missing Environment Instructions",
+  "",
+  list(summary.missingEnvInstructions),
   "",
   "## Blockers",
   "",
@@ -199,6 +229,7 @@ const markdown = [
   "- This scaffold does not commit or push.",
   "- This scaffold does not read `.env` contents or protected data.",
   "- This scaffold does not validate real Codex hook loading or trust.",
+  "- Skipped and readiness reports are not real-repo validation.",
   "",
 ].join("\n");
 
