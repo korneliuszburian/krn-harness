@@ -40,6 +40,8 @@ export interface CurrentRunPointer {
   handoffPath: string;
   doctorResultPath: string;
   evalResultPath: string;
+  operatorSummaryPath: string;
+  reviewSummaryPath: string;
 }
 
 export interface EmitCliTraceInput {
@@ -83,6 +85,10 @@ function runArtifactPaths(taskId: string): Record<string, string> {
     runMetadata: `.krn/runs/${taskId}/run.json`,
     runSummary: `.krn/runs/${taskId}/summary.md`,
     runTrace: `.krn/runs/${taskId}/trace.jsonl`,
+    operatorSummaryJson: ".krn/current/operator-summary.json",
+    operatorSummaryMarkdown: ".krn/current/operator-summary.md",
+    reviewSummaryJson: ".krn/current/review-summary.json",
+    reviewSummaryMarkdown: ".krn/current/review-summary.md",
     reviewResultJson: ".krn/current/review-result.json",
     reviewResultMarkdown: ".krn/current/review-result.md",
     taskContractJson: ".krn/current/task-contract.json",
@@ -129,6 +135,8 @@ function currentRunPointer(taskId: string): CurrentRunPointer {
     handoffPath: ".krn/current/handoff.md",
     doctorResultPath: ".krn/current/doctor-result.json",
     evalResultPath: ".krn/current/eval-result.json",
+    operatorSummaryPath: ".krn/current/operator-summary.json",
+    reviewSummaryPath: ".krn/current/review-summary.json",
   };
 }
 

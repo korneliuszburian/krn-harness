@@ -34,8 +34,8 @@ This is not production readiness.
 P1 starts only through gated local artifacts and contracts:
 
 - real-repo workflow: preflight plus skipped/blocked/readiness scaffold;
-- reviewers: deterministic `krn review` artifact records;
-- operator summary: data model only;
+- reviewers: deterministic `krn review --write` artifact records;
+- operator summary: deterministic `krn summary --write` artifact;
 - dashboard-lite: ADR for static local generated HTML only;
 - MCP: read-only resource contract only, no server;
 - vector/retrieval: synthetic experiment contract only, no vector DB or embeddings dependency;
@@ -53,6 +53,7 @@ P1 starts only through gated local artifacts and contracts:
 - MCP usefulness beyond contract.
 - Retrieval/vector usefulness beyond experiment contract.
 - Reviewer usefulness beyond first deterministic records.
+- Operator summary usefulness beyond first deterministic artifact.
 
 ## Product Decision
 
@@ -71,7 +72,9 @@ KRN must not claim:
 ## Next Controlled Use Protocol
 
 1. Run `pnpm verify:local`.
-2. Run `scripts/krn-real-repo-dogfood.sh` without env to confirm skipped reporting.
-3. Run `scripts/krn-real-repo-dogfood.sh` on a safe temp git fixture with explicit env to confirm readiness reporting.
-4. Only after operator approval, select a non-protected real repo and run preflight.
-5. Treat any real-repo execution as a manual protocol until an ADR accepts a Codex execution wrapper.
+2. Run `pnpm --silent krn review --write`.
+3. Run `pnpm --silent krn summary --write`.
+4. Run `scripts/krn-real-repo-dogfood.sh` without env to confirm skipped reporting.
+5. Run `scripts/krn-real-repo-dogfood.sh` on a safe temp git fixture with explicit env to confirm readiness reporting.
+6. Only after operator approval, select a non-protected real repo and run preflight.
+7. Treat any real-repo execution as a manual protocol until an ADR accepts a Codex execution wrapper.

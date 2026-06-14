@@ -99,6 +99,8 @@ KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1 pnpm dogfood:wp-acf
 
 Without `KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1`, the runner writes a skipped report and does not invoke Codex. With approval, it runs baseline and explicit KRN modes across `wp-acf-theme-index.json`, uses a pinned `scripts/krn-local-shim.sh` command, captures `krn doctor cli` identity for every KRN task, and writes `summary.json` plus `summary.md` under ignored `.krn/dogfood/wp-acf-index-*`.
 
+Codex stdout, stderr, and final-message artifacts are redacted before persistence. The runner does not pass a full inherited shell environment to Codex.
+
 ## Hook Trust/Loading Probe
 
 Before claiming hooks work in a real Codex run, prove loading and trust without bypass flags:

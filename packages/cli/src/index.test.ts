@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -140,11 +140,29 @@ interface RealRepoDogfoodSummary {
 interface ReviewResultFixture {
   schema: string;
   status: string;
+  reviewers: Array<{
+    reviewer: string;
+    reviewerId: string;
+    status: string;
+    findings: string[];
+  }>;
   records: Array<{
     reviewer: string;
     status: string;
     findings: string[];
   }>;
+}
+
+interface OperatorSummaryFixture {
+  schema: string;
+  status: string;
+  currentTask: { status: string; id?: string };
+  verify: { status: string; mode?: string; executedCommands?: number };
+  hooks: { status: string; hookReceivedCount: number; summary: string };
+  realRepoDogfood: { status: string };
+  reviewers: { status: string; total?: number };
+  warnings: string[];
+  nextActions: string[];
 }
 
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
@@ -268,6 +286,7 @@ describe("krn CLI", () => {
       "krn doctor cli",
       "krn eval",
       "krn install",
+      "krn summary",
       "krn review",
       "krn memory <command>",
       "krn hook codex <event>",
@@ -606,7 +625,8 @@ describe("krn CLI", () => {
       ["handoff"],
       ["doctor"],
       ["eval"],
-      ["review"],
+      ["review", "--write"],
+      ["summary", "--write"],
     ]) {
       await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
     }
@@ -627,6 +647,10 @@ describe("krn CLI", () => {
       ".krn/current/doctor-result.md",
       ".krn/current/eval-result.json",
       ".krn/current/eval-result.md",
+      ".krn/current/operator-summary.json",
+      ".krn/current/operator-summary.md",
+      ".krn/current/review-summary.json",
+      ".krn/current/review-summary.md",
       ".krn/current/review-result.json",
       ".krn/current/review-result.md",
       ".krn/traces/trace.jsonl",
@@ -649,6 +673,7 @@ describe("krn CLI", () => {
       "doctor.ran",
       "eval.ran",
       "review.ran",
+      "summary.ran",
     ]);
     expect((await readRunTraceEvents(cwd, contract.id)).map((event) => event.name)).toEqual([
       "task.started",
@@ -659,6 +684,7 @@ describe("krn CLI", () => {
       "doctor.ran",
       "eval.ran",
       "review.ran",
+      "summary.ran",
     ]);
   });
 
@@ -666,7 +692,7 @@ describe("krn CLI", () => {
     const result = await runInTemp(["review", "--llm"]);
 
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain("KRN review: expected `krn review`");
+    expect(result.stderr).toContain("KRN review: `--llm` is not implemented");
   });
 
   it("runs deterministic reviewers without executing model or verify commands", async () => {
@@ -683,17 +709,19 @@ describe("krn CLI", () => {
       await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
     }
 
-    const review = await runInCwd(cwd, ["review"]);
+    const review = await runInCwd(cwd, ["review", "--write"]);
 
     expect(review.code).toBe(0);
     expect(review.stdout).toContain("KRN review:");
     expect(review.stdout).toContain("records: 7");
+    await expectFile(cwd, ".krn/current/review-summary.json");
+    await expectFile(cwd, ".krn/current/review-summary.md");
     await expectFile(cwd, ".krn/current/review-result.json");
     await expectFile(cwd, ".krn/current/review-result.md");
 
-    const result = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-result.json");
-    expect(result.schema).toBe("krn-review-result-v0");
-    expect(result.records.map((item) => item.reviewer)).toEqual([
+    const result = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-summary.json");
+    expect(result.schema).toBe("krn-review-summary-v1");
+    expect(result.reviewers.map((item) => item.reviewer)).toEqual([
       "safety",
       "evidence",
       "context",
@@ -702,7 +730,7 @@ describe("krn CLI", () => {
       "dogfood",
       "release",
     ]);
-    expect(result.records).toEqual(
+    expect(result.reviewers).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ reviewer: "evidence", status: "pass" }),
         expect.objectContaining({ reviewer: "verify", status: "pass" }),
@@ -710,8 +738,89 @@ describe("krn CLI", () => {
         expect.objectContaining({ reviewer: "release", status: "warn" }),
       ]),
     );
-    expect(result.records.find((item) => item.reviewer === "dogfood")?.status).toBe("warn");
+    expect(result.reviewers.find((item) => item.reviewer === "dogfood")?.status).toBe("warn");
     expect((await readTraceEvents(cwd)).map((event) => event.name)).toContain("review.ran");
+  }, 20_000);
+
+  it("prints operator summary JSON without requiring existing .krn state", async () => {
+    const result = await runInTemp(["summary", "--json"]);
+
+    expect(result.code).toBe(0);
+    const summary = JSON.parse(result.stdout) as OperatorSummaryFixture;
+    expect(summary.schema).toBe("krn-operator-summary-v1");
+    expect(summary.status).toBe("warn");
+    expect(summary.currentTask.status).toBe("missing");
+    expect(summary.hooks.status).toBe("unproven");
+    expect(summary.realRepoDogfood.status).toBe("unproven");
+    expect(summary.reviewers.status).toBe("missing");
+    await expect(
+      stat(path.join(result.cwd, ".krn", "current", "operator-summary.json")),
+    ).rejects.toThrow();
+  });
+
+  it("writes operator summary with reviewer aggregate when review summary exists", async () => {
+    const cwd = await copyFixtureRepo("downstream-basic");
+
+    for (const args of [
+      ["install"],
+      ["start", "Summarize deterministic operator evidence."],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+      ["review", "--write"],
+      ["summary", "--write"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    await expectFile(cwd, ".krn/current/operator-summary.json");
+    await expectFile(cwd, ".krn/current/operator-summary.md");
+    const summary = await readJson<OperatorSummaryFixture>(
+      cwd,
+      ".krn/current/operator-summary.json",
+    );
+
+    expect(summary.schema).toBe("krn-operator-summary-v1");
+    expect(summary.currentTask.status).toBe("pass");
+    expect(summary.verify).toMatchObject({
+      status: "pass",
+      mode: "execute",
+      executedCommands: 1,
+    });
+    expect(summary.hooks.status).toBe("unproven");
+    expect(summary.realRepoDogfood.status).toBe("unproven");
+    expect(summary.reviewers).toMatchObject({
+      status: "warn",
+      total: 7,
+    });
+    expect(summary.nextActions).toContain(
+      "Run a non-bypass Codex hook trust probe before claiming hook validation.",
+    );
+    expect((await readTraceEvents(cwd)).map((event) => event.name)).toContain("summary.ran");
+  }, 20_000);
+
+  it("keeps manual hook trace evidence unproven in operator summary", async () => {
+    const cwd = await copyFixtureRepo("downstream-basic");
+
+    for (const args of [
+      ["install"],
+      ["start", "Check manual hook evidence semantics."],
+      ["graph"],
+      ["context"],
+      ["hook", "codex", "SessionStart"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const summary = await runInCwd(cwd, ["summary", "--json"]);
+    const result = JSON.parse(summary.stdout) as OperatorSummaryFixture;
+
+    expect(result.hooks).toMatchObject({
+      status: "unproven",
+      hookReceivedCount: 1,
+    });
+    expect(result.hooks.summary).toContain("no trusted non-manual hook-load marker");
   }, 20_000);
 
   it("runs graph and writes deterministic graph artifacts", async () => {
@@ -785,7 +894,7 @@ markdown: .krn/graph/repo-graph.md
 
     expect(install.code).toBe(0);
     expect(install.stdout).toContain("KRN install: installed");
-    expect(install.stdout).toContain("created: 9");
+    expect(install.stdout).toContain("created: 11");
     expect(install.stdout).toContain("skipped: 0");
 
     await expectDirectory(install.cwd, ".krn/current");
@@ -793,6 +902,8 @@ markdown: .krn/graph/repo-graph.md
     await expectDirectory(install.cwd, ".krn/traces");
     await expectDirectory(install.cwd, ".krn/runs");
     await expectDirectory(install.cwd, ".krn/memory");
+    await expectDirectory(install.cwd, ".krn/bin");
+    await expectFile(install.cwd, ".krn/bin/krn");
 
     await expect(readJson(install.cwd, "krn.config.json")).resolves.toEqual({
       version: 1,
@@ -816,7 +927,7 @@ markdown: .krn/graph/repo-graph.md
     expect(agents.length).toBeLessThan(2200);
     expect(agents).not.toContain("Architecture Spec");
     for (const event of supportedP0CodexHookEvents) {
-      expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`krn hook codex ${event}`);
+      expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`./.krn/bin/krn hook codex ${event}`);
     }
     expect(runtimeSkill).toContain("krn status");
     expect(runtimeSkill).toContain("krn start");
@@ -831,7 +942,7 @@ markdown: .krn/graph/repo-graph.md
         name: "install.ran",
         data: {
           status: "installed",
-          created: 9,
+          created: 11,
           skipped: 0,
           reason: null,
           actions: [
@@ -840,8 +951,10 @@ markdown: .krn/graph/repo-graph.md
             { path: ".krn/traces", kind: "directory", status: "created" },
             { path: ".krn/runs", kind: "directory", status: "created" },
             { path: ".krn/memory", kind: "directory", status: "created" },
+            { path: ".krn/bin", kind: "directory", status: "created" },
             { path: "krn.config.json", kind: "file", status: "created" },
             { path: "AGENTS.md", kind: "file", status: "created" },
+            { path: ".krn/bin/krn", kind: "file", status: "created" },
             { path: ".codex/hooks.json", kind: "file", status: "created" },
             {
               path: ".agents/skills/krn-harness/SKILL.md",
@@ -856,7 +969,7 @@ markdown: .krn/graph/repo-graph.md
     const secondInstall = await runInCwd(install.cwd, ["install"]);
     expect(secondInstall).toMatchObject({ code: 0 });
     expect(secondInstall.stdout).toContain("created: 0");
-    expect(secondInstall.stdout).toContain("skipped: 9");
+    expect(secondInstall.stdout).toContain("skipped: 11");
     await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
       { name: "install.ran" },
       {
@@ -864,7 +977,7 @@ markdown: .krn/graph/repo-graph.md
         data: {
           status: "installed",
           created: 0,
-          skipped: 9,
+          skipped: 11,
           reason: null,
           actions: [
             { path: ".krn/current", kind: "directory", status: "skipped" },
@@ -872,8 +985,10 @@ markdown: .krn/graph/repo-graph.md
             { path: ".krn/traces", kind: "directory", status: "skipped" },
             { path: ".krn/runs", kind: "directory", status: "skipped" },
             { path: ".krn/memory", kind: "directory", status: "skipped" },
+            { path: ".krn/bin", kind: "directory", status: "skipped" },
             { path: "krn.config.json", kind: "file", status: "skipped" },
             { path: "AGENTS.md", kind: "file", status: "skipped" },
+            { path: ".krn/bin/krn", kind: "file", status: "skipped" },
             { path: ".codex/hooks.json", kind: "file", status: "skipped" },
             {
               path: ".agents/skills/krn-harness/SKILL.md",
@@ -2277,6 +2392,22 @@ markdown: .krn/graph/repo-graph.md
     });
     expect(markdown).toContain("## Metadata");
     expect(markdown).toContain("Task spec path: fixtures/dogfood/tasks/wp-acf-field-mapping.json");
+  });
+
+  it("rejects task spec symlinks that resolve outside the repository", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const externalDir = await mkdtemp(path.join(os.tmpdir(), "krn-harness-external-"));
+    await writeFile(
+      path.join(externalDir, "task.json"),
+      `${JSON.stringify({ prompt: "outside" })}\n`,
+      "utf8",
+    );
+    await symlink(path.join(externalDir, "task.json"), path.join(cwd, "task-link.json"));
+
+    const result = await runInCwd(cwd, ["start", "--task-spec", "task-link.json"]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("--task-spec must resolve inside the current repository");
   });
 
   it("rejects malformed task spec metadata before rendering artifacts", async () => {

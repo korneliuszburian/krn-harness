@@ -21,8 +21,8 @@ P1 entry is allowed only when the surface reads or summarizes local artifacts, u
 | Lane | Entry condition | Stop condition | Initial artifact | Production-forbidden line |
 | --- | --- | --- | --- | --- |
 | Real-repo workflow | Preflight and report-only dogfood scaffold exist | Protected-data risk, missing approval, preflight blockers, or source checkout target | `scripts/krn-real-repo-preflight.sh`; `scripts/krn-real-repo-dogfood.sh` | No real repo claim without actual safe run |
-| Reviewers | Reviewer inputs/outputs are documented and deterministic reviewers read local artifacts only | Reviewer would edit files, call models by default, or inspect protected data | `docs/product/reviewers.md` | No autonomous reviewer agent |
-| Operator summary | Summary schema reads current local artifacts | Summary needs server/database/UI mutation | `docs/product/operator-console.md` | No dashboard-first product |
+| Reviewers | Reviewer inputs/outputs are documented and deterministic reviewers read local artifacts only | Reviewer would edit files, call models by default, or inspect protected data | `docs/product/reviewers.md`; `krn review --write` | No autonomous reviewer agent |
+| Operator summary | Summary schema reads current local artifacts | Summary needs server/database/UI mutation | `docs/product/operator-console.md`; `krn summary --write` | No dashboard-first product |
 | Dashboard-lite | ADR accepts static read-only generated HTML | Requires server, database, auth, external assets, or mutation | future ADR | No hosted dashboard |
 | MCP contract | ADR/spec defines read-only resources first | Requires mutation tools or remote exposure | future ADR/spec | No production MCP server |
 | Vector/retrieval | Synthetic eval harness exists first | Requires protected corpus, real vector DB dependency, or embeddings dependency without ADR | future ADR/eval | No mandatory vector DB |

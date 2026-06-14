@@ -36,6 +36,7 @@ describe("P0 docs anti-regression", () => {
     expect(evalSpec).toContain("without installing into the source checkout");
     expect(evalSpec).toContain("invoking Codex");
     expect(downstreamSpec).toContain("does not launch Codex");
+    expect(downstreamSpec).toContain("./.krn/bin/krn hook codex <event>");
     expect(downstreamSpec).toContain(
       "does not claim CI, sandbox, hosted, or production enforcement",
     );
@@ -65,6 +66,7 @@ describe("P0 docs anti-regression", () => {
     expect(hooksSpec).toContain("must not change allow/warn/block semantics");
     expect(traceSpec).toContain("must not include long operator text");
     expect(traceSpec).toContain("buildHookTracePayload(result)");
+    expect(hooksSpec).toContain("./.krn/bin/krn hook codex <event>");
   });
 
   it("keeps Codex non-interactive feasibility separate from implemented evals", async () => {
@@ -111,6 +113,8 @@ describe("P0 docs anti-regression", () => {
     expect(demo).toContain("pnpm dogfood:wp-acf");
     expect(demo).toContain("KRN_WP_ACF_INDEX_BENCHMARK_APPROVED=1");
     expect(demo).toContain("writes a skipped report and does not invoke Codex");
+    expect(demo).toContain("redacted before persistence");
+    expect(demo).toContain("does not pass a full inherited shell environment");
     expect(demo).toContain("not a production Codex runner");
     expect(schema).toContain("baseline");
     expect(schema).toContain("krn-explicit-skill");
@@ -174,6 +178,11 @@ describe("P0 docs anti-regression", () => {
     const scorecard = await readDoc("docs/product/stage-scorecard.md");
     const decision = await readDoc("docs/product/p0-p1-decision.md");
     const reviewers = await readDoc("docs/product/reviewers.md");
+    const operatorSummarySchema = await readDoc("docs/specs/operator-summary.schema.md");
+    const reviewerResultSchema = await readDoc("docs/specs/reviewer-result.schema.md");
+    const evidenceMatrix = await readDoc("docs/product/evidence-matrix.md");
+    const doctrine = await readDoc("docs/product/research-backed-architecture.md");
+    const backlog = await readDoc("docs/product/next-implementation-backlog.md");
     const subagents = await readDoc("docs/product/subagent-contracts.md");
     const condensation = await readDoc("docs/product/knowledge-condensation.md");
     const dashboardAdr = await readDoc(
@@ -185,11 +194,22 @@ describe("P0 docs anti-regression", () => {
     const handoff = await readDoc("docs/handoffs/2026-06-13-wp-acf-dogfood-evidence.md");
     const readme = await readDoc("README.md");
 
-    expect(operator).toContain("P0 data model only");
+    expect(operator).toContain("P1 executable summary artifact");
     expect(operator).toContain("No UI, static HTML, frontend framework, server, database");
+    expect(operator).toContain("`krn summary`");
+    expect(operator).toContain(".krn/current/operator-summary.json");
     expect(operator).toContain("Missing artifacts are allowed");
     expect(operator).toContain("Do not duplicate full trace content");
-    expect(operator).toContain("future `krn summary` or `krn operator` command");
+    expect(operatorSummarySchema).toContain("krn-operator-summary-v1");
+    expect(operatorSummarySchema).toContain(
+      "Skipped, readiness, missing, and unproven are never pass states",
+    );
+    expect(operatorSummarySchema).toContain("Record-only verify is not execution proof");
+    expect(operatorSummarySchema).toContain("No hook.received event exists");
+    expect(operatorSummarySchema).toContain("trusted non-manual hook-load marker");
+    expect(reviewerResultSchema).toContain("krn-reviewer-result-v1");
+    expect(reviewerResultSchema).toContain("krn-review-summary-v1");
+    expect(reviewerResultSchema).toContain("`krn review --llm` is intentionally unsupported");
     expect(p0Exit).toContain("P0 is not production readiness");
     expect(p0Exit).toContain("Global `krn` fallback invalidates KRN dogfood");
     expect(p1Entry).toContain(
@@ -203,7 +223,21 @@ describe("P0 docs anti-regression", () => {
     expect(decision).toContain("P1 is entered under contract-first constraints");
     expect(decision).toContain("This is not production readiness");
     expect(reviewers).toContain("They are not autonomous agents");
+    expect(reviewers).toContain(".krn/current/review-summary.json");
     expect(reviewers).toContain("normal tests must not call paid models");
+    expect(evidenceMatrix).toContain("Deterministic reviewers");
+    expect(evidenceMatrix).toContain("Operator summary");
+    expect(evidenceMatrix).toContain("Dashboard-lite | ADR-only");
+    expect(evidenceMatrix).toContain("MCP | ADR-only");
+    expect(evidenceMatrix).toContain("Retrieval/vector | ADR-only");
+    expect(doctrine).toContain("Agent-Computer Interface Over Agent Hype");
+    expect(doctrine).toContain("Retrieval Eval Before Vector DB");
+    expect(doctrine).toContain("Security By Architecture, Not Prompt");
+    expect(doctrine).toContain("https://arxiv.org/abs/2405.15793");
+    expect(doctrine).toContain("https://genai.owasp.org/llm-top-10/");
+    expect(backlog).toContain("Priority 1: Real-Repo Manual Dogfood Execution");
+    expect(backlog).toContain("Priority 7: Reviewer Expansion");
+    expect(backlog).toContain("Do Not Build Yet");
     expect(subagents).toContain("not as an autonomous execution framework");
     expect(subagents).toContain(
       "must not edit files, spawn agents, approve memory, or call models by default",

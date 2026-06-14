@@ -221,7 +221,7 @@ async function downstreamHooksTemplateCheck(cwd: string, source: boolean): Promi
       isRecord(entries[0]) &&
       Array.isArray(entries[0].hooks) &&
       isRecord(entries[0].hooks[0]) &&
-      entries[0].hooks[0].command === `krn hook codex ${event}`
+      entries[0].hooks[0].command === `./.krn/bin/krn hook codex ${event}`
     );
   });
 

@@ -23,22 +23,37 @@ type ReviewerName =
   | "release";
 
 export interface ReviewRecord {
-  schema: "krn-review-record-v0";
+  schema: "krn-reviewer-result-v1";
+  reviewerId: ReviewerName;
+  reviewerName: string;
   reviewer: ReviewerName;
   status: ReviewStatus;
   severity: ReviewStatus;
   confidence: ReviewConfidence;
   summary: string;
   evidence: string[];
+  artifactsRead: string[];
   findings: string[];
+  blockers: string[];
+  warnings: string[];
   nextActions: string[];
 }
 
 export interface ReviewResult {
-  schema: "krn-review-result-v0";
+  schema: "krn-review-summary-v1";
   generatedAt: string;
   status: ReviewStatus;
+  reviewers: ReviewRecord[];
   records: ReviewRecord[];
+  blockers: string[];
+  warnings: string[];
+  nextActions: string[];
+}
+
+interface ReviewCommandOptions {
+  format: "markdown" | "json";
+  write: boolean;
+  error?: string | undefined;
 }
 
 async function exists(filePath: string): Promise<boolean> {
@@ -66,11 +81,37 @@ async function readText(cwd: string, relativePath: string): Promise<string | und
   }
 }
 
-function record(input: Omit<ReviewRecord, "schema" | "severity">): ReviewRecord {
+const reviewerNames: Record<ReviewerName, string> = {
+  safety: "Safety reviewer",
+  evidence: "Evidence reviewer",
+  context: "Context reviewer",
+  verify: "Verify reviewer",
+  handoff: "Handoff reviewer",
+  dogfood: "Dogfood reviewer",
+  release: "Release readiness reviewer",
+};
+
+function record(
+  input: Omit<
+    ReviewRecord,
+    | "schema"
+    | "reviewerId"
+    | "reviewerName"
+    | "severity"
+    | "artifactsRead"
+    | "blockers"
+    | "warnings"
+  >,
+): ReviewRecord {
   return {
-    schema: "krn-review-record-v0",
+    schema: "krn-reviewer-result-v1",
+    reviewerId: input.reviewer,
+    reviewerName: reviewerNames[input.reviewer],
     ...input,
     severity: input.status,
+    artifactsRead: input.evidence,
+    blockers: input.status === "blocked" || input.status === "fail" ? input.findings : [],
+    warnings: input.status === "warn" ? input.findings : [],
   };
 }
 
@@ -79,6 +120,44 @@ function aggregateStatus(records: ReviewRecord[]): ReviewStatus {
   if (records.some((item) => item.status === "fail")) return "fail";
   if (records.some((item) => item.status === "warn")) return "warn";
   return "pass";
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function parseReviewArgs(args: string[]): ReviewCommandOptions {
+  const options: ReviewCommandOptions = {
+    format: "markdown",
+    write: false,
+  };
+
+  for (const arg of args) {
+    if (arg === "--json") {
+      options.format = "json";
+      continue;
+    }
+
+    if (arg === "--write") {
+      options.write = true;
+      continue;
+    }
+
+    if (arg === "--llm") {
+      return {
+        ...options,
+        error:
+          "KRN review: `--llm` is not implemented; deterministic reviewers only in this slice.",
+      };
+    }
+
+    return {
+      ...options,
+      error: "KRN review: expected `krn review [--json] [--write]`",
+    };
+  }
+
+  return options;
 }
 
 function protectedLookingPath(filePath: string): boolean {
@@ -420,14 +499,14 @@ function renderReviewMarkdown(result: ReviewResult): string {
     "",
     "| Reviewer | Status | Confidence | Summary |",
     "| --- | --- | --- | --- |",
-    ...result.records.map(
+    ...result.reviewers.map(
       (item) =>
         `| ${item.reviewer} | ${item.status} | ${item.confidence} | ${item.summary.replaceAll("|", "\\|")} |`,
     ),
     "",
     "## Findings",
     "",
-    ...result.records.flatMap((item) => [
+    ...result.reviewers.flatMap((item) => [
       `### ${item.reviewer}`,
       "",
       ...(item.findings.length > 0 ? item.findings.map((finding) => `- ${finding}`) : ["- none"]),
@@ -438,6 +517,18 @@ function renderReviewMarkdown(result: ReviewResult): string {
         : ["- none"]),
       "",
     ]),
+    "## Blockers",
+    "",
+    ...(result.blockers.length > 0 ? result.blockers.map((item) => `- ${item}`) : ["- none"]),
+    "",
+    "## Warnings",
+    "",
+    ...(result.warnings.length > 0 ? result.warnings.map((item) => `- ${item}`) : ["- none"]),
+    "",
+    "## Next Actions",
+    "",
+    ...(result.nextActions.length > 0 ? result.nextActions.map((item) => `- ${item}`) : ["- none"]),
+    "",
     "## Limits",
     "",
     "- Deterministic reviewers read local artifacts only.",
@@ -448,8 +539,9 @@ function renderReviewMarkdown(result: ReviewResult): string {
 }
 
 export async function reviewCommand(args: string[], runtime: CliRuntime): Promise<number> {
-  if (args.length > 0) {
-    runtime.stderr("KRN review: expected `krn review`\n");
+  const options = parseReviewArgs(args);
+  if (options.error) {
+    runtime.stderr(`${options.error}\n`);
     return 1;
   }
 
@@ -465,29 +557,53 @@ export async function reviewCommand(args: string[], runtime: CliRuntime): Promis
       releaseReview(runtime.cwd),
     ]),
   ]);
+  const blockers = unique(records.flatMap((item) => item.blockers));
+  const warnings = unique(records.flatMap((item) => item.warnings));
+  const nextActions = unique(records.flatMap((item) => item.nextActions));
   const result: ReviewResult = {
-    schema: "krn-review-result-v0",
+    schema: "krn-review-summary-v1",
     generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
     status: aggregateStatus(records),
+    reviewers: records,
     records,
+    blockers,
+    warnings,
+    nextActions,
   };
+  const markdown = renderReviewMarkdown(result);
 
-  await writeCurrentJson(runtime.cwd, "review-result.json", result);
-  await writeCurrentMarkdown(runtime.cwd, "review-result.md", renderReviewMarkdown(result));
+  if (options.write) {
+    await writeCurrentJson(runtime.cwd, "review-summary.json", result);
+    await writeCurrentMarkdown(runtime.cwd, "review-summary.md", markdown);
+    await writeCurrentJson(runtime.cwd, "review-result.json", result);
+    await writeCurrentMarkdown(runtime.cwd, "review-result.md", markdown);
+  }
+
   await emitCliTrace(runtime, "review.ran", {
     taskId: taskContract?.id,
     runScoped: true,
     data: {
       status: result.status,
-      records: result.records.length,
-      failures: result.records.filter((item) => item.status === "fail").length,
-      blocked: result.records.filter((item) => item.status === "blocked").length,
+      records: result.reviewers.length,
+      failures: result.reviewers.filter((item) => item.status === "fail").length,
+      blocked: result.reviewers.filter((item) => item.status === "blocked").length,
+      write: options.write,
     },
   });
 
+  if (options.format === "json") {
+    runtime.stdout(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
+  }
+
+  if (!options.write) {
+    runtime.stdout(markdown);
+    return 0;
+  }
+
   runtime.stdout(`KRN review: ${result.status}
-records: ${result.records.length}
-result: .krn/current/review-result.md
+records: ${result.reviewers.length}
+result: .krn/current/review-summary.md
 `);
 
   return 0;

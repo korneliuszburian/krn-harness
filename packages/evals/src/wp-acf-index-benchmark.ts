@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { redactVerifyOutput } from "../../verify/src/index.js";
 import {
   type DogfoodMode,
   type DogfoodRunRecord,
@@ -113,6 +114,51 @@ function run(command: string, args: string[], cwd: string, env = process.env): C
     stderr: result.stderr ?? "",
     signal: result.signal,
   };
+}
+
+const codexEnvAllowlist = new Set([
+  "CI",
+  "CODEX_HOME",
+  "COMSPEC",
+  "FORCE_COLOR",
+  "HOME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "LANG",
+  "LC_ALL",
+  "LOGNAME",
+  "NO_COLOR",
+  "OPENAI_API_KEY",
+  "OPENAI_BASE_URL",
+  "PATH",
+  "Path",
+  "PATHEXT",
+  "PNPM_HOME",
+  "SYSTEMROOT",
+  "TEMP",
+  "TERM",
+  "TMP",
+  "TMPDIR",
+  "USER",
+  "USERPROFILE",
+  "WINDIR",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+  "XDG_RUNTIME_DIR",
+  "ZDOTDIR",
+]);
+
+function codexProcessEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const safeEnv: NodeJS.ProcessEnv = {};
+
+  for (const key of codexEnvAllowlist) {
+    const value = env[key];
+    if (value !== undefined) {
+      safeEnv[key] = value;
+    }
+  }
+
+  return safeEnv;
 }
 
 function requireOk(command: string, args: string[], cwd: string, env = process.env): CommandResult {
@@ -341,8 +387,6 @@ async function runCodex(input: {
     'approval_policy="never"',
     "-c",
     'model_reasoning_effort="low"',
-    "-c",
-    'shell_environment_policy.inherit="all"',
     "--json",
     "-o",
     finalPath,
@@ -353,10 +397,21 @@ async function runCodex(input: {
     `codex ${args.slice(0, -1).join(" ")} <prompt>\n`,
   );
   const startedAt = new Date().toISOString();
-  const result = run("codex", args, input.repoPath, input.env);
+  const result = run("codex", args, input.repoPath, codexProcessEnv(input.env));
   const finishedAt = new Date().toISOString();
-  await writeFile(eventsPath, result.stdout, "utf8");
-  await writeFile(stderrPath, result.stderr, "utf8");
+  await writeFile(eventsPath, redactVerifyOutput(result.stdout, input.env), "utf8");
+  await writeFile(stderrPath, redactVerifyOutput(result.stderr, input.env), "utf8");
+  try {
+    const finalMessage = await readFile(finalPath, "utf8");
+    await writeFile(finalPath, redactVerifyOutput(finalMessage, input.env), "utf8");
+  } catch {
+    // Codex may fail before writing the final message file.
+  }
+  await writeFile(
+    path.join(input.outDir, "redaction-notes.md"),
+    "Codex stdout/stderr artifacts are redacted before persistence. The benchmark runner does not pass a full inherited shell environment to Codex.\n",
+    "utf8",
+  );
 
   return {
     startedAt,

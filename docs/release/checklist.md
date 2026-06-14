@@ -23,6 +23,8 @@ pnpm --silent krn verify
 pnpm --silent krn handoff
 pnpm --silent krn doctor
 pnpm --silent krn eval
+pnpm --silent krn review --write
+pnpm --silent krn summary --write
 git diff --check
 git status --short
 ```
@@ -38,7 +40,7 @@ Expected result:
 - install preserves existing files and creates missing runtime artifacts;
 - `krn verify` records the safe profile without execution;
 - `krn verify --execute` runs the allowlisted `node src/index.test.ts` fixture;
-- doctor/eval remain local deterministic checks.
+- doctor/eval/review/summary remain local deterministic checks.
 
 ## Real-Repo Preflight Smoke
 

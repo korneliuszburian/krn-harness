@@ -45,7 +45,7 @@ The loop is local-only evidence. It does not claim CI, sandbox, hosted, or produ
 
 Generated `AGENTS.md` and runtime skill content must stay thin. They route Codex through KRN CLI commands and must not embed full architecture, raw research, or a policy engine.
 
-Generated hooks must cover the seven P0 Codex lifecycle events and call `krn hook codex <event>`.
+Generated hooks must cover the seven P0 Codex lifecycle events and call `./.krn/bin/krn hook codex <event>` through the pinned wrapper installed by `krn install`.
 
 ## Doctor Source vs Downstream
 

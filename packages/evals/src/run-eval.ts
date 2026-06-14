@@ -721,7 +721,7 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
   for (const event of supportedCodexHookEvents) {
     const command = hooks.hooks?.[event]?.[0]?.hooks?.[0]?.command;
 
-    if (command !== `krn hook codex ${event}`) {
+    if (command !== `./.krn/bin/krn hook codex ${event}`) {
       failures.push(`generated hooks template is missing ${event}`);
     }
   }

@@ -16,6 +16,7 @@ export const supportedCliCommands = [
   "doctor",
   "eval",
   "install",
+  "summary",
   "review",
   "memory",
   "hook",

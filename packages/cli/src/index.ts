@@ -13,6 +13,7 @@ import { memoryCommand } from "./commands/memory.js";
 import { reviewCommand } from "./commands/review.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
+import { summaryCommand } from "./commands/summary.js";
 import { verifyCommand } from "./commands/verify.js";
 import { type CliRuntime, defaultRuntime } from "./runtime.js";
 
@@ -31,6 +32,7 @@ Usage:
   krn doctor cli
   krn eval
   krn install
+  krn summary
   krn review
   krn memory <command>
   krn hook codex <event>
@@ -81,6 +83,10 @@ export async function runCli(
 
   if (command === "install") {
     return installCommand(runtime);
+  }
+
+  if (command === "summary") {
+    return summaryCommand(rest, runtime);
   }
 
   if (command === "review") {

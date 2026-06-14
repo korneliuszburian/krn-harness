@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Codex hooks template connects lifecycle events to `krn hook codex <event>`.
+The Codex hooks template connects lifecycle events to `./.krn/bin/krn hook codex <event>` through the pinned wrapper installed by `krn install`.
 
 ## Events
 

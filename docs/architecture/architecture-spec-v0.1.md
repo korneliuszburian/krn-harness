@@ -18,7 +18,7 @@ The P0 monorepo uses `packages/*` for TypeScript packages, `docs/*` for canon/sp
 
 ## CLI Commands
 
-`krn --help`, `krn status`, `krn start "<task>"`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, `krn eval`, `krn install`, `krn review`, and `krn memory <command>` are deterministic local commands. Hook entrypoints accept `krn hook codex <event>`.
+`krn --help`, `krn status`, `krn start "<task>"`, `krn graph`, `krn context`, `krn verify`, `krn handoff`, `krn doctor`, `krn eval`, `krn install`, `krn summary`, `krn review`, and `krn memory <command>` are deterministic local commands. Hook entrypoints accept `krn hook codex <event>`.
 
 ## Codex Adapter Model
 
@@ -70,7 +70,11 @@ P0 eval fixtures are tiny local repos and tasks. They cover context, STOP, graph
 
 ## Reviewers
 
-P1 deterministic reviewers read local artifacts and emit `.krn/current/review-result.json` plus `.krn/current/review-result.md`. Reviewers do not edit files, execute verify commands, call models, commit, or push.
+P1 deterministic reviewers read local artifacts and, with `krn review --write`, emit `.krn/current/review-summary.json` plus `.krn/current/review-summary.md`. Reviewers do not edit files, execute verify commands, call models, commit, or push.
+
+## Operator Summary
+
+P1 operator summary reads current local artifacts and, with `krn summary --write`, emits `.krn/current/operator-summary.json` plus `.krn/current/operator-summary.md`. The summary treats missing, skipped, readiness, and unproven states as non-pass states.
 
 ## Security/Trust
 

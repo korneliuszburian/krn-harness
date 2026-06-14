@@ -16,8 +16,8 @@ This handoff does not claim production readiness.
 ## P1 Lanes Started
 
 - Real-repo workflow: `scripts/krn-real-repo-preflight.sh`, `scripts/krn-real-repo-dogfood.sh`.
-- Reviewers: `docs/product/reviewers.md`, `krn review`.
-- Operator summary: `docs/product/operator-console.md`.
+- Reviewers: `docs/product/reviewers.md`, `krn review --write`.
+- Operator summary: `docs/product/operator-console.md`, `krn summary --write`.
 - Dashboard-lite: ADR-0014, static local report viewer only.
 - MCP: ADR-0015, read-only contract only, no server.
 - Vector/retrieval: ADR-0016, synthetic experiment only, no dependency.
@@ -38,6 +38,9 @@ Hard boundary violations: none found in source-controlled work.
 - Local validation gate: `pnpm verify:local`.
 - Real-repo scaffold skip/readiness states: `scripts/krn-real-repo-dogfood.sh`.
 - P0/P1 decision: `docs/product/p0-p1-decision.md`.
+- Evidence matrix: `docs/product/evidence-matrix.md`.
+- Architecture doctrine: `docs/product/research-backed-architecture.md`.
+- Next backlog: `docs/product/next-implementation-backlog.md`.
 
 ## Known Gaps
 
@@ -47,8 +50,9 @@ Hard boundary violations: none found in source-controlled work.
 - MCP has ADR only, no server.
 - Retrieval/vector has ADR only, no experiment harness implementation.
 - Reviewers now emit deterministic local artifact records, but their operator usefulness beyond first records remains unproven.
+- Operator summary now emits deterministic local artifact records, but its usefulness beyond first records remains unproven.
 - Condensation is workflow-only, not executable `krn condense`.
 
 ## Next Recommended Goal
 
-Implement one executable P1 artifact at a time, starting with deterministic reviewer records or an operator summary JSON renderer. Keep dashboard-lite, MCP, and retrieval behind their ADR boundaries until the artifact schema is stable.
+Run an approved non-protected real-repo dogfood or document the exact blocker. Keep dashboard-lite, MCP, and retrieval behind their ADR boundaries until `operator-summary.json` has real dogfood evidence.

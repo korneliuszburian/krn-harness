@@ -14,7 +14,7 @@ P0 is not production readiness.
 | Runtime `.krn` | Local artifact model | Commands write current/run artifacts under target cwd | CLI tests; dogfood preflight | Runtime artifacts are ignored and not source truth |
 | Task contract | Structured task intent | Full task intent and `--task-spec` preserve constraints, do-not-use paths, and verification expectations | task-contract tests; WP/ACF dogfood | Intent quality is deterministic, not semantic |
 | Context package | Deterministic package context | Must-read, should-read, reference-only, do-not-use, and STOP status are emitted | context tests; docs regression | No embeddings or semantic retrieval |
-| Graph-lite | Shallow repo graph | Filesystem, package, docs, ACF-like, PHP template, CSS, JS selector, and git diff edges are available | graph tests | No AST/callgraph/dataflow |
+| Graph-lite | Shallow repo graph | Default graph build uses filesystem, package conventions, docs links/status, package scripts, Composer metadata, CSS class relations, ACF-like JSON, and WordPress/Bedrock fixture relations | graph tests | No AST/callgraph/dataflow; exported experimental detectors are not default evidence unless wired into `buildGraph` |
 | Trace | JSONL evidence | CLI/run events are compact and parseable | trace tests | Trace is evidence, not enforcement |
 | Verify | Record-only and safe execute | `krn verify --execute` runs only allowlisted commands | verify tests; dogfood preflight | No dependency install or shell pipelines |
 | Handoff | Local summary | Handoff records task, status, validation, changed files, and risks | handoff command tests | Handoff is not proof by itself |

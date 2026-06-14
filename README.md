@@ -34,7 +34,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - P0 exit criteria are tracked in `docs/product/p0-exit-criteria.md`.
 - Controlled P1 entry rules are tracked in `docs/product/p1-entry-contract.md`.
 - Current stage scorecard and decision are tracked in `docs/product/stage-scorecard.md` and `docs/product/p0-p1-decision.md`.
-- P1 starts with local, gated, artifact-first lanes: real-repo workflow, reviewer contracts, operator summaries, subagent/reviewer contracts, and knowledge condensation.
+- P1 starts with local, gated, artifact-first lanes: real-repo workflow, deterministic reviewer records, operator summaries, subagent/reviewer contracts, and knowledge condensation.
 - Dashboard-lite, MCP, and vector/retrieval remain contract or experiment lanes only under ADR-0014, ADR-0015, and ADR-0016.
 - No production dashboard, production MCP server, required vector DB, autonomous subagent swarm, protected-data workflow, or hook enforcement claim exists.
 
@@ -61,6 +61,7 @@ pnpm --silent krn handoff
 pnpm --silent krn doctor
 pnpm --silent krn doctor cli
 pnpm --silent krn eval
+pnpm --silent krn summary
 pnpm --silent krn review
 pnpm --silent krn memory list
 pnpm --silent krn hook codex SessionStart

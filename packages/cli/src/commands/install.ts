@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   generateAgentsAdapter,
@@ -6,6 +6,7 @@ import {
   generateRuntimeSkillTemplate,
 } from "../../../codex-adapter/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
+import { buildCliIdentity } from "../identity.js";
 import type { CliRuntime } from "../runtime.js";
 
 export interface InstallAction {
@@ -83,6 +84,32 @@ async function writeFileIfMissing(
   };
 }
 
+async function writeExecutableFileIfMissing(
+  cwd: string,
+  relativePath: string,
+  content: string,
+): Promise<InstallAction> {
+  const action = await writeFileIfMissing(cwd, relativePath, content);
+
+  if (action.status === "created") {
+    await chmod(path.join(cwd, relativePath), 0o755);
+    return {
+      ...action,
+      detail: "executable file created",
+    };
+  }
+
+  return action;
+}
+
+function pinnedKrnWrapper(sourceRootPath: string): string {
+  return `#!/usr/bin/env sh
+export KRN_HARNESS_BIN_WRAPPER="$0"
+export KRN_HARNESS_SOURCE_ROOT="${sourceRootPath}"
+exec node --import "${sourceRootPath}/node_modules/tsx/dist/esm/index.mjs" "${sourceRootPath}/packages/cli/src/index.ts" "$@"
+`;
+}
+
 function defaultConfig(): string {
   return `${JSON.stringify(
     {
@@ -96,7 +123,10 @@ function defaultConfig(): string {
   )}\n`;
 }
 
-export async function runInstall(cwd: string): Promise<InstallResult> {
+export async function runInstall(
+  cwd: string,
+  input: { sourceRootPath?: string | undefined } = {},
+): Promise<InstallResult> {
   if (await isHarnessSource(cwd)) {
     return {
       status: "skipped",
@@ -113,8 +143,14 @@ export async function runInstall(cwd: string): Promise<InstallResult> {
     await ensureDirectory(cwd, ".krn/traces"),
     await ensureDirectory(cwd, ".krn/runs"),
     await ensureDirectory(cwd, ".krn/memory"),
+    await ensureDirectory(cwd, ".krn/bin"),
     await writeFileIfMissing(cwd, "krn.config.json", defaultConfig()),
     await writeFileIfMissing(cwd, "AGENTS.md", generateAgentsAdapter()),
+    await writeExecutableFileIfMissing(
+      cwd,
+      ".krn/bin/krn",
+      pinnedKrnWrapper(input.sourceRootPath ?? process.cwd()),
+    ),
     await writeFileIfMissing(cwd, ".codex/hooks.json", generateHooksTemplate()),
     await writeFileIfMissing(
       cwd,
@@ -151,7 +187,9 @@ function renderInstallOutput(result: InstallResult): string {
 }
 
 export async function installCommand(runtime: CliRuntime): Promise<number> {
-  const result = await runInstall(runtime.cwd);
+  const result = await runInstall(runtime.cwd, {
+    sourceRootPath: buildCliIdentity(runtime).sourceRootPath,
+  });
 
   await writeTraceEvent(
     createTraceEvent("install.ran", {

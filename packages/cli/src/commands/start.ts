@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { buildTaskContract } from "../../../task-contract/src/index.js";
 import { ensureCurrentStateDir, writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
@@ -180,7 +180,17 @@ async function loadTaskSpec(
     throw new Error("--task-spec must stay inside the current repository");
   }
 
-  const raw = await readFile(path.join(cwd, normalized), "utf8");
+  const [repoRoot, resolvedTaskSpec] = await Promise.all([
+    realpath(cwd),
+    realpath(path.join(cwd, normalized)),
+  ]);
+  const relativeResolvedPath = path.relative(repoRoot, resolvedTaskSpec);
+
+  if (relativeResolvedPath.startsWith("..") || path.isAbsolute(relativeResolvedPath)) {
+    throw new Error("--task-spec must resolve inside the current repository");
+  }
+
+  const raw = await readFile(resolvedTaskSpec, "utf8");
   const parsed = parseTaskSpec(raw);
 
   return {

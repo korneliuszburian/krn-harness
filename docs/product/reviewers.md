@@ -26,7 +26,9 @@ Missing artifacts produce `warn`, `fail`, or `blocked`; they must not be silentl
 
 ```json
 {
-  "schema": "krn-review-record-v0",
+  "schema": "krn-reviewer-result-v1",
+  "reviewerId": "evidence",
+  "reviewerName": "Evidence reviewer",
   "reviewer": "evidence",
   "status": "pass",
   "severity": "pass",
@@ -35,7 +37,12 @@ Missing artifacts produce `warn`, `fail`, or `blocked`; they must not be silentl
   "evidence": [
     ".krn/current/verify-result.json"
   ],
+  "artifactsRead": [
+    ".krn/current/verify-result.json"
+  ],
   "findings": [],
+  "blockers": [],
+  "warnings": [],
   "nextActions": []
 }
 ```
@@ -67,7 +74,16 @@ An LLM reviewer is dry-run only until explicitly approved. It must receive sanit
 
 ## CLI
 
-`krn review` runs deterministic reviewers and emits:
+`krn review` runs deterministic reviewers and prints Markdown by default.
+
+`krn review --json` prints the aggregate `krn-review-summary-v1` object.
+
+`krn review --write` writes:
+
+- `.krn/current/review-summary.json`
+- `.krn/current/review-summary.md`
+
+It also writes compatibility aliases:
 
 - `.krn/current/review-result.json`
 - `.krn/current/review-result.md`

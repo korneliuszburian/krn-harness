@@ -64,7 +64,7 @@ describe("Codex adapter generation", () => {
       expect(handlers.length).toBeGreaterThan(0);
       expect(handlers[0]?.hooks[0]).toMatchObject({
         type: "command",
-        command: `krn hook codex ${event}`,
+        command: `./.krn/bin/krn hook codex ${event}`,
       });
     }
     expect(output).toContain("KRN pre-tool guardrail");

@@ -2,11 +2,11 @@
 
 ## Status
 
-P0 data model only. No UI, static HTML, frontend framework, server, database, or hosted service is implemented.
+P1 executable summary artifact plus data model. No UI, static HTML, frontend framework, server, database, or hosted service is implemented.
 
 ## Purpose
 
-The future operator console should summarize existing local KRN artifacts so an operator can quickly decide what is safe to do next.
+The operator console model is currently exposed through `krn summary`. It summarizes existing local KRN artifacts so an operator can quickly decide what is safe to do next.
 
 It must aggregate evidence already written by the CLI. It must not become a second source of truth.
 
@@ -50,7 +50,7 @@ It must aggregate evidence already written by the CLI. It must not become a seco
 
 ## Inputs
 
-The summary may read only local artifacts:
+`krn summary` may read only local artifacts:
 
 - `.krn/current/run.json`
 - `.krn/current/task-contract.json`
@@ -59,12 +59,29 @@ The summary may read only local artifacts:
 - `.krn/current/handoff.md`
 - `.krn/current/doctor-result.json`
 - `.krn/current/eval-result.json`
+- `.krn/current/review-summary.json`
 - `.krn/graph/repo-graph.json`
 - `.krn/memory/pending.json`
+- `.krn/memory/approved.json`
+- `.krn/memory/deprecated.json`
 - `.krn/dogfood/*/run-record.json`
 - `.krn/dogfood/*/grade.json`
+- `.krn/dogfood/**/summary.json`
 
 Missing artifacts are allowed. The summary should report missing status instead of failing.
+
+## CLI
+
+`krn summary` prints Markdown by default.
+
+`krn summary --json` prints the `krn-operator-summary-v1` object.
+
+`krn summary --write` writes:
+
+- `.krn/current/operator-summary.json`
+- `.krn/current/operator-summary.md`
+
+It writes a `summary.ran` trace event. It does not run verify commands, call Codex, call network, or inspect protected file contents.
 
 ## Limits
 
@@ -75,6 +92,6 @@ Missing artifacts are allowed. The summary should report missing status instead 
 - Do not execute verification commands.
 - Do not add a database or server.
 
-## Deferred Command
+## Deferred UI
 
-A future `krn summary` or `krn operator` command may render this data model, but P0 keeps it as a product document until the dogfood evidence layer is stable.
+A future dashboard-lite renderer may consume `operator-summary.json`, but the current product layer is artifact-first.
