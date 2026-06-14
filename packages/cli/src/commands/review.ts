@@ -1,6 +1,7 @@
 import type { Dirent } from "node:fs";
-import { access, readdir, readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathExists, readJsonFile } from "../../../core/src/index.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -57,20 +58,11 @@ interface ReviewCommandOptions {
 }
 
 async function exists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+  return pathExists(filePath);
 }
 
 async function readJson<T>(cwd: string, relativePath: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(path.join(cwd, relativePath), "utf8")) as T;
-  } catch {
-    return undefined;
-  }
+  return readJsonFile<T>(path.join(cwd, relativePath));
 }
 
 async function readText(cwd: string, relativePath: string): Promise<string | undefined> {

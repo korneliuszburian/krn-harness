@@ -1,4 +1,4 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -7,6 +7,7 @@ import {
   generateRuntimeSkillTemplate,
 } from "../../codex-adapter/src/index.js";
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
+import { pathExists } from "../../core/src/index.js";
 import { buildGraph, type GraphLite } from "../../graph/src/index.js";
 import {
   type HookGuardrailMatrix,
@@ -82,15 +83,6 @@ interface TraceReadResult {
 
 function repoRootFromModule(): string {
   return path.resolve(fileURLToPath(new URL("../../../", import.meta.url)));
-}
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function readTraceEventNames(tracePath: string): Promise<string[]> {

@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
+import { pathExists, readJsonFile } from "../../../core/src/index.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -74,25 +75,8 @@ async function changedFiles(cwd: string): Promise<string[]> {
   }
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(filePath: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(filePath, "utf8")) as T;
-  } catch {
-    return undefined;
-  }
-}
-
 async function graphSummary(cwd: string): Promise<GraphSummary> {
-  const graph = await readJson<{ nodeCount?: unknown; edgeCount?: unknown }>(
+  const graph = await readJsonFile<{ nodeCount?: unknown; edgeCount?: unknown }>(
     path.join(cwd, ".krn", "graph", "repo-graph.json"),
   );
 
@@ -108,7 +92,7 @@ async function graphSummary(cwd: string): Promise<GraphSummary> {
 }
 
 async function currentRunSummary(cwd: string): Promise<CurrentRunSummary> {
-  const run = await readJson<{ tracePath?: unknown }>(
+  const run = await readJsonFile<{ tracePath?: unknown }>(
     path.join(cwd, ".krn", "current", "run.json"),
   );
 
@@ -132,7 +116,7 @@ async function globalTraceSummary(cwd: string): Promise<GlobalTraceSummary> {
 }
 
 async function artifactStatus(cwd: string, relativePath: string): Promise<ArtifactStatusSummary> {
-  const artifact = await readJson<{ status?: unknown }>(path.join(cwd, relativePath));
+  const artifact = await readJsonFile<{ status?: unknown }>(path.join(cwd, relativePath));
 
   return {
     status: typeof artifact?.status === "string" ? artifact.status : "missing",
@@ -140,7 +124,7 @@ async function artifactStatus(cwd: string, relativePath: string): Promise<Artifa
 }
 
 async function evalStatus(cwd: string): Promise<EvalStatusSummary> {
-  const artifact = await readJson<{ status?: unknown; downstream?: { status?: unknown } }>(
+  const artifact = await readJsonFile<{ status?: unknown; downstream?: { status?: unknown } }>(
     path.join(cwd, ".krn", "current", "eval-result.json"),
   );
 

@@ -1,10 +1,11 @@
-import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   generateAgentsAdapter,
   generateHooksTemplate,
   generateRuntimeSkillTemplate,
 } from "../../../codex-adapter/src/index.js";
+import { pathExists, readJsonFile } from "../../../core/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import { buildCliIdentity } from "../identity.js";
 import type { CliRuntime } from "../runtime.js";
@@ -24,24 +25,9 @@ export interface InstallResult {
   actions: InstallAction[];
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function isHarnessSource(cwd: string): Promise<boolean> {
-  try {
-    const parsed = JSON.parse(await readFile(path.join(cwd, "package.json"), "utf8")) as {
-      name?: string;
-    };
-    return parsed.name === "krn-harness";
-  } catch {
-    return false;
-  }
+  const parsed = await readJsonFile<{ name?: string }>(path.join(cwd, "package.json"));
+  return parsed?.name === "krn-harness";
 }
 
 async function ensureDirectory(cwd: string, relativePath: string): Promise<InstallAction> {

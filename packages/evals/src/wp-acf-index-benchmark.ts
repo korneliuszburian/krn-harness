@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pathExists, readJsonFile } from "../../core/src/index.js";
 import { redactVerifyOutput } from "../../verify/src/index.js";
 import {
   type DogfoodMode,
@@ -175,23 +176,6 @@ function requireOk(command: string, args: string[], cwd: string, env = process.e
   return result;
 }
 
-async function exists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(filePath: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(filePath, "utf8")) as T;
-  } catch {
-    return undefined;
-  }
-}
-
 async function readText(filePath: string): Promise<string> {
   try {
     return await readFile(filePath, "utf8");
@@ -225,7 +209,7 @@ async function loadIndex(
   taskIds: string[];
 }> {
   const indexPath = "fixtures/dogfood/tasks/wp-acf-theme-index.json";
-  const index = await readJson<{ fixtureRepo: string; tasks: string[] }>(
+  const index = await readJsonFile<{ fixtureRepo: string; tasks: string[] }>(
     path.join(sourceRoot, indexPath),
   );
 
@@ -483,7 +467,7 @@ async function parseCodexCommands(eventsPath: string): Promise<{
 }
 
 async function traceInfo(repoPath: string): Promise<TraceInfo> {
-  const currentRun = await readJson<{ tracePath?: string }>(
+  const currentRun = await readJsonFile<{ tracePath?: string }>(
     path.join(repoPath, ".krn", "current", "run.json"),
   );
   const tracePaths = [currentRun?.tracePath, ".krn/traces/trace.jsonl"].filter(
@@ -549,16 +533,18 @@ async function collectResult(input: {
   );
   const requiredArtifactsPresent: string[] = [];
   for (const artifact of input.task.requiredArtifacts) {
-    if (await exists(path.join(input.repoPath, artifact))) {
+    if (await pathExists(path.join(input.repoPath, artifact))) {
       requiredArtifactsPresent.push(artifact);
     }
   }
-  const verify = await readJson<{
+  const verify = await readJsonFile<{
     status?: string;
     mode?: string;
     summary?: { executedCommands?: number };
   }>(path.join(input.repoPath, ".krn", "current", "verify-result.json"));
-  const handoffPresent = await exists(path.join(input.repoPath, ".krn", "current", "handoff.md"));
+  const handoffPresent = await pathExists(
+    path.join(input.repoPath, ".krn", "current", "handoff.md"),
+  );
   const traces = await traceInfo(input.repoPath);
   const globalFallbackUsed =
     input.mode !== "baseline" &&

@@ -1,7 +1,8 @@
 import type { Dirent } from "node:fs";
-import { access, readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../context/src/index.js";
+import { pathExists, readJsonFile } from "../../core/src/index.js";
 import { memoryCounts } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
@@ -144,20 +145,11 @@ const artifacts = {
 } as const;
 
 async function exists(cwd: string, relativePath: string): Promise<boolean> {
-  try {
-    await access(path.join(cwd, relativePath));
-    return true;
-  } catch {
-    return false;
-  }
+  return pathExists(path.join(cwd, relativePath));
 }
 
 async function readJson<T>(cwd: string, relativePath: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(path.join(cwd, relativePath), "utf8")) as T;
-  } catch {
-    return undefined;
-  }
+  return readJsonFile<T>(path.join(cwd, relativePath));
 }
 
 async function readText(cwd: string, relativePath: string): Promise<string | undefined> {

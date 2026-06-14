@@ -1,7 +1,8 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "../../config/src/index.js";
 import { hasExplicitMemoryOptOut, isTaskRelevantMemoryMatch } from "../../context/src/index.js";
+import { pathExists, readJsonFile } from "../../core/src/index.js";
 import { supportedCodexHookEvents } from "../../hooks/src/index.js";
 import { type MemoryStatus, memoryStatuses } from "../../memory/src/index.js";
 import { readTraceLines, type TraceEvent } from "../../trace/src/index.js";
@@ -26,21 +27,8 @@ export interface DoctorResult {
   nextActions: string[];
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function readJson<T>(filePath: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(filePath, "utf8")) as T;
-  } catch {
-    return undefined;
-  }
+  return readJsonFile<T>(filePath);
 }
 
 function deriveStatus(checks: DoctorCheck[]): DoctorStatus {

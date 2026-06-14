@@ -1,6 +1,6 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "../../../config/src/index.js";
+import { pathExists } from "../../../core/src/index.js";
 import {
   buildVerifyResult,
   renderVerifyResultMarkdown,
@@ -15,15 +15,6 @@ import {
 } from "../current-state.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function parseVerifyArgs(args: string[]): {
   profileName?: string | undefined;

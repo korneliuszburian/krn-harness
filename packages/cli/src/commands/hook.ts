@@ -1,5 +1,5 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
+import { pathExists } from "../../../core/src/index.js";
 import {
   buildHookTracePayload,
   type HookCurrentState,
@@ -13,15 +13,6 @@ import {
   readCurrentVerifyResult,
 } from "../current-state.js";
 import type { CliRuntime } from "../runtime.js";
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 async function currentHookState(cwd: string): Promise<HookCurrentState> {
   const [taskContract, contextPackage, verifyResult, handoffPresent] = await Promise.all([

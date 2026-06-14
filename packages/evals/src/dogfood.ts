@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathExists, readJsonFile } from "../../core/src/index.js";
 
 export type DogfoodMode =
   | "baseline"
@@ -157,23 +158,6 @@ function gitDiffTouchedFiles(repoPath: string): string[] {
     .filter(Boolean);
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(filePath: string): Promise<T | undefined> {
-  try {
-    return JSON.parse(await readFile(filePath, "utf8")) as T;
-  } catch {
-    return undefined;
-  }
-}
-
 function resolveRepoPath(repoPath: string, filePath: string): string {
   return path.isAbsolute(filePath) ? filePath : path.join(repoPath, filePath);
 }
@@ -186,7 +170,7 @@ async function existingRelativePath(
 }
 
 async function readTraceEvidence(repoPath: string): Promise<TraceEvidence> {
-  const currentRun = await readJson<CurrentRunShape>(
+  const currentRun = await readJsonFile<CurrentRunShape>(
     path.join(repoPath, ".krn", "current", "run.json"),
   );
   const tracePaths = [currentRun?.tracePath, path.join(".krn", "traces", "trace.jsonl")].filter(
@@ -256,7 +240,7 @@ function evaluateKrnIdentity(run: DogfoodRunRecord): {
 }
 
 export async function loadDogfoodTaskSpec(filePath: string): Promise<DogfoodTaskSpec> {
-  const parsed = await readJson<DogfoodTaskSpec>(filePath);
+  const parsed = await readJsonFile<DogfoodTaskSpec>(filePath);
 
   if (!parsed) {
     throw new Error(`Unable to read dogfood task spec: ${filePath}`);
@@ -329,13 +313,13 @@ export async function gradeDogfoodRun(input: {
     touchedFiles.includes(filePath),
   );
   const missingCommands = missingValues(input.task.expectedCommands, input.run.krnCommandsObserved);
-  const verify = await readJson<VerifyShape>(
+  const verify = await readJsonFile<VerifyShape>(
     path.join(input.repoPath, ".krn", "current", "verify-result.json"),
   );
-  const taskContract = await readJson<TaskContractShape>(
+  const taskContract = await readJsonFile<TaskContractShape>(
     path.join(input.repoPath, ".krn", "current", "task-contract.json"),
   );
-  const context = await readJson<ContextShape>(
+  const context = await readJsonFile<ContextShape>(
     path.join(input.repoPath, ".krn", "current", "context-package.json"),
   );
   const handoffPresent = await pathExists(
