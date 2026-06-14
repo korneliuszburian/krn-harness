@@ -375,6 +375,7 @@ interface DogfoodSummary {
   path: string;
   mtimeMs: number;
   status?: string | undefined;
+  outcomeKind?: string | undefined;
   results?: { globalKrnFallbackUsed?: boolean | undefined }[] | undefined;
   aggregates?: { mode?: string; taskPasses?: number; tasks?: number; invalidRuns?: number }[];
 }
@@ -449,24 +450,32 @@ async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
     summary.aggregates?.some((aggregate) => (aggregate.invalidRuns ?? 0) > 0),
   );
   const skipped = summaries.filter((summary) => summary.status === "skipped");
+  const readiness = summaries.filter(
+    (summary) => summary.status === "readiness" || summary.outcomeKind === "readiness-only",
+  );
 
   return record({
     reviewer: "dogfood",
     status:
-      failing.length > 0 || invalid.length > 0 ? "fail" : skipped.length > 0 ? "warn" : "pass",
+      failing.length > 0 || invalid.length > 0
+        ? "fail"
+        : skipped.length > 0 || readiness.length > 0
+          ? "warn"
+          : "pass",
     confidence: "medium",
-    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${skipped.length} skipped.`,
+    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${skipped.length} skipped, ${readiness.length} readiness-only.`,
     evidence: summaries.map((summary) => summary.path),
     findings: [
       ...summarizeDogfoodFindings("failing dogfood summary", failing),
       ...summarizeDogfoodFindings("invalid dogfood runs in", invalid),
       ...summarizeDogfoodFindings("skipped dogfood summary", skipped),
+      ...summarizeDogfoodFindings("readiness-only dogfood summary", readiness),
     ],
     nextActions:
       failing.length > 0 || invalid.length > 0
         ? ["Inspect failing or invalid dogfood reports."]
-        : skipped.length > 0
-          ? ["Review skipped dogfood reasons before claiming readiness."]
+        : skipped.length > 0 || readiness.length > 0
+          ? ["Review skipped/readiness dogfood reports before claiming execution proof."]
           : [],
   });
 }

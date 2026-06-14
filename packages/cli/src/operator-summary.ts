@@ -131,6 +131,7 @@ interface RealRepoDogfoodSummaryFixture {
   repoPath?: string | null | undefined;
   summaryJsonPath?: string | undefined;
   missingEnv?: unknown;
+  nextCommand?: unknown;
   blockers?: string[] | undefined;
   warnings?: string[] | undefined;
 }
@@ -464,6 +465,7 @@ async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["real
   const missingEnvText =
     missingEnv.length > 0 ? missingEnv.join(", ") : "required real-repo dogfood env";
   const skippedMissingEnv = status === "skipped" && outcomeKind === "skipped-missing-env";
+  const nextCommand = typeof latest.nextCommand === "string" ? latest.nextCommand : undefined;
 
   return {
     status,
@@ -488,7 +490,10 @@ async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["real
     missingEnv,
     nextAction: skippedMissingEnv
       ? "Set KRN_REAL_REPO_DOGFOOD_PATH and KRN_REAL_REPO_DOGFOOD_APPROVED=1, then rerun scripts/krn-real-repo-dogfood.sh."
-      : undefined,
+      : status === "readiness"
+        ? (nextCommand ??
+          "Review readiness-only real-repo dogfood report before approving paid/manual execution.")
+        : undefined,
   };
 }
 

@@ -795,13 +795,47 @@ describe("krn CLI", () => {
 
     expect(dogfood).toMatchObject({
       status: "warn",
-      summary: "Found 3 dogfood summary artifact(s): 0 failing, 0 invalid, 3 skipped.",
+      summary:
+        "Found 3 dogfood summary artifact(s): 0 failing, 0 invalid, 3 skipped, 0 readiness-only.",
     });
     expect(dogfood?.evidence).toHaveLength(3);
     expect(dogfood?.findings).toEqual([
       "skipped dogfood summary: .krn/dogfood/real-repo-skipped/run-3/summary.json",
       "skipped dogfood summary: 2 older artifact(s) omitted; see evidence list.",
     ]);
+  });
+
+  it("treats readiness-only dogfood as warning rather than execution proof", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-dogfood", "readiness-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-dogfood-v1",
+          status: "readiness",
+          outcomeKind: "readiness-only",
+          validationClaim: "readiness-only; not real-repo execution validation",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const dogfood = result.reviewers.find((item) => item.reviewer === "dogfood");
+
+    expect(dogfood).toMatchObject({
+      status: "warn",
+      summary:
+        "Found 1 dogfood summary artifact(s): 0 failing, 0 invalid, 0 skipped, 1 readiness-only.",
+      findings: [
+        "readiness-only dogfood summary: .krn/dogfood/real-repo-dogfood/readiness-run/summary.json",
+      ],
+      nextActions: ["Review skipped/readiness dogfood reports before claiming execution proof."],
+    });
   });
 
   it("prints operator summary JSON without requiring existing .krn state", async () => {
@@ -852,6 +886,40 @@ describe("krn CLI", () => {
     );
     expect(summary.nextActions).toContain(
       "Set KRN_REAL_REPO_DOGFOOD_PATH and KRN_REAL_REPO_DOGFOOD_APPROVED=1, then rerun scripts/krn-real-repo-dogfood.sh.",
+    );
+  });
+
+  it("uses readiness dogfood next command in operator summary", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const runDir = path.join(cwd, ".krn", "dogfood", "real-repo-dogfood", "readiness-run");
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, "summary.json"),
+      JSON.stringify(
+        {
+          schema: "krn-real-repo-dogfood-v1",
+          status: "readiness",
+          outcomeKind: "readiness-only",
+          repoPath: cwd,
+          nextCommand: "Review readiness artifact before approving paid/manual execution.",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runInCwd(cwd, ["summary", "--json"]);
+    const summary = JSON.parse(result.stdout) as OperatorSummaryFixture;
+
+    expect(summary.realRepoDogfood).toMatchObject({
+      status: "readiness",
+      outcomeKind: "readiness-only",
+    });
+    expect(summary.nextActions).toContain(
+      "Review readiness artifact before approving paid/manual execution.",
+    );
+    expect(summary.nextActions).not.toContain(
+      "Run real-repo dogfood on an approved non-protected repository.",
     );
   });
 
