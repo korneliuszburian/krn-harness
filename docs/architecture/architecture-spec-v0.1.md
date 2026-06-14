@@ -74,4 +74,10 @@ Trust boundaries are explicit: user prompt, repo files, `.krn/` runtime state, h
 
 ## P0/P1/P2/P3
 
-P0 is the deterministic local harness loop, shallow graph/context evidence, hook guardrails, governed memory gates, downstream onboarding, and harness-only evals. P1 may harden runtime intelligence. P2 may add richer graph intelligence. P3 may add dashboard, MCP server, or plugin distribution after ADR approval.
+P0 is the deterministic local harness loop, shallow graph/context evidence, hook guardrails, governed memory gates, downstream onboarding, and harness-only evals.
+
+P1 has entered only through contract-first local lanes: real-repo readiness, reviewers, operator summaries, dashboard-lite ADR, MCP contract ADR, retrieval/vector experiment ADR, subagent/reviewer contracts, and knowledge condensation.
+
+P1 does not include a production dashboard, MCP server, required vector DB, autonomous subagent swarm, protected-data workflow, or hook enforcement claim.
+
+P2 may add richer graph intelligence after evidence shows graph-lite limits. P3 may add production distribution surfaces only after ADR approval and safety gates.

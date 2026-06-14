@@ -171,9 +171,17 @@ describe("P0 docs anti-regression", () => {
     const operator = await readDoc("docs/product/operator-console.md");
     const p0Exit = await readDoc("docs/product/p0-exit-criteria.md");
     const p1Entry = await readDoc("docs/product/p1-entry-contract.md");
+    const scorecard = await readDoc("docs/product/stage-scorecard.md");
+    const decision = await readDoc("docs/product/p0-p1-decision.md");
     const reviewers = await readDoc("docs/product/reviewers.md");
     const subagents = await readDoc("docs/product/subagent-contracts.md");
     const condensation = await readDoc("docs/product/knowledge-condensation.md");
+    const dashboardAdr = await readDoc(
+      "docs/adr/ADR-0014-dashboard-lite-read-only-report-viewer.md",
+    );
+    const mcpAdr = await readDoc("docs/adr/ADR-0015-mcp-read-only-contract-spike.md");
+    const retrievalAdr = await readDoc("docs/adr/ADR-0016-retrieval-vector-experiment-harness.md");
+    const p1Handoff = await readDoc("docs/handoffs/2026-06-14-p0-p1-entry-decision.md");
     const handoff = await readDoc("docs/handoffs/2026-06-13-wp-acf-dogfood-evidence.md");
     const readme = await readDoc("README.md");
 
@@ -189,6 +197,11 @@ describe("P0 docs anti-regression", () => {
     );
     expect(p1Entry).toContain("No production MCP server");
     expect(p1Entry).toContain("No mandatory vector DB");
+    expect(scorecard).toContain("Stages attempted: 23");
+    expect(scorecard).toContain("Hard boundary violations: none found");
+    expect(decision).toContain("P0 is complete for the local deterministic harness loop");
+    expect(decision).toContain("P1 is entered under contract-first constraints");
+    expect(decision).toContain("This is not production readiness");
     expect(reviewers).toContain("They are not autonomous agents");
     expect(reviewers).toContain("normal tests must not call paid models");
     expect(subagents).toContain("not as an autonomous execution framework");
@@ -197,6 +210,17 @@ describe("P0 docs anti-regression", () => {
     );
     expect(condensation).toContain("does not auto-update active truth");
     expect(condensation).toContain("must not auto-approve memory");
+    expect(dashboardAdr).toContain("generated local static HTML report viewer");
+    expect(dashboardAdr).toContain("No hosted dashboard");
+    expect(mcpAdr).toContain("No MCP server is implemented");
+    expect(mcpAdr).toContain("Forbidden MCP actions");
+    expect(retrievalAdr).toContain("No vector database or embeddings dependency is added");
+    expect(retrievalAdr).toContain("synthetic experiment harness only");
+    expect(p1Handoff).toContain("P0 decision: complete for the local deterministic harness loop");
+    expect(p1Handoff).toContain(
+      "P1 decision: entered under gated, local, artifact-first contracts",
+    );
+    expect(p1Handoff).toContain("Stages attempted: 23");
 
     expect(handoff).toContain("not a production benchmark pass");
     expect(handoff).toContain("Completed for the full WP/ACF task index.");
@@ -213,6 +237,8 @@ describe("P0 docs anti-regression", () => {
     expect(readme).toContain("real Codex hook loading/trust remains unproven");
     expect(readme).toContain("docs/product/p0-exit-criteria.md");
     expect(readme).toContain("docs/product/p1-entry-contract.md");
+    expect(readme).toContain("docs/product/stage-scorecard.md");
+    expect(readme).toContain("ADR-0014, ADR-0015, and ADR-0016");
     expect(readme).toContain("No production dashboard");
   });
 
