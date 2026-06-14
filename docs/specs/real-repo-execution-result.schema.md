@@ -60,7 +60,7 @@ The writer does not:
 - `committedTargetRepo`: must remain `false` for approved manual dogfood.
 - `pushedTargetRepo`: must remain `false` for approved manual dogfood.
 - `hookReceivedCount`: count of `hook.received` events in local trace.
-- `hookTrustStatus`: `trusted` or `unproven`.
+- `hookTrustStatus`: `unproven`, `manual-diagnostic-only`, `blocked`, or `partially-proven`.
 - `reviewSummaryPath`: local review summary path, if present.
 - `operatorSummaryPath`: local operator summary path, if present.
 - `handoffPath`: local handoff path, if present.
@@ -79,7 +79,7 @@ The writer does not:
 
 `manual-no-codex` can record non-Codex manual execution evidence, but it is not Codex execution proof.
 
-`hookTrustStatus: "unproven"` is a warning, not a failure.
+`hookTrustStatus: "unproven"`, `"manual-diagnostic-only"`, or `"blocked"` is a warning, not a failure. `partially-proven` means scoped local hook trust evidence exists, but it is not production proof.
 
 Any forbidden touched file, target commit, or target push is a failure.
 
@@ -175,5 +175,5 @@ Readiness artifacts use `krn-real-repo-dogfood-v1`, not this schema:
 
 - The artifact is local evidence only.
 - The artifact does not prove production behavior.
-- The artifact does not prove hook trust unless `hookTrustStatus` is trusted from non-bypass hook evidence.
+- The artifact does not prove hook trust unless `hookTrustStatus` is `partially-proven` from non-bypass hook evidence.
 - The artifact does not replace target validation output.

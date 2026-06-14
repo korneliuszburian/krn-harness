@@ -218,7 +218,7 @@ const targetRepoCleanAfter = boolFromEnv(
 );
 const hookTrustStatus =
   process.env.KRN_REAL_REPO_EXECUTION_HOOK_TRUST_STATUS ??
-  (trustedHookCount > 0 ? "trusted" : "unproven");
+  (trustedHookCount > 0 ? "partially-proven" : "unproven");
 const krnIdentityValid = boolFromEnv("KRN_REAL_REPO_EXECUTION_KRN_IDENTITY_VALID");
 const validationPassed = validationStatus === "pass";
 const hardFailure =

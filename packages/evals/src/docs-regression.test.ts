@@ -72,7 +72,10 @@ describe("P0 docs anti-regression", () => {
     expect(hooksSpec).not.toMatch(/hooks are enforced/i);
     expect(hookAdr).toContain("not as a sandbox or full policy engine");
     expect(operatorSummarySchema).toContain(
-      "Manual `krn hook codex <event>` traces are also `unproven`",
+      "Manual `krn hook codex <event>` traces are `manual-diagnostic-only`",
+    );
+    expect(operatorSummarySchema).toContain(
+      "Trusted non-manual hook-load markers are `partially-proven`",
     );
     expect(traceSpec).toContain("must not include long operator text");
     expect(traceSpec).toContain("buildHookTracePayload(result)");
@@ -138,7 +141,8 @@ describe("P0 docs anti-regression", () => {
     expect(schema).toContain("Evidence Artifacts");
     expect(schema).toContain("Context Quality");
     expect(schema).toContain("hook.received");
-    expect(schema).toContain("real non-bypass Codex run");
+    expect(schema).toContain("manual probes as diagnostic-only");
+    expect(schema).toContain("trusted real non-bypass Codex hook path");
     expect(schema).toContain("Self-report is not sufficient evidence");
     expect(schema).toContain("must not make `pnpm test` or CI depend on Codex CLI");
     expect(realRepo).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
@@ -213,7 +217,7 @@ describe("P0 docs anti-regression", () => {
     expect(operator).toContain("Do not duplicate full trace content");
     expect(operatorSummarySchema).toContain("krn-operator-summary-v1");
     expect(operatorSummarySchema).toContain(
-      "Skipped, readiness, missing, and unproven are never pass states",
+      "Skipped, readiness, missing, unproven, manual-diagnostic-only, and partially-proven are never production proof states",
     );
     expect(operatorSummarySchema).toContain("Record-only verify is not execution proof");
     expect(operatorSummarySchema).toContain("No hook.received event exists");

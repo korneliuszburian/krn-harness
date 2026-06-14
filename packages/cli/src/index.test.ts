@@ -184,7 +184,12 @@ interface OperatorSummaryFixture {
   status: string;
   currentTask: { status: string; id?: string };
   verify: { status: string; mode?: string; executedCommands?: number };
-  hooks: { status: string; hookReceivedCount: number; summary: string };
+  hooks: {
+    status: string;
+    hookReceivedCount: number;
+    hookTrustStatus?: string;
+    summary: string;
+  };
   realRepoDogfood: {
     status: string;
     summary?: string;
@@ -1063,7 +1068,7 @@ describe("krn CLI", () => {
           forbiddenTouchedFiles: [".env"],
           committedTargetRepo: false,
           pushedTargetRepo: false,
-          hookTrustStatus: "trusted",
+          hookTrustStatus: "partially-proven",
           productionProof: false,
         },
         null,
@@ -1098,6 +1103,15 @@ describe("krn CLI", () => {
     await expect(
       stat(path.join(result.cwd, ".krn", "current", "operator-summary.json")),
     ).rejects.toThrow();
+  });
+
+  it("prints conservative operator summary limits in markdown", async () => {
+    const result = await runInTemp(["summary"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain(
+      "Skipped, readiness, missing, unproven, manual-diagnostic-only, and partially-proven are never production proof states.",
+    );
   });
 
   it("surfaces missing real-repo dogfood env in operator summary", async () => {
@@ -1262,7 +1276,7 @@ describe("krn CLI", () => {
           forbiddenTouchedFiles: [".env"],
           committedTargetRepo: false,
           pushedTargetRepo: false,
-          hookTrustStatus: "trusted",
+          hookTrustStatus: "partially-proven",
           productionProof: false,
         },
         null,
@@ -1365,7 +1379,7 @@ describe("krn CLI", () => {
     expect((await readTraceEvents(cwd)).map((event) => event.name)).toContain("summary.ran");
   }, 20_000);
 
-  it("keeps manual hook trace evidence unproven in operator summary", async () => {
+  it("classifies manual hook trace evidence as diagnostic-only in operator summary", async () => {
     const cwd = await copyFixtureRepo("downstream-basic");
 
     for (const args of [
@@ -1382,11 +1396,47 @@ describe("krn CLI", () => {
     const result = JSON.parse(summary.stdout) as OperatorSummaryFixture;
 
     expect(result.hooks).toMatchObject({
-      status: "unproven",
+      status: "manual-diagnostic-only",
       hookReceivedCount: 1,
+      hookTrustStatus: "manual-diagnostic-only",
     });
-    expect(result.hooks.summary).toContain("no trusted non-manual hook-load marker");
+    expect(result.hooks.summary).toContain("Only diagnostic-level hook.received events exist");
   }, 20_000);
+
+  it("classifies trusted hook trace markers as partially proven in operator summary", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn", "traces"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "traces", "trace.jsonl"),
+      `${JSON.stringify({
+        id: "trace-trusted-hook",
+        timestamp: "2026-06-03T00:00:00.000Z",
+        name: "hook.received",
+        data: {
+          provider: "codex",
+          event: "PreToolUse",
+          payloadSource: "codex-trusted-hook",
+          trustedHookLoad: true,
+          decision: "allow",
+          enforced: false,
+        },
+      })}\n`,
+      "utf8",
+    );
+
+    const summary = await runInCwd(cwd, ["summary", "--json"]);
+    const result = JSON.parse(summary.stdout) as OperatorSummaryFixture;
+
+    expect(result.hooks).toMatchObject({
+      status: "partially-proven",
+      hookReceivedCount: 1,
+      hookTrustStatus: "partially-proven",
+    });
+    expect(result.hooks.summary).toContain("only partially proven");
+    expect(result.nextActions).not.toContain(
+      "Run a non-bypass Codex hook trust probe before claiming hook validation.",
+    );
+  });
 
   it("runs graph and writes deterministic graph artifacts", async () => {
     const result = await runInTemp(["graph"]);

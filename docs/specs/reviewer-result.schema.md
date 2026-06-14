@@ -90,7 +90,7 @@ The dogfood reviewer reads `.krn/dogfood/**/summary.json`.
 - skipped and blocked dogfood artifacts warn unless they contain unsafe evidence.
 - `krn-real-repo-execution-result-v1` can be execution evidence.
 - forbidden touched files, target commits, target pushes, or `productionProof: true` fail.
-- `hookTrustStatus: "unproven"` warns, but does not fail.
+- `hookTrustStatus: "unproven"`, `"manual-diagnostic-only"`, or `"blocked"` warns, but does not fail.
 
 Reviewer output is still local operator guidance, not production proof.
 

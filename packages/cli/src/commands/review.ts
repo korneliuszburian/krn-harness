@@ -464,13 +464,16 @@ function isSkippedDogfood(summary: DogfoodSummary): boolean {
 }
 
 function isExecutionWarning(summary: DogfoodSummary): boolean {
+  const hookTrustStatus = summary.hookTrustStatus ?? "unproven";
   return (
     isExecutionResult(summary) &&
     !isUnsafeExecutionResult(summary) &&
     !isBlockedDogfood(summary) &&
     !isSkippedDogfood(summary) &&
     (summary.validationStatus !== "pass" ||
-      summary.hookTrustStatus === "unproven" ||
+      hookTrustStatus === "unproven" ||
+      hookTrustStatus === "manual-diagnostic-only" ||
+      hookTrustStatus === "blocked" ||
       summary.executionKind === "manual-no-codex")
   );
 }

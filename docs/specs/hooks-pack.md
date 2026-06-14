@@ -49,7 +49,7 @@ Trace payloads stay compact. `hook.received` records `operatorMessageVersion` an
 
 Hook decisions can be `allow`, `warn`, or `block`, but P1 still records `enforced: false`. That field means KRN does not claim sandbox enforcement, process isolation, or guaranteed Codex policy blocking.
 
-Real Codex hook loading/trust remains unproven until a trusted non-bypass Codex hook path emits `hook.received` with trusted provenance. Manual `krn hook codex <event>` probes and fixture traces are diagnostics only; they are not proof that Codex loaded or trusted project hooks.
+Real Codex hook loading/trust remains unproven until a trusted non-bypass Codex hook path emits `hook.received` with trusted provenance. Manual `krn hook codex <event>` probes and fixture traces are diagnostics only; they are not proof that Codex loaded or trusted project hooks. Operator summaries classify these as `manual-diagnostic-only`; future trusted non-bypass markers may be classified as `partially-proven` for the scoped event/path.
 
 P0 records `block` decisions for:
 

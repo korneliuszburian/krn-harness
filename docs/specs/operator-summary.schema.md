@@ -53,9 +53,11 @@ The command writes `summary.ran` and does not run verify commands, call Codex, c
 - `skipped`: a run explicitly skipped.
 - `readiness`: preflight/readiness exists but execution is not proven.
 - `unproven`: no evidence proves the surface yet.
+- `manual-diagnostic-only`: hook trace evidence exists, but only at diagnostic/manual provenance level.
+- `partially-proven`: trusted non-manual hook evidence exists for a scoped event/path.
 - `execution-evidence`: local real-repo execution evidence exists, with production proof still false.
 
-Skipped, readiness, missing, and unproven are never pass states.
+Skipped, readiness, missing, unproven, manual-diagnostic-only, and partially-proven are never production proof states.
 
 ## Confidence Enum
 
@@ -100,7 +102,9 @@ Blocked verify is `blocked`.
 
 If no `hook.received` event exists in `.krn/traces/trace.jsonl`, hooks are `unproven`.
 
-Manual `krn hook codex <event>` traces are also `unproven` unless the trace payload includes a future trusted non-manual hook-load marker such as `payloadSource: "codex-trusted-hook"` or `trustedHookLoad: true`.
+Manual `krn hook codex <event>` traces are `manual-diagnostic-only` unless the trace payload includes a future trusted non-manual hook-load marker such as `payloadSource: "codex-trusted-hook"` or `trustedHookLoad: true`.
+
+Trusted non-manual hook-load markers are `partially-proven`, not full production proof. They prove only the scoped event/path represented by the trace.
 
 Hook status must not be treated as validated until a real non-bypass Codex hook trace exists.
 
@@ -166,7 +170,8 @@ When execution-result artifacts include `nextActions`, `realRepoDogfood.nextActi
     "confidence": "high",
     "summary": "No hook.received event exists; real Codex hook loading/trust remains unproven.",
     "artifacts": [],
-    "hookReceivedCount": 0
+    "hookReceivedCount": 0,
+    "hookTrustStatus": "unproven"
   },
   "realRepoDogfood": {
     "status": "unproven",
@@ -193,7 +198,7 @@ When execution-result artifacts include `nextActions`, `realRepoDogfood.nextActi
     "deprecated": 0
   },
   "risks": [
-    "Hooks are not validated until real hook.received events appear without bypass."
+    "Hooks are not validated until trusted non-bypass hook provenance appears in trace."
   ],
   "blockers": [],
   "warnings": [

@@ -17,6 +17,8 @@ export type OperatorSummaryStatus =
   | "skipped"
   | "readiness"
   | "unproven"
+  | "manual-diagnostic-only"
+  | "partially-proven"
   | "execution-evidence";
 
 export type OperatorSummaryConfidence = "high" | "medium" | "low" | "unknown";
@@ -74,6 +76,7 @@ export interface OperatorSummary {
   handoff: OperatorSummarySignal;
   hooks: OperatorSummarySignal & {
     hookReceivedCount: number;
+    hookTrustStatus: "unproven" | "manual-diagnostic-only" | "partially-proven";
   };
   realRepoDogfood: OperatorSummarySignal & {
     latestStatus?: string | undefined;
@@ -397,18 +400,35 @@ function hooksSignal(rawTrace: string | undefined): OperatorSummary["hooks"] {
     (event) =>
       event.data?.payloadSource === "codex-trusted-hook" || event.data?.trustedHookLoad === true,
   );
+  const diagnosticHookEvents = hookEvents.filter(
+    (event) =>
+      event.data?.payloadSource === "placeholder" ||
+      event.data?.payloadSource === "stdin-json" ||
+      event.data?.payloadSource === "stdin-invalid-json",
+  );
+  const diagnosticOnly =
+    hookReceivedCount > 0 && trustedHookEvents.length === 0 && diagnosticHookEvents.length > 0;
+  const hookTrustStatus =
+    trustedHookEvents.length > 0
+      ? "partially-proven"
+      : diagnosticOnly
+        ? "manual-diagnostic-only"
+        : "unproven";
 
   return {
-    status: trustedHookEvents.length > 0 ? "pass" : "unproven",
+    status: hookTrustStatus,
     confidence: hookReceivedCount > 0 ? "medium" : "high",
     summary:
       trustedHookEvents.length > 0
-        ? "Trusted non-manual hook evidence exists in local trace."
-        : hookReceivedCount > 0
-          ? "hook.received events exist, but no trusted non-manual hook-load marker exists; real Codex hook loading/trust remains unproven."
-          : "No hook.received event exists; real Codex hook loading/trust remains unproven.",
+        ? "Trusted non-manual hook evidence exists in local trace; hook trust is only partially proven for that event/path."
+        : diagnosticOnly
+          ? "Only diagnostic-level hook.received events exist; real Codex hook loading/trust remains unproven."
+          : hookReceivedCount > 0
+            ? "hook.received events exist, but no trusted non-manual hook-load marker exists; real Codex hook loading/trust remains unproven."
+            : "No hook.received event exists; real Codex hook loading/trust remains unproven.",
     artifacts: rawTrace ? [artifacts.trace] : [],
     hookReceivedCount,
+    hookTrustStatus,
   };
 }
 
@@ -524,7 +544,7 @@ function executionResultSignal(
       status: "execution-evidence",
       summary: `Real-repo dogfood has ${executionKind} execution evidence; production proof remains false.`,
       nextAction:
-        hookTrustStatus === "unproven"
+        hookTrustStatus !== "partially-proven"
           ? "Run a non-bypass Codex hook trust probe before claiming hook validation."
           : undefined,
     };
@@ -702,7 +722,9 @@ function summarizeProblems(
       signal.status === "missing" ||
       signal.status === "skipped" ||
       signal.status === "readiness" ||
-      signal.status === "unproven"
+      signal.status === "unproven" ||
+      signal.status === "manual-diagnostic-only" ||
+      signal.status === "partially-proven"
     ) {
       warnings.push(`${signal.label}: ${signal.summary}`);
     }
@@ -715,8 +737,13 @@ function summarizeProblems(
   const realRepoDogfood = signals.find((signal) => signal.label === "realRepoDogfood");
 
   if (hasWarningOrBlocker("hooks")) {
-    risks.push("Hooks are not validated until real hook.received events appear without bypass.");
-    nextActions.push("Run a non-bypass Codex hook trust probe before claiming hook validation.");
+    risks.push(
+      "Hooks are not validated until trusted non-bypass hook provenance appears in trace.",
+    );
+    const hooks = signals.find((signal) => signal.label === "hooks");
+    if (hooks?.status !== "partially-proven") {
+      nextActions.push("Run a non-bypass Codex hook trust probe before claiming hook validation.");
+    }
   }
 
   if (hasWarningOrBlocker("realRepoDogfood")) {
@@ -902,7 +929,7 @@ export function renderOperatorSummaryMarkdown(summary: OperatorSummary): string 
     "## Limits",
     "",
     "- This summary reads local artifacts only.",
-    "- Missing, skipped, readiness, and unproven states are not pass states.",
+    "- Skipped, readiness, missing, unproven, manual-diagnostic-only, and partially-proven are never production proof states.",
     "- This summary does not run verify commands, call Codex, inspect protected data, or claim production proof.",
     "",
   ].join("\n");

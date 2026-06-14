@@ -61,7 +61,7 @@ If `touchedFiles` is empty in the run record, the grader may read `git diff --na
 
 Missing Codex is represented as a skipped run record. Self-report is not sufficient evidence. A KRN-assisted run with missing or invalid `krn-harness-cli-identity-v1` evidence must be marked failed or invalid, because a global `krn` collision can otherwise masquerade as a KRN Harness benchmark. A KRN-assisted report must mark the run invalid when identity evidence is missing, required commands are missing from `doctor cli`, `krnCommandPath` is empty, the identity marker is absent, or `globalKrnFallbackUsed` is true.
 
-Hook reporting must stay conservative. `hook.received` from a manual probe or fixture is not proof that Codex loaded and trusted project hooks. A report must call hooks unproven unless `hook.received > 0` came from a real non-bypass Codex run.
+Hook reporting must stay conservative. `hook.received` from a manual probe or fixture is not proof that Codex loaded and trusted project hooks. A report must classify manual probes as diagnostic-only and must not call hooks partially proven unless `hook.received > 0` came from a trusted real non-bypass Codex hook path.
 
 ## P0 Limits
 
