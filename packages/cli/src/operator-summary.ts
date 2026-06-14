@@ -12,6 +12,7 @@ import {
 import { memoryCounts } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
+import { classifyArtifactPath } from "./artifact-scope.js";
 import type { CliIdentity } from "./identity.js";
 
 export type OperatorSummaryStatus =
@@ -599,6 +600,33 @@ async function realRepoDogfoodSignal(cwd: string): Promise<OperatorSummary["real
       confidence: "high",
       summary: "No real-repo dogfood summary exists.",
       artifacts: [],
+    };
+  }
+
+  const latestScope = classifyArtifactPath(latest.path, {
+    cwd,
+    summary: {
+      schema: typeof latest.schema === "string" ? latest.schema : undefined,
+      status: typeof latest.status === "string" ? latest.status : undefined,
+      executionKind: typeof latest.executionKind === "string" ? latest.executionKind : undefined,
+      outcomeKind: typeof latest.outcomeKind === "string" ? latest.outcomeKind : undefined,
+      repoPath: latest.repoPath,
+      targetRepoPath: latest.targetRepoPath,
+    },
+  }).scope;
+  if (latestScope === "stale-blocking") {
+    return {
+      status: "warn",
+      confidence: "medium",
+      summary:
+        "Latest real-repo dogfood summary is a stale source-local test caveat, not a current target blocker.",
+      artifacts: [latest.path],
+      latestStatus: latest.status,
+      latestPath: latest.path,
+      repoPath: latest.repoPath,
+      outcomeKind: typeof latest.outcomeKind === "string" ? latest.outcomeKind : undefined,
+      nextAction:
+        "Run `krn artifacts list --scope historical` and archive stale source-local dogfood artifacts after operator review.",
     };
   }
 

@@ -7,7 +7,7 @@ This is the next P1 backlog after executable `krn review` and `krn summary`.
 It keeps product value ordered by evidence:
 
 ```txt
-real repo proof -> hardening -> static report -> memory lifecycle -> retrieval eval -> MCP contract -> reviewer expansion
+real repo proof -> hardening -> static report -> release check -> memory lifecycle -> retrieval eval -> MCP contract -> reviewer expansion
 ```
 
 ## Priority 1: Real-Repo Manual Dogfood Execution
@@ -246,7 +246,7 @@ Stop conditions:
 - MCP server is blocked until read-only resources have schema tests.
 - Vector DB is blocked until retrieval eval has failures worth solving.
 - Subagents are blocked until deterministic reviewers are useful.
-- CI is blocked until local release contract stabilizes.
+- CI remains limited to local no-model validation and release-check until package publication is explicitly designed.
 
 ## Do Not Build Yet
 
@@ -258,4 +258,3 @@ Stop conditions:
 - Real Codex execution wrapper.
 - Protected-data workflow.
 - Package publishing.
-- GitHub Actions.

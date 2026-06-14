@@ -112,6 +112,10 @@ Hook status must not be treated as validated until a real non-bypass Codex hook 
 
 No real-repo dogfood summary is `unproven`.
 
+Historical source-local `test-*` skipped/blocked dogfood summaries are stale
+caveats. They may produce `warn`, but must not block the current source summary
+once artifact scope identifies them as `stale-blocking`.
+
 `skipped` is not pass.
 
 `readiness` is not pass; it means preflight/readiness exists but paid/manual execution is not proven.

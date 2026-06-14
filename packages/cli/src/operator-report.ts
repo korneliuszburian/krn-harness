@@ -1,12 +1,11 @@
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { deriveReportVerdict, type ProofSeverity, readJsonFile } from "../../core/src/index.js";
 import {
+  type ArtifactRecord,
   getHistoricalCaveats,
   getLatestExecutionResult,
   getStaleBlockingArtifacts,
   listRuntimeArtifacts,
-  type ArtifactRecord,
 } from "./artifact-scope.js";
 import { currentStatePath } from "./current-state.js";
 import type { CliIdentity } from "./identity.js";

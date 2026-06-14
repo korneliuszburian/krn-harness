@@ -1,11 +1,11 @@
 import { mkdir, rename } from "node:fs/promises";
 import path from "node:path";
 import {
+  type ArtifactRecord,
+  type ArtifactScopeFilter,
   artifactPathHasSecretMarker,
   artifactPathIsArchiveSafe,
   filterArtifacts,
-  type ArtifactRecord,
-  type ArtifactScopeFilter,
   listRuntimeArtifacts,
 } from "../artifact-scope.js";
 import type { CliRuntime } from "../runtime.js";

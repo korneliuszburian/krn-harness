@@ -25,6 +25,8 @@ pnpm --silent krn doctor
 pnpm --silent krn eval
 pnpm --silent krn review --write
 pnpm --silent krn summary --write
+pnpm --silent krn report --write
+pnpm --silent krn release-check --write
 git diff --check
 git status --short
 ```
@@ -62,6 +64,21 @@ It must remain report-only unless explicit operator approvals are present. Missi
 
 Do not include paid dogfood, real repo mutation beyond local `.krn` preflight state, or hook trust proof in CI/local release gates.
 
+## Minimal CI Gate
+
+`.github/workflows/verify.yml` may run only local no-model validation:
+
+- dependency install;
+- `pnpm lint`;
+- `pnpm typecheck`;
+- `pnpm test`;
+- `pnpm verify:local`;
+- `pnpm --silent krn report --write`;
+- `pnpm --silent krn release-check --write`.
+
+It must not run paid Codex execution, real user-repo dogfood, package
+publication, deployment, or a Codex CLI CI dependency.
+
 ## CLI Metadata Decision
 
 `@krn-harness/cli` has local `bin` metadata for dogfood linking only. The entrypoint remains TypeScript source with a `tsx` shebang, so this is not a publish-ready package boundary.
@@ -76,4 +93,6 @@ Before any package publication, define a built output, package files, versioning
 
 ## Non-Goals
 
-Do not add GitHub Actions, npm publish automation, plugin distribution, hosted services, or Codex CLI CI dependency as part of this checklist.
+Do not add npm publish automation, plugin distribution, hosted services, real
+user-repo mutation, paid Codex/model calls, or Codex CLI CI dependency as part
+of this checklist.

@@ -194,6 +194,7 @@ describe("P0 docs anti-regression", () => {
     const reviewers = await readDoc("docs/product/reviewers.md");
     const operatorSummarySchema = await readDoc("docs/specs/operator-summary.schema.md");
     const operatorReportSchema = await readDoc("docs/specs/operator-report.schema.md");
+    const releaseCheckSchema = await readDoc("docs/specs/release-check.schema.md");
     const reviewerResultSchema = await readDoc("docs/specs/reviewer-result.schema.md");
     const evidenceMatrix = await readDoc("docs/product/evidence-matrix.md");
     const doctrine = await readDoc("docs/product/research-backed-architecture.md");
@@ -224,12 +225,15 @@ describe("P0 docs anti-regression", () => {
       "Skipped, readiness, missing, unproven, manual-diagnostic-only, and partially-proven are never production proof states",
     );
     expect(operatorSummarySchema).toContain("Record-only verify is not execution proof");
+    expect(operatorSummarySchema).toContain("stale-blocking");
     expect(operatorSummarySchema).toContain("No hook.received event exists");
     expect(operatorSummarySchema).toContain("trusted non-manual hook-load marker");
     expect(operatorReportSchema).toContain("krn-operator-report-v1");
     expect(operatorReportSchema).toContain("Historical source `.krn` dogfood blockers");
     expect(operatorReportSchema).toContain("external CSS");
     expect(operatorReportSchema).toContain("productionProof.value` must remain `false");
+    expect(releaseCheckSchema).toContain("krn-release-check-v1");
+    expect(releaseCheckSchema).toContain("does not run lint, typecheck, tests, verify, Codex");
     expect(reviewerResultSchema).toContain("krn-reviewer-result-v1");
     expect(reviewerResultSchema).toContain("krn-review-summary-v1");
     expect(reviewerResultSchema).toContain("`krn review --llm` is intentionally unsupported");
@@ -297,7 +301,8 @@ describe("P0 docs anti-regression", () => {
     expect(readme).toContain("Tiny downstream fixture dogfood");
     expect(readme).toContain("WordPress/ACF fixture");
     expect(readme).toContain("Global `krn` fallback invalidates the run");
-    expect(readme).toContain("Real user-repo dogfood: pending");
+    expect(readme).toContain("non-doc isolated `krn.config.json` adoption run");
+    expect(readme).toContain("Product-code target proof remains pending");
     expect(readme).toContain("real Codex hook loading/trust remains unproven");
     expect(readme).toContain("docs/product/p0-exit-criteria.md");
     expect(readme).toContain("docs/product/p1-entry-contract.md");
@@ -344,12 +349,15 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("pnpm verify:local");
     expect(checklist).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
     expect(checklist).toContain("scripts/krn-real-repo-dogfood.sh");
+    expect(checklist).toContain("pnpm --silent krn report --write");
+    expect(checklist).toContain("pnpm --silent krn release-check --write");
     expect(checklist).toContain("write a readiness report");
     expect(checklist).toContain("must not depend on paid Codex calls");
     expect(checklist).toContain("local `bin` metadata for dogfood linking only");
     expect(checklist).toContain("not a publish-ready package boundary");
     expect(checklist).toContain("Do not publish from P0");
-    expect(checklist).toContain("Do not add GitHub Actions");
+    expect(checklist).toContain("Minimal CI Gate");
+    expect(checklist).toContain("local no-model validation");
     expect(checklist).toContain("Codex CLI CI dependency");
   });
 

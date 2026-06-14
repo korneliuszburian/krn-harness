@@ -194,6 +194,7 @@ interface OperatorSummaryFixture {
   realRepoDogfood: {
     status: string;
     summary?: string;
+    latestPath?: string;
     repoPath?: string | null;
     executionWorktreePath?: string | null;
     outcomeKind?: string;
@@ -234,6 +235,15 @@ interface OperatorReportFixture {
   blockers: string[];
   warnings: string[];
   historicalCaveats: Array<{ path: string; scope: string }>;
+}
+
+interface ReleaseCheckFixture {
+  schema: string;
+  status: string;
+  checks: Array<{ id: string; status: string; summary: string }>;
+  blockers: string[];
+  warnings: string[];
+  nextActions: string[];
 }
 
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
@@ -386,6 +396,7 @@ describe("krn CLI", () => {
       "krn summary",
       "krn review",
       "krn report",
+      "krn release-check",
       "krn artifacts <command>",
       "krn memory <command>",
       "krn hook codex <event>",
@@ -557,7 +568,17 @@ describe("krn CLI", () => {
 
     const summary = await runInCwd(cwd, ["summary", "--write"]);
     expect(summary.code).toBe(0);
-    expect(summary.stdout).toContain("KRN summary: blocked");
+    expect(summary.stdout).toContain("KRN summary: warn");
+
+    const operatorSummary = await readJson<OperatorSummaryFixture>(
+      cwd,
+      ".krn/current/operator-summary.json",
+    );
+    expect(operatorSummary.realRepoDogfood).toMatchObject({
+      status: "warn",
+      latestPath: stalePath,
+    });
+    expect(operatorSummary.realRepoDogfood.summary).toContain("stale source-local test caveat");
 
     const result = await runInCwd(cwd, ["report", "--json"]);
     const report = JSON.parse(result.stdout) as OperatorReportFixture;
@@ -565,7 +586,7 @@ describe("krn CLI", () => {
     expect(report.verdict).toBe("warn");
     expect(report.realRepoEvidence).toMatchObject({
       status: "warn",
-      staleHistoricalBlocker: true,
+      staleHistoricalBlocker: false,
     });
     expect(report.blockers).not.toEqual(
       expect.arrayContaining([expect.stringContaining("realRepoDogfood")]),
@@ -573,6 +594,77 @@ describe("krn CLI", () => {
     expect(report.historicalCaveats).toEqual([
       expect.objectContaining({ path: stalePath, scope: "stale-blocking" }),
     ]);
+  });
+
+  it("runs a local release readiness check and writes artifacts", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const files = [
+      "packages/cli/src/commands/report.ts",
+      "packages/cli/src/commands/artifacts.ts",
+      "docs/specs/operator-report.schema.md",
+      "docs/specs/release-check.schema.md",
+      "docs/product/evidence-matrix.md",
+      "docs/product/mvp-state.md",
+      ".github/workflows/verify.yml",
+      "packages/verify/src/command-policy.ts",
+      ".krn/current/operator-report.md",
+      ".krn/current/operator-report.json",
+      ".krn/current/operator-report.html",
+    ];
+
+    await writeFile(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        scripts: {
+          lint: "biome check .",
+          typecheck: "tsc --noEmit",
+          test: "vitest",
+          "verify:local": "pnpm lint && pnpm typecheck && pnpm test",
+        },
+      }),
+      "utf8",
+    );
+    for (const relativePath of files) {
+      await mkdir(path.dirname(path.join(cwd, relativePath)), { recursive: true });
+      await writeFile(path.join(cwd, relativePath), `${relativePath}\n`, "utf8");
+    }
+
+    const result = await runInCwd(cwd, ["release-check", "--json", "--write"]);
+    const releaseCheck = JSON.parse(result.stdout) as ReleaseCheckFixture;
+
+    expect(result.code).toBe(0);
+    expect(releaseCheck.schema).toBe("krn-release-check-v1");
+    expect(releaseCheck.status).toBe("pass");
+    expect(releaseCheck.blockers).toEqual([]);
+    expect(releaseCheck.nextActions).toEqual([]);
+    expect(releaseCheck.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "package-scripts", status: "pass" }),
+        expect.objectContaining({ id: "release-check-schema", status: "pass" }),
+        expect.objectContaining({ id: "ci-workflow", status: "pass" }),
+        expect.objectContaining({ id: "operator-report-artifacts", status: "pass" }),
+      ]),
+    );
+    await expectFile(cwd, ".krn/current/release-check.json");
+    await expectFile(cwd, ".krn/current/release-check.md");
+  });
+
+  it("fails release readiness when required local contracts are missing", async () => {
+    const result = await runInTemp(["release-check", "--json"]);
+    const releaseCheck = JSON.parse(result.stdout) as ReleaseCheckFixture;
+
+    expect(result.code).toBe(1);
+    expect(releaseCheck.status).toBe("fail");
+    expect(releaseCheck.blockers).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("package-scripts"),
+        expect.stringContaining("mvp-state"),
+        expect.stringContaining("ci-workflow"),
+      ]),
+    );
+    expect(releaseCheck.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining("operator-report-artifacts")]),
+    );
   });
 
   it("keeps the local CLI bin entrypoint linkable for dogfood", async () => {

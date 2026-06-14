@@ -10,7 +10,7 @@ Core product principle:
 contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 ```
 
-## Current P0 Surface
+## Current P0/P1 Surface
 
 - pnpm TypeScript workspace.
 - Deterministic `krn` CLI for local current-state artifacts.
@@ -22,6 +22,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - Dogfood evidence for tiny downstream fixture runs and a synthetic WordPress/ACF-style fixture.
 - Operator report command for local Markdown, JSON, and static HTML evidence projection.
 - Artifact lifecycle commands for listing and safely archiving historical `.krn` caveats.
+- Release-check command plus minimal local-validation CI workflow; no publish automation.
 - Repo-scoped build-time skills in `.agents/skills/*`.
 
 ## Current Evidence Status
@@ -29,7 +30,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
 - WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
 - Dogfood CLI identity: KRN-assisted dogfood must use a pinned KRN command path and captured `krn doctor cli` identity. Global `krn` fallback invalidates the run.
-- Real user-repo dogfood: pending unless `KRN_REAL_REPO_DOGFOOD_PATH` and `KRN_REAL_REPO_DOGFOOD_APPROVED=1` are explicitly configured. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
+- Real user-repo dogfood: docs-only isolated `krn-llm-wiki` evidence exists, and a non-doc isolated `krn.config.json` adoption run passed executable readonly verify. Product-code target proof remains pending. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
 - Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
 
 ## P0/P1 Transition
@@ -68,6 +69,7 @@ pnpm --silent krn summary
 pnpm --silent krn review
 pnpm --silent krn report --write
 pnpm --silent krn report --json
+pnpm --silent krn release-check --write
 pnpm --silent krn artifacts list
 pnpm --silent krn artifacts archive --dry-run
 pnpm --silent krn memory list
