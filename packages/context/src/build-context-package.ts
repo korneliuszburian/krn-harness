@@ -96,8 +96,11 @@ const broadVerifyProfileDocTerms = new Set([
   "readme",
   "readonly",
   "repo",
+  "source",
   "tools",
   "validation",
+  "governance",
+  "wiki",
 ]);
 
 function item(
@@ -185,7 +188,7 @@ function normalizeContextPath(value: string): string {
 function explicitRepoPathsForTask(task: string): string[] {
   const paths = new Set<string>();
   const pathPattern =
-    /(?:^|[\s`"'(])((?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+|[A-Za-z0-9._-]+\.(?:cjs|js|json|md|mjs|py|toml|ts|tsx|yaml|yml))(?:$|[\s`"',.;:)])/g;
+    /(?:^|[\s`"'(])((?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+\.(?:cjs|js|json|md|mjs|py|toml|ts|tsx|yaml|yml)|[A-Za-z0-9._-]+\.(?:cjs|js|json|md|mjs|py|toml|ts|tsx|yaml|yml))(?:$|[\s`"',.;:)])/g;
 
   for (const match of task.matchAll(pathPattern)) {
     const rawPath = match[1];
@@ -773,7 +776,8 @@ function graphItemsForTask(
       node.kind === "doc" &&
       node.status === "deprecated" &&
       matchedTerms.length > 0 &&
-      !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms)
+      !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
+      !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
     ) {
       items.push(
         item(

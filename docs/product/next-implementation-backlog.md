@@ -14,17 +14,14 @@ real repo proof -> hardening -> static report -> memory lifecycle -> retrieval e
 
 Goal: run KRN on an approved non-protected repository with a pinned local `krn`.
 
-Current evidence: manual KRN-assisted Codex execution has run on isolated
-`krn-llm-wiki` worktrees. The execution-result artifact uses
-`krn-real-repo-execution-result-v1`, changed only `README.md`, used a pinned KRN
-pre-loop, passed the target repo read-only validation suite, and leaves
-`productionProof: false`. A later isolated `krn-llm-wiki` worktree also proved a
-temporary safe `python3 tools/check_all_readonly.py` verify profile through
-`krn verify --execute`; the Codex edit step was blocked because
-`KRN_REAL_REPO_CODEX_APPROVED` was not set. The same blocked run measured and
-hardened verify-profile-only context over-inclusion from 26 total / 24
-reference-only / high risk to 12 total / 2 reference-only / low risk while
-preserving `AGENTS.md`, `README.md`, `krn.config.json`,
+Current evidence: approved manual KRN-assisted Codex execution has run on an
+isolated `krn-llm-wiki` worktree. The execution-result artifact uses
+`krn-real-repo-execution-result-v1`, records `executionKind: manual-codex`,
+changed only `README.md`, used a pinned KRN pre-loop, passed the target repo
+read-only validation suite through `krn verify --execute`, and leaves
+`productionProof: false`. The run also confirmed the verify-profile-only context
+hardening: the measured context stayed at 12 total / 2 reference-only / low risk
+while preserving `AGENTS.md`, `README.md`, `krn.config.json`,
 `tools/check_all_readonly.py`, and do-not-use constraints.
 
 Likely files:
@@ -56,7 +53,7 @@ Risk:
 - Treating preflight-only reports as execution proof.
 - Treating local execution evidence as production proof.
 - Remaining without committed real target verify profiles or trusted hook evidence.
-- Remaining without an approved second Codex execution when `KRN_REAL_REPO_CODEX_APPROVED=1`.
+- Treating a docs-only `krn-llm-wiki` run as proof for broader source-editing targets.
 
 Stop conditions:
 

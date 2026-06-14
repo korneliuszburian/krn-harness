@@ -905,9 +905,9 @@ describe("context package", () => {
     );
     expect(activePaths).not.toContain("docs/stale-readme.md");
     expect(referenceOnlyPaths).not.toContain("docs/stale-readme.md");
+    expect(doNotUsePaths).not.toContain("docs/stale-readme.md");
     expect(doNotUsePaths).toEqual(
       expect.arrayContaining([
-        "docs/stale-readme.md",
         "raw/",
         "wiki/_approvals/",
         "wiki/_proposals/",
