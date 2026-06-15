@@ -498,6 +498,37 @@ describe("Codex hook entry guardrails", () => {
     ).toEqual(["docs/specs/krn-config.schema.md", "packages/config"]);
   });
 
+  it.each([
+    ["biome lint rules", "biome.json"],
+    ["typescript typecheck", "tsconfig.json"],
+    ["package scripts", "package.json"],
+    ["pnpm workspace", "pnpm-workspace.yaml"],
+    ["vitest test runner", "vitest.config.ts"],
+    ["ci workflow", ".github/workflows/verify.yml"],
+  ])("warns for owned root config proof path: %s", (taskText, filePath) => {
+    const result = handleCodexHook("PreToolUse", {
+      payload: parseCodexHookPayload(JSON.stringify({ toolName: "Write", filePath })),
+      state: {
+        ...readyState,
+        taskText,
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "warn",
+      decision: "warn",
+      enforced: false,
+      ownedProofPathHints: [filePath],
+    });
+    expect(result.findings).toContainEqual({
+      code: "proof-path-exception",
+      severity: "warn",
+      detail: "Tool payload edits a task/context-owned proof path outside active context",
+      path: filePath,
+      ownershipHint: filePath,
+    });
+  });
+
   it("caps compact proof path hints in hook results", () => {
     const result = handleCodexHook("PreToolUse", {
       payload: parseCodexHookPayload(

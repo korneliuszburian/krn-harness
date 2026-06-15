@@ -228,6 +228,26 @@ const p0ProofPathOwnershipRules: ProofPathOwnershipRule[] = [
     hints: ["docs/specs/krn-config.schema.md"],
   },
   {
+    anyTerms: ["biome", "formatter", "formatting", "lint", "linter"],
+    hints: ["biome.json"],
+  },
+  {
+    anyTerms: ["typescript", "tsconfig", "typecheck"],
+    hints: ["tsconfig.json"],
+  },
+  {
+    anyTerms: ["vitest", "test runner"],
+    hints: ["vitest.config.ts"],
+  },
+  {
+    anyTerms: ["package", "pnpm", "workspace", "dependency", "dependencies", "scripts"],
+    hints: ["package.json", "pnpm-workspace.yaml"],
+  },
+  {
+    anyTerms: ["ci", "workflow", "workflows", "github action", "github actions"],
+    hints: [".github/workflows/verify.yml"],
+  },
+  {
     anyTerms: ["context", "ranking"],
     hints: ["docs/specs/context-package.schema.md"],
   },
@@ -460,6 +480,12 @@ function isProofPath(filePath: string): boolean {
 
   return (
     normalized === "README.md" ||
+    normalized === "biome.json" ||
+    normalized === "package.json" ||
+    normalized === "pnpm-workspace.yaml" ||
+    normalized === "tsconfig.json" ||
+    normalized === "vitest.config.ts" ||
+    normalized.startsWith(".github/workflows/") ||
     normalized.startsWith("docs/") ||
     normalized.startsWith("fixtures/") ||
     normalized.startsWith("tests/") ||
