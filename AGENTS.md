@@ -35,6 +35,15 @@ contract → context → graph → hooks → trace → verify → governed memor
 - Do not claim done without validation evidence.
 - Semantic commits only.
 
+## Behavioral guardrails
+
+Bias toward caution over speed; use judgment for trivial tasks.
+
+- Think before coding: state assumptions, surface tradeoffs, and ask when the request or repo truth is unclear.
+- Keep solutions simple: write the minimum code that solves the verified problem; avoid speculative features, unused configurability, and single-use abstractions.
+- Make surgical changes: touch only files needed for the request, match local style, and clean up only unused code created by your change.
+- Execute against clear success criteria: for multi-step work, define the verification loop before editing and keep working until the agreed checks pass or a blocker is explicit.
+
 ## P0 scope
 
 P0 may include:
