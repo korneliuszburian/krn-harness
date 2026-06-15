@@ -34,7 +34,7 @@ this roadmap state.
 | TASK-008 real non-bypass hook trust proof | Deferred | Disposable non-protected target; no production claim |
 | TASK-009 graph-lite dependency evidence | Done | Literal import-string evidence; no full AST/callgraph or new CLI surface |
 | TASK-010 skill invocation docs | Done | Explicit `$skill` invocation docs; docs-only, no new skills |
-| TASK-011 context poisoning defense | Deferred | ADR-0023 unless numbering changes |
+| TASK-011 context poisoning defense | ADR/spec accepted; implementation deferred | ADR-0023; pre-read graph/context policy before code |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
 | TASK-013 downstream AGENTS quality gate | Done | Generated AGENTS adapter quality gate in install path |
 
@@ -108,6 +108,24 @@ this roadmap state.
   product manual.
 - No new build-time skill, runtime/downstream skill, CLI command, plugin
   distribution, MCP tool, hook trust claim, or production proof is added.
+
+## TASK-011 Acceptance Gate
+
+- ADR-0023 records context poisoning defense as a graph/context ingestion
+  policy, not a hook sanitizer.
+- `docs/specs/context-poisoning-defense.md` defines authority/evidence
+  boundaries, current implementation gap, required future behavior, required
+  tests, and non-goals.
+- `docs/security/context-poisoning.md` and `docs/security/trust-boundaries.md`
+  state that repository text is evidence until promoted, and that current
+  `krn graph` behavior still relies on clean preflighted targets for protected
+  data safety.
+- Implementation is deferred until a focused source/test slice can prove
+  task-spec do-not-use paths are excluded before graph detector content reads.
+- No hook implementation, hook trust claim, MCP, dashboard, vector DB,
+  embeddings, subagent framework, publishing workflow, protected-data workflow,
+  production security guarantee, new top-level command, or `krn run` bypass is
+  added.
 
 ## TASK-013 Acceptance
 

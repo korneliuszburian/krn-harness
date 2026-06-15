@@ -64,6 +64,13 @@ Graph selector matching is shallow and deterministic. Generic terms such as `sec
 
 Task-contract metadata may add explicit `expectedTouchedFiles` into the `mustRead` bucket and `requiredDoNotUsePaths` into the `doNotUse` bucket. Task text may also add explicit repo-relative paths into `shouldRead`. Explicit slash paths require a file-like final segment with a known extension; this keeps natural-language phrases such as `validation/checks` from becoming repo paths. This preserves dogfood/task-spec constraints and verify command paths as context evidence without adding graph semantics.
 
+TASK-011 context poisoning defense is accepted as a policy/spec contract in
+ADR-0023, but not yet implemented in this schema. Current `requiredDoNotUsePaths`
+are applied during context selection; future implementation must move protected
+and do-not-use path policy before graph detector content reads. Until then,
+approved target runs still require clean isolated worktrees and preflight before
+`krn run --task-spec ... --execute-verify --bundle`.
+
 Verify-profile-focused tasks narrow graph doc-match noise. When a task is focused on `krn verify --execute`, a verify profile, a readonly profile, or `check_all_readonly`, broad graph doc matches such as README/path/repo/source/validation/readonly/tooling/wiki/governance terms are suppressed unless the file is expected to be touched or explicitly named in the task text. The suppression applies to deprecated docs as well as available docs. This is a P1 hardening rule for measured real-repo over-inclusion, not semantic retrieval.
 
 Package-owned graph selectors use deterministic graph-lite ownership edges. Matching package-owned source files become `must-read`, package-owned tests and config files become `should-read`, package-owned available docs become `reference-only`, and package-owned deprecated docs become `do-not-use`. When a `tests-source` path-convention edge points to an already selected package-owned source, the paired test may be ranked as `tests-source-for-owned-source` support. This context promotion remains path-convention-only and must not become AST, Tree-sitter, callgraph/dataflow, runtime dependency inference, embeddings, or semantic retrieval in P0.

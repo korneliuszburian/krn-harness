@@ -460,6 +460,37 @@ describe("P0 docs anti-regression", () => {
     expect(traceSpec).toContain("budgetStatus");
   });
 
+  it("keeps context poisoning defense explicit and out of hook trust scope", async () => {
+    const contextPoisoningAdr = await readDoc("docs/adr/ADR-0023-context-poisoning-defense.md");
+    const contextPoisoningSpec = await readDoc("docs/specs/context-poisoning-defense.md");
+    const contextPoisoningSecurity = await readDoc("docs/security/context-poisoning.md");
+    const trustBoundaries = await readDoc("docs/security/trust-boundaries.md");
+    const contextSpec = await readDoc("docs/specs/context-package.schema.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+    const adrIndex = await readDoc("docs/adr/README.md");
+
+    expect(contextPoisoningAdr).toContain("Implementation deferred");
+    expect(contextPoisoningAdr).toContain(
+      "The first implementation surface is graph/context ingestion policy",
+    );
+    expect(contextPoisoningAdr).toContain("No hook sanitizer implementation");
+    expect(contextPoisoningAdr).toContain("No new top-level CLI command");
+    expect(contextPoisoningSpec).toContain("Current Implementation Status");
+    expect(contextPoisoningSpec).toContain("Not implemented");
+    expect(contextPoisoningSpec).toContain("before graph detectors read file contents");
+    expect(contextPoisoningSpec).toContain("a task-spec do-not-use path is not read");
+    expect(contextPoisoningSecurity).toContain("Current limitation");
+    expect(contextPoisoningSecurity).toContain("clean isolated target");
+    expect(trustBoundaries).toContain("file text is untrusted context");
+    expect(trustBoundaries).toContain("Context poisoning defense must happen");
+    expect(trustBoundaries).toContain("are not sufficient because hooks are not a sandbox");
+    expect(contextSpec).toContain("future implementation must move protected");
+    expect(goalRoadmap).toContain("TASK-011 context poisoning defense");
+    expect(goalRoadmap).toContain("ADR/spec accepted; implementation deferred");
+    expect(goalRoadmap).toContain("No hook implementation, hook trust claim");
+    expect(adrIndex).toContain("ADR-0023: Context Poisoning Defense");
+  });
+
   it("keeps build-time skill invocation docs explicit and bounded", async () => {
     const skillIndex = await readDoc(".agents/skills/README.md");
     const buildTimeSkills = ["buduj", "kanon", "pilnuj", "wycinek", "handoff"];
