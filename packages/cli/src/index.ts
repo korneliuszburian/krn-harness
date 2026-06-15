@@ -15,6 +15,7 @@ import { memoryCommand } from "./commands/memory.js";
 import { releaseCheckCommand } from "./commands/release-check.js";
 import { reportCommand } from "./commands/report.js";
 import { reviewCommand } from "./commands/review.js";
+import { runCommand } from "./commands/run.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
 import { summaryCommand } from "./commands/summary.js";
@@ -26,6 +27,10 @@ export const helpText = `KRN Harness CLI
 
 Usage:
   krn --help
+  krn run --task "<task>" [--dry-run] [--json] [--execute-verify] [--bundle]
+  krn run --task-spec <json> [--execute-verify] [--bundle]
+
+Advanced plumbing / troubleshooting:
   krn status
   krn start "<task>"
   krn start --task-spec <json>
@@ -62,6 +67,10 @@ export async function runCli(
 
   if (command === "status") {
     return statusCommand(runtime);
+  }
+
+  if (command === "run") {
+    return runCommand(rest, runtime);
   }
 
   if (command === "start") {

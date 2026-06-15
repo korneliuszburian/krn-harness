@@ -7,6 +7,7 @@ export const cliPackageName = "@krn-harness/cli";
 export const cliPackageVersion = "0.0.0";
 
 export const supportedCliCommands = [
+  "run",
   "status",
   "start",
   "graph",

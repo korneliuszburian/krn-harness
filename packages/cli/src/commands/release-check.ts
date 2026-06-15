@@ -187,6 +187,13 @@ async function buildReleaseCheck(cwd: string, generatedAt: string): Promise<Rele
     packageScriptsCheck(cwd),
     fileCheck(
       cwd,
+      "run-command",
+      "packages/cli/src/commands/run.ts",
+      "Condensed run command exists.",
+      "Add `krn run` before release.",
+    ),
+    fileCheck(
+      cwd,
       "report-command",
       "packages/cli/src/commands/report.ts",
       "Operator report command exists.",
@@ -233,6 +240,13 @@ async function buildReleaseCheck(cwd: string, generatedAt: string): Promise<Rele
       "docs/specs/config-doctor.schema.md",
       "Config doctor schema exists.",
       "Document config doctor schema before release.",
+    ),
+    fileCheck(
+      cwd,
+      "run-result-schema",
+      "docs/specs/run-result.schema.md",
+      "Run result schema exists.",
+      "Document run result schema before release.",
     ),
     fileCheck(
       cwd,

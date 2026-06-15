@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "verify": {
+    "defaultProfile": "local",
+    "profiles": {
+      "local": {
+        "commands": [
+          {
+            "command": "pnpm",
+            "args": ["lint"],
+            "label": "source lint"
+          }
+        ],
+        "timeoutMs": 120000,
+        "maxOutputBytes": 12000
+      }
+    }
+  }
+}
