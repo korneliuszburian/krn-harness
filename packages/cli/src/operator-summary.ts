@@ -1,18 +1,22 @@
 import type { Dirent } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../context/src/index.js";
 import {
   classifyExecutionResult,
   classifyHookTrust,
   isHookTrustSufficient,
-  pathExists,
-  readJsonFile,
 } from "../../core/src/index.js";
 import { memoryCounts } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
 import { classifyArtifactPath } from "./artifact-scope.js";
+import {
+  currentArtifactPaths,
+  readRepoJson,
+  readRepoText,
+  repoPathExists,
+} from "./current-artifacts.js";
 import type { CliIdentity } from "./identity.js";
 
 export type OperatorSummaryStatus =
@@ -164,34 +168,18 @@ interface RealRepoDogfoodSummaryFixture {
 }
 
 const artifacts = {
-  task: ".krn/current/task-contract.json",
-  context: ".krn/current/context-package.json",
-  graph: ".krn/graph/repo-graph.json",
-  verify: ".krn/current/verify-result.json",
-  handoff: ".krn/current/handoff.md",
-  trace: ".krn/traces/trace.jsonl",
-  reviewSummary: ".krn/current/review-summary.json",
-  reviewResult: ".krn/current/review-result.json",
-  memoryPending: ".krn/memory/pending.json",
-  memoryApproved: ".krn/memory/approved.json",
-  memoryDeprecated: ".krn/memory/deprecated.json",
+  task: currentArtifactPaths.taskContract,
+  context: currentArtifactPaths.contextPackage,
+  graph: currentArtifactPaths.graph,
+  verify: currentArtifactPaths.verifyResult,
+  handoff: currentArtifactPaths.handoff,
+  trace: currentArtifactPaths.trace,
+  reviewSummary: currentArtifactPaths.reviewSummary,
+  reviewResult: currentArtifactPaths.reviewResult,
+  memoryPending: currentArtifactPaths.memoryPending,
+  memoryApproved: currentArtifactPaths.memoryApproved,
+  memoryDeprecated: currentArtifactPaths.memoryDeprecated,
 } as const;
-
-async function exists(cwd: string, relativePath: string): Promise<boolean> {
-  return pathExists(path.join(cwd, relativePath));
-}
-
-async function readJson<T>(cwd: string, relativePath: string): Promise<T | undefined> {
-  return readJsonFile<T>(path.join(cwd, relativePath));
-}
-
-async function readText(cwd: string, relativePath: string): Promise<string | undefined> {
-  try {
-    return await readFile(path.join(cwd, relativePath), "utf8");
-  } catch {
-    return undefined;
-  }
-}
 
 async function collectArtifacts(cwd: string): Promise<OperatorSummaryArtifact[]> {
   const entries = [
@@ -211,7 +199,9 @@ async function collectArtifacts(cwd: string): Promise<OperatorSummaryArtifact[]>
     entries.map(async ([label, artifactPath]) => ({
       label,
       path: artifactPath,
-      status: (await exists(cwd, artifactPath)) ? ("present" as const) : ("missing" as const),
+      status: (await repoPathExists(cwd, artifactPath))
+        ? ("present" as const)
+        : ("missing" as const),
     })),
   );
 }
@@ -463,7 +453,7 @@ async function collectRealRepoDogfoodSummaries(
 
       if (entry.isFile() && entry.name === "summary.json") {
         const relativePath = path.relative(cwd, entryPath).split(path.sep).join("/");
-        const summary = await readJson<RealRepoDogfoodSummaryFixture>(cwd, relativePath);
+        const summary = await readRepoJson<RealRepoDogfoodSummaryFixture>(cwd, relativePath);
         if (
           summary?.schema === "krn-real-repo-dogfood-v1" ||
           summary?.schema === "krn-real-repo-preflight-v1" ||
@@ -845,14 +835,14 @@ export async function buildOperatorSummary(
 ): Promise<OperatorSummary> {
   const [task, context, graph, verify, handoff, rawTrace, review, reviewAlias, realRepo, memory] =
     await Promise.all([
-      readJson<TaskContract>(input.cwd, artifacts.task),
-      readJson<ContextPackage>(input.cwd, artifacts.context),
-      readJson<GraphArtifactFixture>(input.cwd, artifacts.graph),
-      readJson<VerifyResult>(input.cwd, artifacts.verify),
-      readText(input.cwd, artifacts.handoff),
-      readText(input.cwd, artifacts.trace),
-      readJson<ReviewSummaryFixture>(input.cwd, artifacts.reviewSummary),
-      readJson<ReviewSummaryFixture>(input.cwd, artifacts.reviewResult),
+      readRepoJson<TaskContract>(input.cwd, artifacts.task),
+      readRepoJson<ContextPackage>(input.cwd, artifacts.context),
+      readRepoJson<GraphArtifactFixture>(input.cwd, artifacts.graph),
+      readRepoJson<VerifyResult>(input.cwd, artifacts.verify),
+      readRepoText(input.cwd, artifacts.handoff),
+      readRepoText(input.cwd, artifacts.trace),
+      readRepoJson<ReviewSummaryFixture>(input.cwd, artifacts.reviewSummary),
+      readRepoJson<ReviewSummaryFixture>(input.cwd, artifacts.reviewResult),
       realRepoDogfoodSignal(input.cwd),
       memorySignal(input.cwd),
     ]);

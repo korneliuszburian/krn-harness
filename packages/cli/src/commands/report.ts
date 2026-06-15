@@ -1,6 +1,10 @@
-import { copyFile, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { artifactPathHasSecretMarker } from "../artifact-scope.js";
+import {
+  type BundleArtifactFile,
+  copyRuntimeArtifactFile,
+  currentArtifactPaths,
+} from "../current-artifacts.js";
 import {
   currentStatePath,
   ensureCurrentStateDir,
@@ -56,12 +60,7 @@ function parseReportArgs(args: string[]): ReportCommandOptions {
   return options;
 }
 
-interface ReportBundleFile {
-  path: string;
-  source: string;
-  present: boolean;
-  required: boolean;
-}
+type ReportBundleFile = BundleArtifactFile;
 
 interface ReportBundleManifest {
   schema: "krn-report-bundle-manifest-v1";
@@ -70,46 +69,6 @@ interface ReportBundleManifest {
   productionProof: false;
   files: ReportBundleFile[];
   limits: string[];
-}
-
-async function copyIfPresent(
-  cwd: string,
-  bundleDir: string,
-  source: string,
-  destination: string,
-  required: boolean,
-): Promise<ReportBundleFile> {
-  const normalizedSource = source.split(path.sep).join("/");
-  if (
-    !normalizedSource.startsWith(".krn/") ||
-    normalizedSource.includes("/../") ||
-    artifactPathHasSecretMarker(normalizedSource)
-  ) {
-    return {
-      path: destination,
-      source,
-      present: false,
-      required,
-    };
-  }
-
-  try {
-    await mkdir(path.dirname(path.join(bundleDir, destination)), { recursive: true });
-    await copyFile(path.join(cwd, normalizedSource), path.join(bundleDir, destination));
-    return {
-      path: destination,
-      source: normalizedSource,
-      present: true,
-      required,
-    };
-  } catch {
-    return {
-      path: destination,
-      source: normalizedSource,
-      present: false,
-      required,
-    };
-  }
 }
 
 async function writeReportBundle(
@@ -152,27 +111,35 @@ async function writeReportBundle(
   ];
 
   for (const item of [
-    ["operator-summary.json", ".krn/current/operator-summary.json", true],
-    ["review-summary.json", ".krn/current/review-summary.json", false],
-    ["verify-result.json", ".krn/current/verify-result.json", false],
-    ["context-package.json", ".krn/current/context-package.json", false],
-    ["release-check.json", ".krn/current/release-check.json", false],
-    ["config-doctor.json", ".krn/current/config-doctor.json", false],
-    ["install-result.json", ".krn/current/install-result.json", false],
-    ["uninstall-result.json", ".krn/current/uninstall-result.json", false],
+    ["operator-summary.json", currentArtifactPaths.operatorSummary, true],
+    ["review-summary.json", currentArtifactPaths.reviewSummary, false],
+    ["verify-result.json", currentArtifactPaths.verifyResult, false],
+    ["context-package.json", currentArtifactPaths.contextPackage, false],
+    ["release-check.json", currentArtifactPaths.releaseCheckJson, false],
+    ["config-doctor.json", currentArtifactPaths.configDoctor, false],
+    ["install-result.json", currentArtifactPaths.installResult, false],
+    ["uninstall-result.json", currentArtifactPaths.uninstallResult, false],
   ] as const) {
-    files.push(await copyIfPresent(runtime.cwd, bundleDir, item[1], item[0], item[2]));
+    files.push(
+      await copyRuntimeArtifactFile({
+        cwd: runtime.cwd,
+        bundleDir,
+        source: item[1],
+        destination: item[0],
+        required: item[2],
+      }),
+    );
   }
 
   if (input.latestExecutionPath) {
     files.push(
-      await copyIfPresent(
-        runtime.cwd,
+      await copyRuntimeArtifactFile({
+        cwd: runtime.cwd,
         bundleDir,
-        input.latestExecutionPath,
-        "evidence/real-repo-execution-summary.json",
-        false,
-      ),
+        source: input.latestExecutionPath,
+        destination: "evidence/real-repo-execution-summary.json",
+        required: false,
+      }),
     );
   }
 

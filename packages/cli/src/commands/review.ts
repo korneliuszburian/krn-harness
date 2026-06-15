@@ -1,7 +1,8 @@
 import type { Dirent } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { classifyExecutionResult, pathExists, readJsonFile } from "../../../core/src/index.js";
+import { classifyExecutionResult } from "../../../core/src/index.js";
+import { readRepoJson, readRepoText, repoPathExists } from "../current-artifacts.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -55,22 +56,6 @@ interface ReviewCommandOptions {
   format: "markdown" | "json";
   write: boolean;
   error?: string | undefined;
-}
-
-async function exists(filePath: string): Promise<boolean> {
-  return pathExists(filePath);
-}
-
-async function readJson<T>(cwd: string, relativePath: string): Promise<T | undefined> {
-  return readJsonFile<T>(path.join(cwd, relativePath));
-}
-
-async function readText(cwd: string, relativePath: string): Promise<string | undefined> {
-  try {
-    return await readFile(path.join(cwd, relativePath), "utf8");
-  } catch {
-    return undefined;
-  }
 }
 
 const reviewerNames: Record<ReviewerName, string> = {
@@ -221,7 +206,7 @@ async function evidenceReview(cwd: string): Promise<ReviewRecord> {
   const missing: string[] = [];
 
   for (const artifact of required) {
-    if (await exists(path.join(cwd, artifact))) {
+    if (await repoPathExists(cwd, artifact)) {
       present.push(artifact);
     } else {
       missing.push(artifact);
@@ -340,7 +325,7 @@ async function verifyReview(cwd: string): Promise<ReviewRecord> {
 }
 
 async function handoffReview(cwd: string): Promise<ReviewRecord> {
-  const handoff = await readText(cwd, ".krn/current/handoff.md");
+  const handoff = await readRepoText(cwd, ".krn/current/handoff.md");
 
   if (!handoff) {
     return record({
@@ -413,7 +398,7 @@ async function collectDogfoodSummaries(cwd: string): Promise<DogfoodSummary[]> {
 
       if (entry.isFile() && entry.name === "summary.json") {
         const relativePath = path.relative(cwd, entryPath).split(path.sep).join("/");
-        const summary = await readJson<DogfoodSummaryJson>(cwd, relativePath);
+        const summary = await readRepoJson<DogfoodSummaryJson>(cwd, relativePath);
         const info = await stat(entryPath);
         summaries.push({ path: relativePath, mtimeMs: info.mtimeMs, ...summary });
       }
@@ -544,7 +529,7 @@ async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
 }
 
 async function releaseReview(cwd: string): Promise<ReviewRecord> {
-  const packageJson = await readJson<{ scripts?: Record<string, string> }>(cwd, "package.json");
+  const packageJson = await readRepoJson<{ scripts?: Record<string, string> }>(cwd, "package.json");
   const hasVerifyLocal = typeof packageJson?.scripts?.["verify:local"] === "string";
 
   if (!hasVerifyLocal) {

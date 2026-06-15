@@ -1,9 +1,14 @@
-import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../../context/src/index.js";
-import { pathExists, readJsonFile } from "../../../core/src/index.js";
 import type { VerifyResult } from "../../../verify/src/index.js";
-import { artifactPathHasSecretMarker } from "../artifact-scope.js";
+import {
+  type BundleArtifactFile,
+  copyCurrentArtifactFile,
+  currentArtifactPaths,
+  readRepoJson,
+  repoPathExists,
+} from "../current-artifacts.js";
 import {
   currentStatePath,
   readCurrentContextPackage,
@@ -47,13 +52,7 @@ interface ReleaseCheckResultFixture {
   nextActions?: string[] | undefined;
 }
 
-interface RunBundleFile {
-  path: string;
-  source: string;
-  present: boolean;
-  required: boolean;
-  skippedReason?: string | undefined;
-}
+type RunBundleFile = BundleArtifactFile;
 
 interface RunBundleManifest {
   schema: "krn-run-bundle-manifest-v1";
@@ -187,31 +186,27 @@ function unique(values: Array<string | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
-function normalizeArtifactPath(relativePath: string): string {
-  return relativePath.split(path.sep).join("/");
-}
-
 function runArtifacts(bundle: boolean): Record<string, string> {
   return {
-    taskContract: ".krn/current/task-contract.json",
-    graph: ".krn/graph/repo-graph.json",
-    contextPackage: ".krn/current/context-package.json",
-    verifyResult: ".krn/current/verify-result.json",
-    handoff: ".krn/current/handoff.md",
-    reviewSummary: ".krn/current/review-summary.json",
-    operatorSummary: ".krn/current/operator-summary.json",
-    operatorReportMarkdown: ".krn/current/operator-report.md",
-    operatorReportJson: ".krn/current/operator-report.json",
-    operatorReportHtml: ".krn/current/operator-report.html",
+    taskContract: currentArtifactPaths.taskContract,
+    graph: currentArtifactPaths.graph,
+    contextPackage: currentArtifactPaths.contextPackage,
+    verifyResult: currentArtifactPaths.verifyResult,
+    handoff: currentArtifactPaths.handoff,
+    reviewSummary: currentArtifactPaths.reviewSummary,
+    operatorSummary: currentArtifactPaths.operatorSummary,
+    operatorReportMarkdown: currentArtifactPaths.operatorReportMarkdown,
+    operatorReportJson: currentArtifactPaths.operatorReportJson,
+    operatorReportHtml: currentArtifactPaths.operatorReportHtml,
     ...(bundle
       ? {
-          releaseCheckJson: ".krn/current/release-check.json",
-          releaseCheckMarkdown: ".krn/current/release-check.md",
-          runBundleManifest: ".krn/current/run-bundle/manifest.json",
+          releaseCheckJson: currentArtifactPaths.releaseCheckJson,
+          releaseCheckMarkdown: currentArtifactPaths.releaseCheckMarkdown,
+          runBundleManifest: currentArtifactPaths.runBundleManifest,
         }
       : {}),
-    runResultJson: ".krn/current/run-result.json",
-    runResultMarkdown: ".krn/current/run-result.md",
+    runResultJson: currentArtifactPaths.runResultJson,
+    runResultMarkdown: currentArtifactPaths.runResultMarkdown,
   };
 }
 
@@ -295,109 +290,60 @@ async function writeRunResult(runtime: CliRuntime, result: RunResult): Promise<v
   await writeCurrentMarkdown(runtime.cwd, "run-result.md", renderRunResultMarkdown(result));
 }
 
-async function copyRunBundleFile(
-  cwd: string,
-  bundleDir: string,
-  source: string,
-  destination: string,
-  required: boolean,
-): Promise<RunBundleFile> {
-  const normalizedSource = normalizeArtifactPath(source);
-  const sourceParts = normalizedSource.split("/");
-
-  if (
-    !normalizedSource.startsWith(".krn/current/") ||
-    sourceParts.includes("..") ||
-    artifactPathHasSecretMarker(normalizedSource)
-  ) {
-    return {
-      path: destination,
-      source: normalizedSource,
-      present: false,
-      required,
-      skippedReason: "unsafe_source_path",
-    };
-  }
-
-  try {
-    const absoluteSource = path.join(cwd, normalizedSource);
-    const fileStat = await stat(absoluteSource);
-    if (fileStat.size > 1_000_000) {
-      return {
-        path: destination,
-        source: normalizedSource,
-        present: false,
-        required,
-        skippedReason: "file_too_large",
-      };
-    }
-
-    await mkdir(path.dirname(path.join(bundleDir, destination)), { recursive: true });
-    await copyFile(absoluteSource, path.join(bundleDir, destination));
-    return {
-      path: destination,
-      source: normalizedSource,
-      present: true,
-      required,
-    };
-  } catch {
-    return {
-      path: destination,
-      source: normalizedSource,
-      present: false,
-      required,
-    };
-  }
-}
-
 async function writeRunBundle(runtime: CliRuntime, result: RunResult): Promise<RunBundleManifest> {
   const bundleDir = currentStatePath(runtime.cwd, "run-bundle");
   await mkdir(bundleDir, { recursive: true });
 
   const copiedFiles = await Promise.all([
-    copyRunBundleFile(
-      runtime.cwd,
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
       bundleDir,
-      ".krn/current/run-result.json",
-      "run-result.json",
-      true,
-    ),
-    copyRunBundleFile(runtime.cwd, bundleDir, ".krn/current/run-result.md", "run-result.md", true),
-    copyRunBundleFile(
-      runtime.cwd,
+      source: currentArtifactPaths.runResultJson,
+      destination: "run-result.json",
+      required: true,
+    }),
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
       bundleDir,
-      ".krn/current/operator-report.md",
-      "operator-report.md",
-      true,
-    ),
-    copyRunBundleFile(
-      runtime.cwd,
+      source: currentArtifactPaths.runResultMarkdown,
+      destination: "run-result.md",
+      required: true,
+    }),
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
       bundleDir,
-      ".krn/current/operator-report.json",
-      "operator-report.json",
-      true,
-    ),
-    copyRunBundleFile(
-      runtime.cwd,
+      source: currentArtifactPaths.operatorReportMarkdown,
+      destination: "operator-report.md",
+      required: true,
+    }),
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
       bundleDir,
-      ".krn/current/operator-report.html",
-      "operator-report.html",
-      true,
-    ),
-    copyRunBundleFile(
-      runtime.cwd,
+      source: currentArtifactPaths.operatorReportJson,
+      destination: "operator-report.json",
+      required: true,
+    }),
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
       bundleDir,
-      ".krn/current/release-check.json",
-      "release-check.json",
-      true,
-    ),
-    copyRunBundleFile(
-      runtime.cwd,
+      source: currentArtifactPaths.operatorReportHtml,
+      destination: "operator-report.html",
+      required: true,
+    }),
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
       bundleDir,
-      ".krn/current/release-check.md",
-      "release-check.md",
-      true,
-    ),
+      source: currentArtifactPaths.releaseCheckJson,
+      destination: "release-check.json",
+      required: true,
+    }),
+    copyCurrentArtifactFile({
+      cwd: runtime.cwd,
+      bundleDir,
+      source: currentArtifactPaths.releaseCheckMarkdown,
+      destination: "release-check.md",
+      required: true,
+    }),
   ]);
 
   const manifest: RunBundleManifest = {
@@ -462,7 +408,7 @@ async function releaseCheckShouldBlockRun(cwd: string): Promise<boolean> {
     "docs/specs/run-result.schema.md",
   ];
   const present = await Promise.all(
-    sourceReleaseCheckPaths.map((relativePath) => pathExists(path.join(cwd, relativePath))),
+    sourceReleaseCheckPaths.map((relativePath) => repoPathExists(cwd, relativePath)),
   );
 
   return present.every(Boolean);
@@ -583,8 +529,9 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
   steps.report = report.step;
   captures.push(report.capture);
 
-  const operatorReport = await readJsonFile<OperatorReport>(
-    currentStatePath(runtime.cwd, "operator-report.json"),
+  const operatorReport = await readRepoJson<OperatorReport>(
+    runtime.cwd,
+    currentArtifactPaths.operatorReportJson,
   );
   steps.report = {
     ...steps.report,
@@ -601,8 +548,9 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
     steps.releaseCheck = releaseCheck.step;
     captures.push(releaseCheck.capture);
 
-    const releaseCheckResult = await readJsonFile<ReleaseCheckResultFixture>(
-      currentStatePath(runtime.cwd, "release-check.json"),
+    const releaseCheckResult = await readRepoJson<ReleaseCheckResultFixture>(
+      runtime.cwd,
+      currentArtifactPaths.releaseCheckJson,
     );
     const releaseCheckStatus = releaseCheckStepStatus(releaseCheckResult);
     const releaseCheckNonBlockingFailure = !releaseCheckBlocks && releaseCheckStatus === "failed";
@@ -651,10 +599,11 @@ async function buildAndWriteRunResult(
       readCurrentContextPackage(runtime.cwd),
       readCurrentVerifyResult(runtime.cwd),
       input.operatorReport ??
-        readJsonFile<OperatorReport>(currentStatePath(runtime.cwd, "operator-report.json")),
+        readRepoJson<OperatorReport>(runtime.cwd, currentArtifactPaths.operatorReportJson),
       input.options.bundle
-        ? readJsonFile<ReleaseCheckResultFixture>(
-            currentStatePath(runtime.cwd, "release-check.json"),
+        ? readRepoJson<ReleaseCheckResultFixture>(
+            runtime.cwd,
+            currentArtifactPaths.releaseCheckJson,
           )
         : undefined,
     ]);
