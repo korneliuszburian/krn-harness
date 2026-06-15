@@ -37,6 +37,16 @@
       "pl": "Przekaż poprawny JSON hooka albo pomiń stdin dla trybu placeholder."
     },
     {
+      "code": "run-krn-run",
+      "en": "Run `krn run --task-spec ... --bundle` or `krn run --task ... --bundle` before compacting.",
+      "pl": "Uruchom `krn run --task-spec ... --bundle` albo `krn run --task ... --bundle` przed kompakcją."
+    },
+    {
+      "code": "run-krn-report",
+      "en": "Run `krn report --write` or `krn report --bundle` before compacting.",
+      "pl": "Uruchom `krn report --write` albo `krn report --bundle` przed kompakcją."
+    },
+    {
       "code": "run-krn-verify",
       "en": "Run `krn verify` before final Stop.",
       "pl": "Uruchom `krn verify` przed końcowym Stop."
@@ -80,6 +90,18 @@
     {
       "findingCode": "proof-path-exception",
       "remediationCodes": ["review-owned-proof-path"]
+    },
+    {
+      "findingCode": "pre-compact-run-result-missing",
+      "remediationCodes": ["run-krn-run"]
+    },
+    {
+      "findingCode": "pre-compact-report-missing",
+      "remediationCodes": ["run-krn-report"]
+    },
+    {
+      "findingCode": "post-compact-context-refresh-needed",
+      "remediationCodes": ["run-krn-context"]
     },
     {
       "findingCode": "final-verify-missing",

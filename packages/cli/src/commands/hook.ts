@@ -1,5 +1,3 @@
-import path from "node:path";
-import { pathExists } from "../../../core/src/index.js";
 import {
   buildHookTracePayload,
   type HookCurrentState,
@@ -7,6 +5,7 @@ import {
   parseCodexHookPayload,
 } from "../../../hooks/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
+import { currentArtifactPaths, repoPathExists } from "../current-artifacts.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -15,11 +14,20 @@ import {
 import type { CliRuntime } from "../runtime.js";
 
 async function currentHookState(cwd: string): Promise<HookCurrentState> {
-  const [taskContract, contextPackage, verifyResult, handoffPresent] = await Promise.all([
+  const [
+    taskContract,
+    contextPackage,
+    verifyResult,
+    handoffPresent,
+    runResultPresent,
+    reportPresent,
+  ] = await Promise.all([
     readCurrentTaskContract(cwd),
     readCurrentContextPackage(cwd),
     readCurrentVerifyResult(cwd),
-    pathExists(path.join(cwd, ".krn", "current", "handoff.md")),
+    repoPathExists(cwd, currentArtifactPaths.handoff),
+    repoPathExists(cwd, currentArtifactPaths.runResultJson),
+    repoPathExists(cwd, currentArtifactPaths.operatorReportJson),
   ]);
 
   return {
@@ -28,6 +36,8 @@ async function currentHookState(cwd: string): Promise<HookCurrentState> {
     contextStop: contextPackage?.stop ?? false,
     verifyPresent: Boolean(verifyResult),
     handoffPresent,
+    runResultPresent,
+    reportPresent,
     taskId: taskContract?.id ?? contextPackage?.taskId ?? verifyResult?.taskId,
     taskText: taskContract?.task,
     contextStopReason: contextPackage?.stopReason,

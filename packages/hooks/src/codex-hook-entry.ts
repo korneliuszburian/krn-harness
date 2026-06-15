@@ -31,6 +31,8 @@ export type HookRemediationCode =
   | "avoid-do-not-use-path"
   | "resolve-context-stop"
   | "send-valid-hook-json"
+  | "run-krn-run"
+  | "run-krn-report"
   | "run-krn-verify"
   | "run-krn-handoff"
   | "resolve-verify-block";
@@ -42,6 +44,9 @@ export type HookGuardrailFindingCode =
   | "do-not-use-edit"
   | "out-of-scope-edit"
   | "proof-path-exception"
+  | "pre-compact-run-result-missing"
+  | "pre-compact-report-missing"
+  | "post-compact-context-refresh-needed"
   | "final-verify-missing"
   | "final-verify-blocked"
   | "final-handoff-missing";
@@ -75,6 +80,8 @@ export interface HookCurrentState {
   contextStop: boolean;
   verifyPresent: boolean;
   handoffPresent: boolean;
+  runResultPresent?: boolean | undefined;
+  reportPresent?: boolean | undefined;
   taskId?: string | undefined;
   taskText?: string | undefined;
   contextStopReason?: string | undefined;
@@ -147,6 +154,8 @@ export const hookRemediationCodeTaxonomy: HookRemediationCode[] = [
   "avoid-do-not-use-path",
   "resolve-context-stop",
   "send-valid-hook-json",
+  "run-krn-run",
+  "run-krn-report",
   "run-krn-verify",
   "run-krn-handoff",
   "resolve-verify-block",
@@ -180,6 +189,14 @@ export const hookRemediationHintCatalog: Record<HookRemediationCode, HookLocaliz
   "send-valid-hook-json": {
     en: "Send valid hook JSON or omit stdin for placeholder mode.",
     pl: "Przekaż poprawny JSON hooka albo pomiń stdin dla trybu placeholder.",
+  },
+  "run-krn-run": {
+    en: "Run `krn run --task-spec ... --bundle` or `krn run --task ... --bundle` before compacting.",
+    pl: "Uruchom `krn run --task-spec ... --bundle` albo `krn run --task ... --bundle` przed kompakcją.",
+  },
+  "run-krn-report": {
+    en: "Run `krn report --write` or `krn report --bundle` before compacting.",
+    pl: "Uruchom `krn report --write` albo `krn report --bundle` przed kompakcją.",
   },
   "run-krn-verify": {
     en: "Run `krn verify` before final Stop.",
@@ -527,6 +544,18 @@ function remediationCodesForFinding(code: HookGuardrailFindingCode): HookRemedia
     return ["review-owned-proof-path"];
   }
 
+  if (code === "pre-compact-run-result-missing") {
+    return ["run-krn-run"];
+  }
+
+  if (code === "pre-compact-report-missing") {
+    return ["run-krn-report"];
+  }
+
+  if (code === "post-compact-context-refresh-needed") {
+    return ["run-krn-context"];
+  }
+
   if (code === "final-verify-missing") {
     return ["run-krn-verify"];
   }
@@ -738,6 +767,20 @@ function operatorMessageFor(
     };
   }
 
+  if (codes.has("pre-compact-run-result-missing") || codes.has("pre-compact-report-missing")) {
+    return {
+      en: "Warning: compacting before run/report evidence is current. Run `krn run --bundle` or refresh report artifacts.",
+      pl: "Ostrzeżenie: kompakcja przed aktualnym run/report evidence. Uruchom `krn run --bundle` albo odśwież artefakty report.",
+    };
+  }
+
+  if (codes.has("post-compact-context-refresh-needed")) {
+    return {
+      en: "Warning: context should be refreshed after compaction before more edits.",
+      pl: "Ostrzeżenie: po kompakcji odśwież kontekst przed kolejnymi edycjami.",
+    };
+  }
+
   if (codes.has("invalid-hook-payload")) {
     return {
       en: "Warning: hook input was not valid JSON. Send valid JSON or omit stdin.",
@@ -847,6 +890,33 @@ function addCurrentStateFindings(
       code: "context-stop-active",
       severity: stopSeverity(),
       detail: state.contextStopReason ?? "Current context package reports STOP",
+    });
+  }
+
+  if (event === "PreCompact" && state.taskPresent && state.contextPresent) {
+    if (!state.runResultPresent) {
+      findings.push({
+        code: "pre-compact-run-result-missing",
+        severity: "warn",
+        detail: "PreCompact saw task/context but no `.krn/current/run-result.json` evidence",
+      });
+    }
+
+    if (!state.reportPresent) {
+      findings.push({
+        code: "pre-compact-report-missing",
+        severity: "warn",
+        detail: "PreCompact saw task/context but no `.krn/current/operator-report.json` evidence",
+      });
+    }
+  }
+
+  if (event === "PostCompact" && (!state.contextPresent || state.contextStop)) {
+    findings.push({
+      code: "post-compact-context-refresh-needed",
+      severity: "warn",
+      detail:
+        "PostCompact should refresh context before further edits; run `krn context` or `krn run --dry-run`",
     });
   }
 }

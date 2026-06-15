@@ -65,6 +65,8 @@ P0 records `block` decisions for:
 P0 records `warn` decisions for:
 
 - initial prompt, read-only `PreToolUse`, `PostToolUse`, `PreCompact`, or `PostCompact` events before current-state artifacts exist;
+- `PreCompact` when task/context exist but `.krn/current/run-result.json` or `.krn/current/operator-report.json` is missing;
+- `PostCompact` when context is missing or STOP-active and should be refreshed before further edits;
 - invalid JSON stdin payloads;
 - task/context-owned test/docs/fixture proof paths outside active context;
 - final `Stop` when context STOP was already captured in verify/handoff artifacts.
