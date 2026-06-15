@@ -6,7 +6,7 @@ KRN Harness is a local, Codex-first engineering harness with an executable
 artifact loop:
 
 ```txt
-contract -> context -> graph -> hooks -> trace -> verify -> review -> summary -> report -> release-check
+run -> contract -> context -> graph -> hooks -> trace -> verify -> review -> summary -> report
 ```
 
 The current surface is MVP++ for local operator use. It is not production
@@ -14,6 +14,10 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
 
 ## Working Surfaces
 
+- `krn run` is the primary operator workflow and writes
+  `.krn/current/run-result.json` plus `.krn/current/run-result.md`.
+- `krn run --bundle` writes `.krn/current/run-bundle/` and uses report plus
+  release-check as supporting gates.
 - `krn start`, `graph`, `context`, `verify`, `handoff`, `doctor`, and `eval`
   produce local `.krn` artifacts.
 - `krn review` produces deterministic reviewer records from local artifacts.
@@ -26,7 +30,8 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
 - `krn artifacts list` separates current, historical, stale-blocking, fixture,
   foreign-target, and archived `.krn` artifacts.
 - `krn artifacts archive --dry-run` plans safe archival without moving files.
-- `krn release-check` checks the local release handoff contract.
+- `krn release-check` checks the local release handoff contract and is advanced
+  plumbing outside the normal operator path.
 
 ## Current Evidence
 
@@ -59,8 +64,8 @@ paid Codex/model paths.
 Release readiness requires:
 
 - command validation output from the current checkout;
-- generated `.krn/current/operator-report.*` and release-check artifacts for the
-  handoff;
+- generated `.krn/current/run-result.*`, `.krn/current/operator-report.*`, and
+  release-check artifacts for the handoff;
 - install/config/uninstall lifecycle contracts present in source.
 
 ## Known Limits
@@ -75,6 +80,6 @@ Release readiness requires:
 
 ## Next Slice
 
-Review the `active/krn-llm-wiki` `krn.config.json` proposal and decide whether
-to apply it to the target repository. Keep hook trust and real target
-product-code mutation as separate proof tracks.
+Use `krn run --task-spec ... --execute-verify --bundle` on the next approved
+non-protected target workflow. Keep hook trust and real target product-code
+mutation as separate proof tracks.

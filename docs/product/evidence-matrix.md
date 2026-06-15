@@ -9,6 +9,7 @@ It is local evidence only. It is not production proof.
 | Surface / Lane | Implementation Status | Evidence Artifact | Tests | Validation | Risk | Next Proof |
 | --- | --- | --- | --- | --- | --- | --- |
 | CLI identity | executable | `krn doctor cli` | CLI tests | `pnpm test`, dogfood preflight | global `krn` collision | keep pinned shim evidence in dogfood |
+| Condensed run workflow | executable primary operator path | `.krn/current/run-result.json`, `.krn/current/run-result.md`, `.krn/current/run-bundle/manifest.json` | CLI tests, docs regression | `pnpm test`, `krn run --task`, `krn run --task-spec`, `krn run --execute-verify`, `krn run --bundle` | can be mistaken for Codex execution; report warnings can be overread as production proof | use on next approved target workflow before adding new top-level surfaces |
 | Task contract | executable | `.krn/current/task-contract.json` | CLI tests | `pnpm test` | weak task intent can still pass schema | richer task-spec fixtures |
 | Graph-lite | executable | `.krn/graph/repo-graph.json` | graph and CLI tests | `pnpm test` | shallow detectors only | real repo graph noise review |
 | Context package | executable; verify-profile doc-match noise narrowed from real-repo finding and rechecked during approved `krn-llm-wiki` Codex run | `.krn/current/context-package.json` | context and CLI tests | `pnpm test`, isolated `krn-llm-wiki` before/after context comparison, approved manual Codex run context check | broad tasks can still over-include shallow graph docs | repeat on broader non-doc target |
@@ -25,9 +26,9 @@ It is local evidence only. It is not production proof.
 | Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; approved manual Codex README-only run completed on isolated `krn-llm-wiki` worktree; isolated non-doc `krn.config.json` adoption run passed executable readonly verify; beta install/config lifecycle smoke passed in detached `krn-llm-wiki` worktree | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, approved manual `krn-llm-wiki` Codex runs, isolated `krn verify --execute` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof; evidence is local only | non-bypass hook trust probe and decide whether to commit target verify profile |
 | Deterministic reviewers | executable | `.krn/current/review-summary.json` | CLI tests | `pnpm test` | usefulness beyond first records unproven | compare reviewer output to human review |
 | Operator summary | executable | `.krn/current/operator-summary.json` | CLI tests | `pnpm test` | summary prioritization unproven | run summary after real dogfood and review |
-| Operator report | executable static local report plus bundle | `.krn/current/operator-report.md`, `.krn/current/operator-report.json`, `.krn/current/operator-report.html`, `.krn/current/report-bundle/manifest.json` | CLI tests | `pnpm test`, `krn report --write`, `krn report --bundle` | report can over-compress caveats | use bundle on latest beta handoff |
+| Operator report | executable static local report plus bundle; supporting surface for `krn run` | `.krn/current/operator-report.md`, `.krn/current/operator-report.json`, `.krn/current/operator-report.html`, `.krn/current/report-bundle/manifest.json` | CLI tests | `pnpm test`, `krn report --write`, `krn report --bundle`, `krn run --bundle` | report can over-compress caveats | keep report as evidence projection under run-result |
 | Artifact lifecycle | executable list/archive plan | `.krn/archive/<timestamp>/` | CLI tests | `pnpm test`, `krn artifacts list`, `krn artifacts archive --dry-run` | archiving could hide useful history if overused | operator-confirmed archive only |
-| Release check | executable local handoff gate plus release-candidate bundle | `.krn/current/release-check.json`, `.krn/current/release-check.md`, `.krn/current/release-bundle/manifest.json` | CLI tests, docs regression | `pnpm test`, `krn release-check --write`, `krn release-check --bundle` | can be mistaken for validation execution; bundle records commands but does not run them | pair with actual validation command output and CI metadata |
+| Release check | executable local handoff gate; internal/supporting gate for run bundles | `.krn/current/release-check.json`, `.krn/current/release-check.md` | CLI tests, docs regression | `pnpm test`, `krn release-check --write`, `krn run --bundle` | can be mistaken for validation execution | pair with actual validation command output and CI metadata |
 | Dashboard-lite | ADR-only | ADR-0014 | docs regression | `pnpm test` | UI before stable data | consume `operator-summary.json` only |
 | MCP | ADR-only | ADR-0015 | docs regression | `pnpm test` | server before resource contract matures | fake adapter/schema tests only |
 | Retrieval/vector | ADR-only | ADR-0016 | docs regression | `pnpm test` | embeddings before eval | synthetic retrieval eval harness |
@@ -40,7 +41,7 @@ It is local evidence only. It is not production proof.
 P1 product value is now:
 
 ```txt
-review-summary.json -> operator-summary.json -> operator-report.{md,json,html,bundle} -> release-check -> dashboard/MCP later
+run-result -> operator-report -> release-check as internal gate -> dashboard/MCP later
 ```
 
 Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data workflows, and package publishing remain intentionally unbuilt.

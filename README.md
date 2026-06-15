@@ -15,7 +15,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 KRN is a local operator runtime for Codex-assisted engineering. It turns a task
 into durable artifacts: task contract, context package, graph-lite evidence,
 trace events, verify results, handoff, deterministic review/summary/report, and
-a release-check.
+a run result with supporting report/release-check gates.
 
 It is meant to be used from a source checkout with explicit validation evidence.
 
@@ -29,6 +29,8 @@ production proof system.
 
 - pnpm TypeScript workspace.
 - Deterministic `krn` CLI for local current-state artifacts.
+- Condensed `krn run` operator workflow that writes run-result artifacts and an
+  optional run bundle.
 - `krn.config.json` schema and `.krn/` runtime layout.
 - Safe downstream install/uninstall lifecycle for `AGENTS.md`, hooks, runtime skill, pinned CLI wrapper, and runtime directories.
 - Task contract, context package, graph-lite, trace, verify, handoff, doctor, memory, and eval contracts.
@@ -37,7 +39,7 @@ production proof system.
 - Dogfood evidence for tiny downstream fixture runs and a synthetic WordPress/ACF-style fixture.
 - Operator report command for local Markdown, JSON, and static HTML evidence projection.
 - Artifact lifecycle commands for listing and safely archiving historical `.krn` caveats.
-- Release-check command plus minimal local-validation CI workflow; no publish automation.
+- Release-check command as a supporting/internal handoff gate plus minimal local-validation CI workflow; no publish automation.
 - Repo-scoped build-time skills in `.agents/skills/*`.
 
 ## Current Evidence Status
@@ -63,17 +65,14 @@ production proof system.
 ```bash
 pnpm install
 pnpm verify:local
-pnpm --silent krn doctor cli
-pnpm --silent krn start "Update example task with explicit outcome, constraints, and validation proof."
-pnpm --silent krn context
-pnpm --silent krn verify --execute
-pnpm --silent krn review --write
-pnpm --silent krn summary --write
-pnpm --silent krn report --bundle
-pnpm --silent krn release-check --write
+pnpm --silent krn run --task "Update example task with explicit outcome, constraints, and validation proof." --execute-verify --bundle
 ```
 
-Use `pnpm --silent krn start --task-spec <json>` when a task spec exists.
+Use `pnpm --silent krn run --task-spec <json> --execute-verify --bundle` when a task spec exists.
+
+`krn run` writes `.krn/current/run-result.json` and
+`.krn/current/run-result.md`. With `--bundle`, it writes
+`.krn/current/run-bundle/` and uses report/release-check as supporting gates.
 
 ## Install Into Target Repo
 
@@ -121,18 +120,24 @@ pnpm --silent krn verify --profile readonly --execute
 local validation and still uses exact command allowlists, scrubbed env, no shell
 mode, timeout limits, and compact output.
 
-## Generate Report Bundle
+## Advanced Plumbing / Troubleshooting
 
 ```bash
-pnpm --silent krn report --write
+pnpm --silent krn doctor cli
+pnpm --silent krn start "Update example task with explicit outcome, constraints, and validation proof."
+pnpm --silent krn start --task-spec <json>
+pnpm --silent krn graph
+pnpm --silent krn context
+pnpm --silent krn verify --execute
+pnpm --silent krn handoff
+pnpm --silent krn review --write
+pnpm --silent krn summary --write
 pnpm --silent krn report --bundle
-pnpm --silent krn release-check --bundle
+pnpm --silent krn release-check --write
 ```
 
-`report --bundle` writes `.krn/current/report-bundle/`. `release-check --bundle`
-writes `.krn/current/release-bundle/` with release-check artifacts, operator
-report files, validation command list, evidence summary, known gaps, and a no
-protected data note.
+The plumbing commands remain useful for diagnosis and compatibility. The normal
+operator path is `krn run`.
 
 ## Read Proof States
 
@@ -149,7 +154,7 @@ protected data note.
 - Production proof remains false.
 - Product-code proof is fixture-level unless an approved target worktree task is
   executed and validated.
-- Report and release bundles do not copy raw trace dumps by default.
+- Run and report bundles do not copy raw trace dumps by default.
 - KRN does not publish packages, push target repos, run paid Codex, or call
   network services in local release gates.
 
@@ -176,6 +181,8 @@ pnpm typecheck
 pnpm test
 pnpm verify:local
 pnpm --silent krn --help
+pnpm --silent krn run --task "Command reference smoke" --dry-run --json
+pnpm --silent krn run --task-spec fixtures/tasks/product-code-test-dogfood.json --dry-run
 pnpm --silent krn status
 pnpm --silent krn graph
 pnpm --silent krn handoff
@@ -184,8 +191,8 @@ pnpm --silent krn eval
 pnpm --silent krn review
 pnpm --silent krn summary
 pnpm --silent krn report --json
+pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
-pnpm --silent krn release-check --bundle
 pnpm --silent krn artifacts list
 pnpm --silent krn artifacts archive --dry-run
 pnpm --silent krn memory list

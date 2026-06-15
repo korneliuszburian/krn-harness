@@ -2,15 +2,53 @@
 
 ## Purpose
 
-This is the next P1 backlog after executable `krn review` and `krn summary`.
+This is the next P1 backlog after executable `krn run`.
 
 It keeps product value ordered by evidence:
 
 ```txt
-real repo proof -> hardening -> static report -> release check -> memory lifecycle -> retrieval eval -> MCP contract -> reviewer expansion
+condensed run dogfood -> real repo proof -> hardening -> static report -> memory lifecycle -> retrieval eval -> MCP contract -> reviewer expansion
 ```
 
-## Priority 1: Real-Repo Manual Dogfood Execution
+## Priority 1: Condensed Run Dogfood
+
+Goal: use `krn run` as the only normal operator path on the next approved
+non-protected workflow.
+
+Current evidence: `krn run` orchestrates the existing local artifact loop and
+writes `krn-run-result-v1`; `report` and `release-check` are supporting gates,
+not the user-facing path.
+
+Likely files:
+
+- `docs/demo/real-repo-dogfood.md`
+- `fixtures/dogfood/tasks/*`
+- `.krn/current/run-result.json`
+- `.krn/current/run-bundle/manifest.json`
+
+Acceptance:
+
+- `krn run --task-spec ... --execute-verify --bundle` is the documented path.
+- No new top-level bundle command is added.
+- `productionProof` remains `false`.
+- Hook trust remains unproven unless separate non-bypass evidence exists.
+
+Tests:
+
+- CLI run workflow tests.
+- Manual artifact inspection on approved target worktree.
+
+Risk:
+
+- Treating a condensed workflow as Codex execution.
+- Hiding report/release-check warnings behind a single status.
+
+Stop conditions:
+
+- Requires target mutation without approval.
+- Requires hook trust or production proof claims.
+
+## Priority 2: Real-Repo Manual Dogfood Execution
 
 Goal: run KRN on an approved non-protected repository with a pinned local `krn`.
 
@@ -61,7 +99,7 @@ Stop conditions:
 - Missing approval.
 - Global `krn` fallback.
 
-## Priority 2: Hardening After Real-Repo Result
+## Priority 3: Hardening After Real-Repo Result
 
 Goal: turn real-repo findings into focused fixes.
 
@@ -92,7 +130,7 @@ Stop conditions:
 - No source artifact for the finding.
 - Fix requires protected data.
 
-## Priority 3: Dashboard-Lite Generated Static HTML
+## Priority 4: Dashboard-Lite Generated Static HTML
 
 Goal: generate a local static HTML view from `operator-summary.json`.
 
@@ -121,7 +159,7 @@ Stop conditions:
 - Summary schema is not stable enough.
 - Any server or dashboard dependency is required.
 
-## Priority 4: Memory Proposal Lifecycle Commands
+## Priority 5: Memory Proposal Lifecycle Commands
 
 Goal: make governed memory actions ergonomic without auto-approval.
 
@@ -150,7 +188,7 @@ Stop conditions:
 - Any automatic approval path.
 - Any hidden rewrite of active truth.
 
-## Priority 5: Retrieval Synthetic Eval Harness
+## Priority 6: Retrieval Synthetic Eval Harness
 
 Goal: evaluate context/retrieval quality before vector dependencies.
 
@@ -180,7 +218,7 @@ Stop conditions:
 - Requires external model calls.
 - Requires vector DB.
 
-## Priority 6: MCP Read-Only Fake Adapter / Schema Tests
+## Priority 7: MCP Read-Only Fake Adapter / Schema Tests
 
 Goal: define MCP resources over current artifacts without building a server.
 
@@ -210,7 +248,7 @@ Stop conditions:
 - Any write/action tool.
 - Any server runtime.
 
-## Priority 7: Reviewer Expansion
+## Priority 8: Reviewer Expansion
 
 Goal: add reviewers only after current reviewers show operator value.
 
@@ -246,7 +284,8 @@ Stop conditions:
 - MCP server is blocked until read-only resources have schema tests.
 - Vector DB is blocked until retrieval eval has failures worth solving.
 - Subagents are blocked until deterministic reviewers are useful.
-- CI remains limited to local no-model validation and release-check until package publication is explicitly designed.
+- CI remains limited to local no-model validation, `krn run` smoke evidence, and
+  release-check until package publication is explicitly designed.
 
 ## Do Not Build Yet
 

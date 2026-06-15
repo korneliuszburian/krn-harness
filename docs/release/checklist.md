@@ -12,6 +12,7 @@ pnpm typecheck
 pnpm test
 pnpm verify:local
 pnpm --silent krn --help
+pnpm --silent krn run --task "Run release checklist smoke with graph, context, verify, review, summary, report, and diff-check proof." --execute-verify --bundle
 pnpm --silent krn status
 pnpm --silent krn install --dry-run
 pnpm --silent krn install
@@ -31,7 +32,6 @@ pnpm --silent krn summary --write
 pnpm --silent krn report --write
 pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
-pnpm --silent krn release-check --bundle
 pnpm --silent krn uninstall --dry-run
 git diff --check
 git status --short
@@ -100,9 +100,9 @@ Do not include paid dogfood, real repo mutation beyond local `.krn` preflight st
 - `pnpm typecheck`;
 - `pnpm test`;
 - `pnpm verify:local`;
+- `pnpm --silent krn run --task "CI local smoke" --dry-run --json`;
 - `pnpm --silent krn report --write`;
-- `pnpm --silent krn release-check --write`;
-- `pnpm --silent krn release-check --bundle`.
+- `pnpm --silent krn release-check --write`.
 
 It must not run paid Codex execution, real user-repo dogfood, package
 publication, deployment, or a Codex CLI CI dependency.

@@ -11,6 +11,10 @@ publication proof, or production proof.
 
 `krn release-check [--json] [--write] [--bundle]`
 
+`--bundle` is an advanced compatibility surface. The normal operator workflow
+uses `krn run --bundle`, which writes a run bundle and invokes release-check as a
+supporting gate.
+
 With `--write`, the command writes:
 
 - `.krn/current/release-check.json`
@@ -44,7 +48,8 @@ With `--bundle`, the command implies `--write` and also writes
 ## Release Bundle
 
 `krn release-check --bundle` writes a local handoff directory that can be zipped
-or sent to another developer as release-candidate evidence:
+or sent to another developer as release-candidate evidence when an operator
+explicitly needs the legacy release-candidate bundle:
 
 - `manifest.json`
 - `release-check.json`
@@ -105,12 +110,13 @@ The CLI exits non-zero only for `fail`.
 ## Current Checks
 
 - Required package scripts: `lint`, `typecheck`, `test`, `verify:local`.
+- `krn run` command source exists.
 - `krn report` command source exists.
 - `krn artifacts` command source exists.
 - `krn uninstall` command source exists.
 - `krn config` command source exists.
 - Install, uninstall, and config doctor schemas exist.
-- Operator report schema exists.
+- Run result and operator report schemas exist.
 - Release-check schema exists.
 - Evidence matrix exists.
 - MVP state document exists.
