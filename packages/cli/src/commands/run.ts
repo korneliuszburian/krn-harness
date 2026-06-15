@@ -1,7 +1,7 @@
 import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../../context/src/index.js";
-import { readJsonFile } from "../../../core/src/index.js";
+import { pathExists, readJsonFile } from "../../../core/src/index.js";
 import type { VerifyResult } from "../../../verify/src/index.js";
 import { artifactPathHasSecretMarker } from "../artifact-scope.js";
 import {
@@ -456,6 +456,18 @@ function releaseCheckStepStatus(
   return releaseCheck.status === "fail" ? "failed" : "ran";
 }
 
+async function releaseCheckShouldBlockRun(cwd: string): Promise<boolean> {
+  const sourceReleaseCheckPaths = [
+    "packages/cli/src/commands/run.ts",
+    "docs/specs/run-result.schema.md",
+  ];
+  const present = await Promise.all(
+    sourceReleaseCheckPaths.map((relativePath) => pathExists(path.join(cwd, relativePath))),
+  );
+
+  return present.every(Boolean);
+}
+
 export async function runCommand(args: string[], runtime: CliRuntime): Promise<number> {
   const options = parseRunArgs(args);
   if (options.error) {
@@ -476,6 +488,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
     ...(options.bundle ? { releaseCheck: skipped("not started") } : {}),
   };
   const generatedAt = (runtime.now?.() ?? new Date()).toISOString();
+  const releaseCheckBlocks = options.bundle ? await releaseCheckShouldBlockRun(runtime.cwd) : true;
 
   const startArgs = options.taskSpecPath
     ? ["--task-spec", options.taskSpecPath]
@@ -493,6 +506,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
       steps,
       captures,
       blockers: [start.step.summary],
+      releaseCheckBlocks,
     });
     return finishRun(runtime, result, options);
   }
@@ -523,6 +537,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
       steps,
       captures,
       blockers: [reason],
+      releaseCheckBlocks,
     });
     if (options.bundle) {
       await writeRunBundle(runtime, result);
@@ -589,11 +604,15 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
     const releaseCheckResult = await readJsonFile<ReleaseCheckResultFixture>(
       currentStatePath(runtime.cwd, "release-check.json"),
     );
+    const releaseCheckStatus = releaseCheckStepStatus(releaseCheckResult);
+    const releaseCheckNonBlockingFailure = !releaseCheckBlocks && releaseCheckStatus === "failed";
     steps.releaseCheck = {
       ...steps.releaseCheck,
-      status: releaseCheckStepStatus(releaseCheckResult),
+      status: releaseCheckNonBlockingFailure ? "ran" : releaseCheckStatus,
       summary: releaseCheckResult
-        ? `KRN release-check: ${releaseCheckResult.status}`
+        ? releaseCheckNonBlockingFailure
+          ? "KRN release-check: fail (non-blocking target run)"
+          : `KRN release-check: ${releaseCheckResult.status}`
         : steps.releaseCheck.summary,
     };
   }
@@ -604,6 +623,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
     steps,
     captures,
     operatorReport,
+    releaseCheckBlocks,
   });
 
   if (options.bundle) {
@@ -622,6 +642,7 @@ async function buildAndWriteRunResult(
     captures: CommandCapture[];
     blockers?: string[] | undefined;
     operatorReport?: OperatorReport | undefined;
+    releaseCheckBlocks?: boolean | undefined;
   },
 ): Promise<RunResult> {
   const [taskContract, contextPackage, verifyResult, operatorReport, releaseCheck] =
@@ -646,7 +667,8 @@ async function buildAndWriteRunResult(
       : "",
   ];
   const reportBlockers = operatorReport?.blockers ?? [];
-  const releaseBlockers = releaseCheck?.blockers ?? [];
+  const releaseCheckBlocks = input.releaseCheckBlocks ?? true;
+  const releaseBlockers = releaseCheckBlocks ? (releaseCheck?.blockers ?? []) : [];
   const blockers = unique([
     ...explicitBlockers,
     ...verifyBlockers,
@@ -663,11 +685,14 @@ async function buildAndWriteRunResult(
       : undefined,
     verifyResult?.status === "warn" ? "verify produced warnings" : undefined,
     ...(operatorReport?.warnings ?? []),
-    ...(releaseCheck?.warnings ?? []),
+    ...(releaseCheckBlocks ? (releaseCheck?.warnings ?? []) : []),
+    !releaseCheckBlocks && releaseCheck?.status === "fail"
+      ? "release-check: KRN source release-check is not applicable to downstream target run; included in bundle as non-blocking evidence."
+      : undefined,
   ]);
   const nextActions = unique([
     ...(operatorReport?.nextActions ?? []),
-    ...(releaseCheck?.nextActions ?? []),
+    ...(releaseCheckBlocks ? (releaseCheck?.nextActions ?? []) : []),
     blockers.length > 0 ? "Resolve run blockers before claiming completion." : undefined,
     blockers.length === 0 ? "Review run-result and operator-report artifacts." : undefined,
   ]);

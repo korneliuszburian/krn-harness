@@ -23,7 +23,7 @@ It is local evidence only. It is not production proof.
 | Install lifecycle | executable downstream scaffold plus dry-run plan | `AGENTS.md`, `.codex/hooks.json`, `.krn/bin/krn`, runtime skill template, `.krn/current/install-result.json` | CLI tests | `pnpm test`, dogfood preflight, `krn install --dry-run` | downstream trust assumptions; existing user files are preserved | approved real repo install review |
 | Uninstall lifecycle | executable marker-gated dry-run/confirm | `.krn/current/uninstall-result.json` | CLI tests | `pnpm test`, `krn uninstall --dry-run` | markerless old installs are refused and preserved | roundtrip in broader target dogfood |
 | Config doctor/init | executable config validation and starter generation; readonly-python timeout tuned from live `krn-llm-wiki` smoke | `.krn/current/config-doctor.json`, `.krn/current/config-init-result.json` | CLI tests | `pnpm test`, `krn config doctor`, isolated target install/config smoke | command policy can reject target-specific commands until profile is tuned | use in next target adoption run |
-| Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; approved manual Codex README-only run completed on isolated `krn-llm-wiki` worktree; isolated non-doc `krn.config.json` adoption run passed executable readonly verify; beta install/config lifecycle smoke passed in detached `krn-llm-wiki` worktree | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, approved manual `krn-llm-wiki` Codex runs, isolated `krn verify --execute` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof; evidence is local only | non-bypass hook trust probe and decide whether to commit target verify profile |
+| Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; approved manual Codex README-only run completed on isolated `krn-llm-wiki` worktree; isolated non-doc `krn.config.json` adoption run passed executable readonly verify; beta install/config lifecycle smoke passed in detached `krn-llm-wiki` worktree; 2026-06-15 isolated `krn-llm-wiki` product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle` | `.krn/dogfood/**/summary.json`, target `.krn/current/*`, `docs/handoffs/2026-06-15-real-target-krn-run-product-code-proof.md` | script and CLI tests | `pnpm test`, `pnpm verify:local`, approved manual `krn-llm-wiki` Codex runs, isolated `krn verify --execute`, isolated target `krn run --task-spec ... --execute-verify --bundle` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof; evidence is local only | non-bypass hook trust probe and decide whether to commit target verify profile |
 | Deterministic reviewers | executable | `.krn/current/review-summary.json` | CLI tests | `pnpm test` | usefulness beyond first records unproven | compare reviewer output to human review |
 | Operator summary | executable | `.krn/current/operator-summary.json` | CLI tests | `pnpm test` | summary prioritization unproven | run summary after real dogfood and review |
 | Operator report | executable static local report plus bundle; supporting surface for `krn run` | `.krn/current/operator-report.md`, `.krn/current/operator-report.json`, `.krn/current/operator-report.html`, `.krn/current/report-bundle/manifest.json` | CLI tests | `pnpm test`, `krn report --write`, `krn report --bundle`, `krn run --bundle` | report can over-compress caveats | keep report as evidence projection under run-result |
@@ -48,10 +48,10 @@ Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data work
 
 ## Open Proof Gaps
 
-- Real target product-code execution beyond fixture proof and isolated `krn-llm-wiki` docs/config tasks.
+- Durable committed target verify profile beyond isolated-worktree real target
+  product-code proof.
 - Real non-bypass Codex hook loading/trust.
 - Noisy large repo context behavior.
-- Committed real target verify profile beyond isolated-worktree temporary config.
 - Production WordPress/ACF behavior.
 - Reviewer usefulness beyond deterministic local records.
 - Operator summary usefulness beyond first deterministic artifact.

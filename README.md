@@ -48,7 +48,7 @@ production proof system.
 - Product-code fixture dogfood: `fixtures/repos/product-code-dogfood` proves local source/test/stale-doc context selection for invoice formatting and regional tax tasks, including executable `node src/index.test.ts` and `node src/regional-tax.test.ts` verification after deterministic code-only repairs.
 - WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
 - Dogfood CLI identity: KRN-assisted dogfood must use a pinned KRN command path and captured `krn doctor cli` identity. Global `krn` fallback invalidates the run.
-- Real user-repo dogfood: docs-only isolated `krn-llm-wiki` evidence exists, and a non-doc isolated `krn.config.json` adoption run passed executable readonly verify. Product-code fixture proof exists; real target product-code proof remains pending. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
+- Real user-repo dogfood: docs-only and config-adoption `krn-llm-wiki` evidence exists. A 2026-06-15 isolated `krn-llm-wiki` product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle` as local real target product-code proof. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
 - Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
 
 ## P0/P1 Transition

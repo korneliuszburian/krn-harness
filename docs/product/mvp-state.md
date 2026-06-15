@@ -52,6 +52,10 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
   worktree passed `krn install --dry-run`, managed install with generated
   `readonly-python` config, `krn config doctor`, `krn verify --execute`, and
   `krn report --bundle` with `productionProof: false`.
+- A 2026-06-15 isolated `krn-llm-wiki` product-code/checker mutation passed
+  `krn run --task-spec ... --execute-verify --bundle` with run status
+  `verified`, one executed target validation command, run bundle generation,
+  `productionProof: false`, and hook trust unproven.
 - Real Codex hook loading/trust remains unproven until a non-bypass Codex run
   emits a trusted hook-load marker.
 
@@ -75,11 +79,10 @@ Release readiness requires:
 - Historical `.krn` dogfood artifacts can still create caveats; report and
   artifacts commands make them visible instead of silently treating them as
   current proof.
-- Real target product-code dogfood remains a proof gap; the current non-doc
-  real-repo evidence is config adoption, not product code mutation.
+- Real target product-code proof is local isolated-worktree evidence only; it is
+  not a target commit, target push, production proof, or hook trust proof.
 
 ## Next Slice
 
-Use `krn run --task-spec ... --execute-verify --bundle` on the next approved
-non-protected target workflow. Keep hook trust and real target product-code
-mutation as separate proof tracks.
+Use the real target `krn run` finding to harden context/report ergonomics next.
+Keep hook trust as a separate proof track.

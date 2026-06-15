@@ -697,6 +697,78 @@ describe("krn CLI", () => {
     ).rejects.toThrow();
   }, 15_000);
 
+  it("does not let source release-check block bundled target runs", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-target-run-"));
+    await writeFile(path.join(cwd, "target.test.js"), "console.log('target pass');\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: ["node target.test.js"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, "task.json"),
+      JSON.stringify(
+        {
+          prompt:
+            "Approved downstream target run. Update product code and verify with the local target test.",
+          expectedTouchedFiles: ["target.test.js"],
+          forbiddenTouchedFiles: ["raw/**", ".env", ".git/**"],
+          requiredDoNotUsePaths: ["raw/**"],
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, [
+      "run",
+      "--task-spec",
+      "task.json",
+      "--execute-verify",
+      "--bundle",
+    ]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    const releaseCheck = await readJson<ReleaseCheckFixture>(
+      cwd,
+      ".krn/current/release-check.json",
+    );
+    const manifest = await readJson<RunBundleManifestFixture>(
+      cwd,
+      ".krn/current/run-bundle/manifest.json",
+    );
+
+    expect(result.code).toBe(0);
+    expect(run.status).toBe("verified");
+    expect(run.verify).toMatchObject({ mode: "execute", status: "pass", executedCommands: 1 });
+    expect(run.steps.releaseCheck).toMatchObject({
+      status: "ran",
+      summary: "KRN release-check: fail (non-blocking target run)",
+    });
+    expect(run.blockers).toEqual([]);
+    expect(run.warnings.join("\n")).toContain("source release-check is not applicable");
+    expect(releaseCheck.status).toBe("fail");
+    expect(manifest).toMatchObject({
+      schema: "krn-run-bundle-manifest-v1",
+      runStatus: "verified",
+      productionProof: false,
+    });
+  }, 15_000);
+
   it("blocks later run steps when context STOP is active", async () => {
     const result = await runInTemp([
       "run",

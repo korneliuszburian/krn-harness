@@ -335,9 +335,9 @@ describe("P0 docs anti-regression", () => {
     expect(readme).toContain("Product-code fixture dogfood");
     expect(readme).toContain("WordPress/ACF fixture");
     expect(readme).toContain("Global `krn` fallback invalidates the run");
-    expect(readme).toContain("non-doc isolated `krn.config.json` adoption run");
+    expect(readme).toContain("config-adoption `krn-llm-wiki` evidence exists");
     expect(readme).toContain(
-      "Product-code fixture proof exists; real target product-code proof remains pending",
+      "product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle`",
     );
     expect(readme).toContain("real Codex hook loading/trust remains unproven");
     expect(readme).toContain("docs/product/p0-exit-criteria.md");

@@ -17,7 +17,9 @@ non-protected workflow.
 
 Current evidence: `krn run` orchestrates the existing local artifact loop and
 writes `krn-run-result-v1`; `report` and `release-check` are supporting gates,
-not the user-facing path.
+not the user-facing path. A 2026-06-15 isolated `krn-llm-wiki`
+product-code/checker mutation passed `krn run --task-spec ... --execute-verify
+--bundle` as local real target product-code proof.
 
 Likely files:
 
