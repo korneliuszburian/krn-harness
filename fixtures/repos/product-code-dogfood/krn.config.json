@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "project": {
+    "name": "product-code-dogfood"
+  },
+  "runtime": {
+    "dir": ".krn"
+  },
+  "verify": {
+    "defaultProfile": "unit",
+    "profiles": {
+      "unit": {
+        "commands": [
+          {
+            "command": "node",
+            "args": ["src/index.test.ts"],
+            "label": "product-code unit"
+          }
+        ],
+        "timeoutMs": 30000,
+        "maxOutputBytes": 4096
+      }
+    }
+  }
+}

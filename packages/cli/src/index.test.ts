@@ -2463,6 +2463,126 @@ markdown: .krn/graph/repo-graph.md
     ]);
   });
 
+  it("runs product-code dogfood fixture with paired test and stale-doc guard", async () => {
+    const cwd = await copyFixtureRepo("product-code-dogfood");
+    await mkdir(path.join(cwd, "fixtures", "dogfood", "tasks"), { recursive: true });
+    await writeFile(
+      path.join(cwd, "fixtures", "dogfood", "tasks", "product-code-test-dogfood.json"),
+      await readFile(
+        path.join(process.cwd(), "fixtures", "dogfood", "tasks", "product-code-test-dogfood.json"),
+        "utf8",
+      ),
+      "utf8",
+    );
+
+    spawnSync("git", ["init", "-q"], { cwd, encoding: "utf8" });
+    spawnSync("git", ["add", "."], { cwd, encoding: "utf8" });
+    spawnSync(
+      "git",
+      [
+        "-c",
+        "user.email=krn@example.invalid",
+        "-c",
+        "user.name=KRN Test",
+        "commit",
+        "-q",
+        "-m",
+        "fixture baseline",
+      ],
+      { cwd, encoding: "utf8" },
+    );
+
+    await expect(
+      runInCwd(cwd, [
+        "start",
+        "--task-spec",
+        "fixtures/dogfood/tasks/product-code-test-dogfood.json",
+      ]),
+    ).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const contextJson = await readJson<{
+      buckets: {
+        mustRead: Array<{ path: string; selector?: string }>;
+        shouldRead: Array<{ path: string; selector?: string }>;
+        referenceOnly: Array<{ path: string; selector?: string }>;
+        doNotUse: Array<{ path: string; selector?: string }>;
+      };
+    }>(cwd, ".krn/current/context-package.json");
+
+    expect(contextJson.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "src/index.ts",
+        selector: "expected-touched-file",
+      }),
+    );
+    expect(contextJson.buckets.shouldRead).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "src/index.test.ts",
+          selector: "explicit-task-path",
+        }),
+        expect.objectContaining({
+          path: "krn.config.json",
+          selector: "package-owned-config",
+        }),
+      ]),
+    );
+    expect(contextJson.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: "docs/current-pricing.md",
+        selector: "package-owned-doc",
+      }),
+    );
+    expect(contextJson.buckets.doNotUse).toContainEqual(
+      expect.objectContaining({
+        path: "docs/stale-pricing.md",
+        selector: "required-do-not-use-path",
+      }),
+    );
+
+    const failingVerify = await runInCwd(cwd, ["verify", "--execute"]);
+    expect(failingVerify.code).toBe(0);
+    expect(failingVerify.stdout).toContain("KRN verify: fail");
+    await expect(readJson(cwd, ".krn/current/verify-result.json")).resolves.toMatchObject({
+      status: "fail",
+      mode: "execute",
+      summary: { executedCommands: 1 },
+    });
+
+    await writeFile(
+      path.join(cwd, "src", "index.ts"),
+      [
+        "export function formatInvoiceTotal(cents: number): string {",
+        "  const dollars = Math.floor(cents / 100);",
+        "  const remainder = cents % 100;",
+        "",
+        '  return "$" + dollars + "." + remainder.toString().padStart(2, "0");',
+        "}",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const passingVerify = await runInCwd(cwd, ["verify", "--execute"]);
+    expect(passingVerify.code).toBe(0);
+    expect(passingVerify.stdout).toContain("KRN verify: pass");
+    await expect(runInCwd(cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
+
+    const diff = spawnSync("git", ["diff", "--name-only"], { cwd, encoding: "utf8" });
+    expect(diff.stdout.trim()).toBe("src/index.ts");
+    await expect(readJson(cwd, ".krn/current/verify-result.json")).resolves.toMatchObject({
+      status: "pass",
+      mode: "execute",
+      summary: { executedCommands: 1 },
+      executedCommands: ["node src/index.test.ts"],
+    });
+    const handoffMarkdown = await readFile(path.join(cwd, ".krn/current/handoff.md"), "utf8");
+    expect(handoffMarkdown).toContain("## Verify");
+    expect(handoffMarkdown).toContain("Status: pass");
+  });
+
   it("handles Codex hook events with deterministic trace output", async () => {
     const result = await runInTemp(["hook", "codex", "SessionStart"]);
 
@@ -4046,7 +4166,7 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 19,
+      passCount: 22,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
@@ -4062,6 +4182,7 @@ markdown: .krn/graph/repo-graph.md
       "stale-doc-trap",
       "missing-context-stop",
       "downstream-basic-package-context",
+      "product-code-test-dogfood",
     ]);
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
@@ -4097,8 +4218,8 @@ markdown: .krn/graph/repo-graph.md
         name: "eval.ran",
         data: {
           status: "pass",
-          fixtures: 4,
-          passCount: 19,
+          fixtures: 5,
+          passCount: 22,
           failCount: 0,
           downstreamStatus: "pass",
           verifyStatus: "pass",

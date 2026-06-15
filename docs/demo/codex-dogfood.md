@@ -84,6 +84,36 @@ Expected evidence:
 
 Task specs live in `fixtures/dogfood/tasks/wp-*.json`; the index is `fixtures/dogfood/tasks/wp-acf-theme-index.json`.
 
+## Product-Code Fixture Protocol
+
+Use this fixture when the proof needs a product-code/test-code repair shape without touching a real target repo:
+
+```sh
+source_checkout="$(pwd)"
+workdir="$(mktemp -d)"
+KRN="$(scripts/krn-local-shim.sh "$workdir/bin")"
+cp -R fixtures/repos/product-code-dogfood "$workdir/product-code-dogfood"
+cd "$workdir/product-code-dogfood"
+mkdir -p fixtures/dogfood/tasks
+cp "$source_checkout/fixtures/dogfood/tasks/product-code-test-dogfood.json" fixtures/dogfood/tasks/
+git init
+git add .
+git commit -m "fixture baseline"
+"$KRN" start --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json
+"$KRN" graph
+"$KRN" context
+"$KRN" verify --execute
+```
+
+Expected evidence:
+
+- `src/index.ts` is selected as code context.
+- `src/index.test.ts` is selected as the paired oracle.
+- `krn.config.json` provides `node src/index.test.ts`.
+- `docs/stale-pricing.md` is `do-not-use`.
+- The initial verify fails until the intentionally wrong source implementation is repaired.
+- After repair, `git diff --name-only` should be `src/index.ts` only and `krn verify --execute` should pass.
+
 Prompt fixtures:
 
 - `fixtures/dogfood/skills/wp-acf-baseline.md`

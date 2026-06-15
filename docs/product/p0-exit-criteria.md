@@ -20,7 +20,7 @@ P0 is not production readiness.
 | Handoff | Local summary | Handoff records task, status, validation, changed files, and risks | handoff command tests | Handoff is not proof by itself |
 | Doctor | Local diagnostics | `doctor cli` proves pinned command identity and command availability | CLI identity tests | Does not prove downstream repo safety |
 | Memory | Governed local records | pending/approved/deprecated states exist and are not auto-approved | memory tests | No auto memory approval |
-| Dogfood/evals | Fixture and paid benchmark evidence | Tiny fixture and synthetic WP/ACF benchmark are repeatable and artifact-first | `pnpm dogfood:wp-acf`; eval tests | Fixture proof is not production WordPress proof |
+| Dogfood/evals | Fixture and paid benchmark evidence | Tiny onboarding, product-code, and synthetic WP/ACF fixtures are repeatable and artifact-first | `pnpm dogfood:wp-acf`; eval tests | Fixture proof is not production WordPress or real target product-code proof |
 | Adapters | Downstream templates | Generated AGENTS/hooks/runtime skill preserve current workflow rules | adapter tests | Templates are not hook trust proof |
 | Runtime skill | One downstream skill template | Requires full task intent, graph before context, conditional verify, handoff, and hook honesty | adapter tests | Not a large skill pack |
 

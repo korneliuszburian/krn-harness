@@ -523,6 +523,46 @@ describe("dogfood eval artifacts", () => {
     });
   });
 
+  it("loads the product-code dogfood task spec with executable verify requirements", async () => {
+    const repoRoot = process.cwd();
+    const spec = await loadDogfoodTaskSpec(
+      path.join(repoRoot, "fixtures/dogfood/tasks/product-code-test-dogfood.json"),
+    );
+    const fixtureRoot = path.join(repoRoot, "fixtures/repos/product-code-dogfood");
+
+    expect(spec).toMatchObject({
+      id: "product-code-test-dogfood",
+      expectedTouchedFiles: ["src/index.ts"],
+      expectedUntouchedFiles: ["src/index.test.ts", "docs/stale-pricing.md"],
+      forbiddenTouchedFiles: ["docs/stale-pricing.md"],
+      requiredDoNotUsePaths: ["docs/stale-pricing.md"],
+      requiredTraceEvents: ["task.started", "context.built", "verify.ran", "handoff.created"],
+      expectedVerifyStatus: "pass",
+      expectedVerifyMode: "execute",
+      minExecutedCommands: 1,
+      handoffRequired: true,
+      expectedContextStop: false,
+      minTaskIntentQuality: "high",
+    });
+    expect(spec.expectedCommands).toEqual(
+      expect.arrayContaining([
+        "krn start",
+        "krn graph",
+        "krn context",
+        "krn verify",
+        "krn handoff",
+      ]),
+    );
+    for (const relativePath of [
+      ...spec.expectedTouchedFiles,
+      ...(spec.expectedUntouchedFiles ?? []),
+      ...spec.forbiddenTouchedFiles,
+      "krn.config.json",
+    ]) {
+      expect(await fileExists(path.join(fixtureRoot, relativePath)), relativePath).toBe(true);
+    }
+  });
+
   it("keeps WordPress ACF dogfood task specs deterministic and fixture-backed", async () => {
     const repoRoot = process.cwd();
     const indexPath = path.join(repoRoot, "fixtures/dogfood/tasks/wp-acf-theme-index.json");

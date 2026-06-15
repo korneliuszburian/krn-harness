@@ -10,6 +10,7 @@ export interface EvalFixture {
 export interface EvalFixtureExpected {
   stop?: boolean;
   mustRead?: string[];
+  shouldRead?: string[];
   referenceOnly?: string[];
   doNotUse?: string[];
   missingContext?: string[];
@@ -41,6 +42,11 @@ export const harnessFixtures: EvalFixture[] = [
     name: "downstream-basic-package-context",
     taskPath: "fixtures/tasks/downstream-basic-package-context.json",
     repoPath: "fixtures/repos/downstream-basic",
+  },
+  {
+    name: "product-code-test-dogfood",
+    taskPath: "fixtures/tasks/product-code-test-dogfood.json",
+    repoPath: "fixtures/repos/product-code-dogfood",
   },
 ];
 

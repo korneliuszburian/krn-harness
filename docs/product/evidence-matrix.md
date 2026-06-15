@@ -16,6 +16,7 @@ It is local evidence only. It is not production proof.
 | Handoff | executable | `.krn/current/handoff.md` | CLI tests | `pnpm test` | generated summary may miss nuance | compare against human review |
 | Doctor | executable | `.krn/current/doctor-result.json` | doctor and CLI tests | `pnpm test` | local checks only | add checks after real dogfood findings |
 | Eval | executable fixture gate | `.krn/current/eval-result.json` | eval tests | `pnpm test` | fixture coverage only | expand fixtures after real failures |
+| Product-code fixture dogfood | executable fixture proof for code/test/stale-doc loop | `fixtures/repos/product-code-dogfood`, `fixtures/dogfood/tasks/product-code-test-dogfood.json`, `.krn/current/verify-result.json` | CLI and eval tests | `pnpm test`, fixture smoke with `krn verify --execute` | synthetic fixture only; not real target mutation | repeat on approved non-protected target repo |
 | Memory | executable governed store | `.krn/memory/*.json` | memory and CLI tests | `pnpm test` | usefulness unproven | operator-approved memory examples |
 | Hooks | executable trace receiver; manual diagnostics separated from trusted evidence; real loading remains unproven unless a scoped non-bypass marker appears | `.krn/traces/trace.jsonl` | hook and summary tests | `pnpm test`, hook trust probe attempts | real Codex project hook loading/trust can remain blocked by Codex project/hook trust review | non-bypass hook trust probe through reviewed project hooks |
 | Install lifecycle | executable downstream scaffold plus dry-run plan | `AGENTS.md`, `.codex/hooks.json`, `.krn/bin/krn`, runtime skill template, `.krn/current/install-result.json` | CLI tests | `pnpm test`, dogfood preflight, `krn install --dry-run` | downstream trust assumptions; existing user files are preserved | approved real repo install review |
@@ -46,7 +47,7 @@ Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data work
 
 ## Open Proof Gaps
 
-- Product-code real-repo execution beyond isolated `krn-llm-wiki` docs/config tasks.
+- Real target product-code execution beyond fixture proof and isolated `krn-llm-wiki` docs/config tasks.
 - Real non-bypass Codex hook loading/trust.
 - Noisy large repo context behavior.
 - Committed real target verify profile beyond isolated-worktree temporary config.

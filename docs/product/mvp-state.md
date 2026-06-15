@@ -34,6 +34,9 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
   `pnpm verify:local`.
 - Fixture dogfood and synthetic WordPress/ACF-style dogfood are local-only
   evidence.
+- Product-code fixture dogfood now covers source/test/stale-doc context
+  selection and executable `node src/index.test.ts` verification after a
+  deterministic code-only repair.
 - Approved manual `krn-llm-wiki` evidence exists for a docs-only isolated
   target run, but it remains local evidence and keeps `productionProof: false`.
 - Isolated non-doc `krn-llm-wiki` KRN config adoption evidence exists:
@@ -63,11 +66,11 @@ Release readiness requires:
 - Historical `.krn` dogfood artifacts can still create caveats; report and
   artifacts commands make them visible instead of silently treating them as
   current proof.
-- Product-code non-doc real-repo dogfood remains a proof gap; the current
-  non-doc evidence is config adoption, not product code mutation.
+- Real target product-code dogfood remains a proof gap; the current non-doc
+  real-repo evidence is config adoption, not product code mutation.
 
 ## Next Slice
 
 Review the `active/krn-llm-wiki` `krn.config.json` proposal and decide whether
-to apply it to the target repository. Keep hook trust and product-code mutation
-as separate proof tracks.
+to apply it to the target repository. Keep hook trust and real target
+product-code mutation as separate proof tracks.

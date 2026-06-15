@@ -61,3 +61,22 @@ krn eval
 
 - `docs/specs/downstream-acceptance.md`
 - `docs/specs/onboarding.md`
+
+## Product-Code Fixture
+
+Use `fixtures/repos/product-code-dogfood` when the target proof needs a code/test repair shape instead of onboarding only.
+
+```bash
+source_checkout="$(pwd)"
+tmpdir="$(mktemp -d)"
+cp -R fixtures/repos/product-code-dogfood "$tmpdir/product-code-dogfood"
+cd "$tmpdir/product-code-dogfood"
+mkdir -p fixtures/dogfood/tasks
+cp "$source_checkout/fixtures/dogfood/tasks/product-code-test-dogfood.json" fixtures/dogfood/tasks/
+krn start --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json
+krn graph
+krn context
+krn verify --execute
+```
+
+The first execute verify should fail until `src/index.ts` is repaired. After the code-only repair, `krn verify --execute` should pass by running `node src/index.test.ts`; `docs/stale-pricing.md` should remain `do-not-use`.

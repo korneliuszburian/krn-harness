@@ -53,6 +53,16 @@ Expected result:
   `.krn/current`;
 - doctor/eval/review/summary remain local deterministic checks.
 
+For product-code fixture proof, run the product-code fixture section in the same demo against `fixtures/repos/product-code-dogfood`.
+
+Expected result:
+
+- initial `krn verify --execute` fails on the intentionally wrong source implementation;
+- after a code-only repair, `krn verify --execute` passes with one executed command;
+- `src/index.test.ts` is selected as paired test context but remains untouched;
+- `docs/stale-pricing.md` remains `do-not-use`;
+- `git diff --name-only` reports `src/index.ts` only.
+
 ## Real-Repo Preflight Smoke
 
 Before a first real user-repo dogfood, run:

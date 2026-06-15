@@ -646,6 +646,12 @@ async function gradeHookGuardrails(fixtureRoot: string): Promise<EvalGrade> {
 
 async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade> {
   const fixtureRootPath = path.join(fixtureRoot, "fixtures", "repos", "downstream-basic");
+  const productFixtureRootPath = path.join(
+    fixtureRoot,
+    "fixtures",
+    "repos",
+    "product-code-dogfood",
+  );
   const requiredFixturePaths = [
     "krn.config.json",
     "package.json",
@@ -655,11 +661,26 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     "docs/overview.md",
     "docs/stale.md",
   ];
+  const requiredProductFixturePaths = [
+    "krn.config.json",
+    "package.json",
+    "README.md",
+    "src/index.ts",
+    "src/index.test.ts",
+    "docs/current-pricing.md",
+    "docs/stale-pricing.md",
+  ];
   const failures: string[] = [];
 
   for (const relativePath of requiredFixturePaths) {
     if (!(await pathExists(path.join(fixtureRootPath, relativePath)))) {
       failures.push(`missing fixtures/repos/downstream-basic/${relativePath}`);
+    }
+  }
+
+  for (const relativePath of requiredProductFixturePaths) {
+    if (!(await pathExists(path.join(productFixtureRootPath, relativePath)))) {
+      failures.push(`missing fixtures/repos/product-code-dogfood/${relativePath}`);
     }
   }
 
@@ -677,6 +698,23 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     }
   } catch {
     failures.push("downstream-basic README could not be read");
+  }
+
+  try {
+    const readme = await readFile(path.join(productFixtureRootPath, "README.md"), "utf8");
+    for (const expected of [
+      "src/index.ts",
+      "src/index.test.ts",
+      "docs/stale-pricing.md",
+      "node src/index.test.ts",
+      "No Codex, CI, network",
+    ]) {
+      if (!readme.includes(expected)) {
+        failures.push(`product-code-dogfood README is missing ${expected}`);
+      }
+    }
+  } catch {
+    failures.push("product-code-dogfood README could not be read");
   }
 
   const agents = generateAgentsAdapter();
@@ -725,7 +763,7 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     status: failures.length === 0 ? "pass" : "fail",
     detail:
       failures.length === 0
-        ? "downstream-basic fixture and generated AGENTS/hooks/runtime skill templates satisfy P0 onboarding acceptance"
+        ? "downstream-basic fixture, product-code dogfood fixture, and generated AGENTS/hooks/runtime skill templates satisfy local onboarding acceptance"
         : failures.join("; "),
   };
 }

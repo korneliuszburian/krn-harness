@@ -1,0 +1,25 @@
+{
+  "id": "product-code-test-dogfood",
+  "prompt": "Fix product-code-dogfood behavior in src/index.ts so the paired src/index.test.ts oracle passes, while treating docs/stale-pricing.md as stale do-not-use context.",
+  "expectedTouchedFiles": ["src/index.ts"],
+  "expectedUntouchedFiles": ["src/index.test.ts", "docs/stale-pricing.md"],
+  "forbiddenTouchedFiles": ["docs/stale-pricing.md"],
+  "expectedCommands": ["krn start", "krn graph", "krn context", "krn verify", "krn handoff"],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/graph/repo-graph.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json",
+    ".krn/current/handoff.md"
+  ],
+  "requiredDoNotUsePaths": ["docs/stale-pricing.md"],
+  "requiredTraceEvents": ["task.started", "context.built", "verify.ran", "handoff.created"],
+  "expectedVerifyStatus": "pass",
+  "expectedVerifyMode": "execute",
+  "minExecutedCommands": 1,
+  "handoffRequired": true,
+  "requireHandoffContent": ["## Verify", "Status: pass"],
+  "hooksExpected": false,
+  "expectedContextStop": false,
+  "minTaskIntentQuality": "high"
+}

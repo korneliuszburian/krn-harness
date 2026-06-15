@@ -1,0 +1,8 @@
+{
+  "name": "product-code-dogfood",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node src/index.test.ts"
+  }
+}

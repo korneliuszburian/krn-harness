@@ -28,9 +28,10 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 ## Current Evidence Status
 
 - Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
+- Product-code fixture dogfood: `fixtures/repos/product-code-dogfood` proves local source/test/stale-doc context selection and executable `node src/index.test.ts` verification after a deterministic code-only repair.
 - WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
 - Dogfood CLI identity: KRN-assisted dogfood must use a pinned KRN command path and captured `krn doctor cli` identity. Global `krn` fallback invalidates the run.
-- Real user-repo dogfood: docs-only isolated `krn-llm-wiki` evidence exists, and a non-doc isolated `krn.config.json` adoption run passed executable readonly verify. Product-code target proof remains pending. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
+- Real user-repo dogfood: docs-only isolated `krn-llm-wiki` evidence exists, and a non-doc isolated `krn.config.json` adoption run passed executable readonly verify. Product-code fixture proof exists; real target product-code proof remains pending. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
 - Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
 
 ## P0/P1 Transition
@@ -83,7 +84,7 @@ pnpm --silent krn hook codex SessionStart
 
 ## Demo
 
-See `docs/demo/downstream-basic-demo.md` for a local downstream onboarding smoke using `fixtures/repos/downstream-basic`.
+See `docs/demo/downstream-basic-demo.md` for local downstream onboarding and product-code fixture smokes using `fixtures/repos/downstream-basic` and `fixtures/repos/product-code-dogfood`.
 
 See `docs/demo/codex-dogfood.md` for artifact-first dogfood protocols, including the synthetic WordPress/ACF fixture.
 

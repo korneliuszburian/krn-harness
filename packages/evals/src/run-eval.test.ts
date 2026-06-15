@@ -98,7 +98,7 @@ describe("harness-only eval", () => {
 
     expect(result).toMatchObject({
       status: "pass",
-      passCount: 19,
+      passCount: 22,
       failCount: 0,
       graph: {
         name: "graph-behavior",
@@ -135,12 +135,14 @@ describe("harness-only eval", () => {
       "stale-doc-trap",
       "missing-context-stop",
       "downstream-basic-package-context",
+      "product-code-test-dogfood",
     ]);
     expect(result.memory.detail).toContain("broad-term");
     expect(result.memory.detail).toContain("opt-out");
     expect(result.memory.detail).toContain("Polish opt-out");
     expect(result.memory.detail).toContain("Polish explicit-request");
     expect(result.downstream.detail).toContain("downstream-basic fixture");
+    expect(result.downstream.detail).toContain("product-code dogfood fixture");
     expect(result.verify.detail).toContain("safe record-only commands");
     expect(result.hooks.detail).toContain("allow, warn, block");
     expect(result.hooks.detail).toContain("false-positive collisions");

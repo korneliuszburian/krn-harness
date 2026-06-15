@@ -1,0 +1,14 @@
+{
+  "id": "product-code-test-dogfood",
+  "task": "Fix product-code-dogfood behavior in src/index.ts so the paired src/index.test.ts oracle passes, while treating docs/stale-pricing.md as stale do-not-use context.",
+  "expected": {
+    "stop": false,
+    "mustRead": ["AGENTS.md", "fixtures/repos/product-code-dogfood/src/index.ts"],
+    "shouldRead": [
+      "fixtures/repos/product-code-dogfood/src/index.test.ts",
+      "fixtures/repos/product-code-dogfood/krn.config.json"
+    ],
+    "referenceOnly": ["fixtures/repos/product-code-dogfood/docs/current-pricing.md"],
+    "doNotUse": ["fixtures/repos/product-code-dogfood/docs/stale-pricing.md"]
+  }
+}

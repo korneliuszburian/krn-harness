@@ -310,10 +310,13 @@ describe("P0 docs anti-regression", () => {
     expect(handoff).toContain("not production WordPress proof");
 
     expect(readme).toContain("Tiny downstream fixture dogfood");
+    expect(readme).toContain("Product-code fixture dogfood");
     expect(readme).toContain("WordPress/ACF fixture");
     expect(readme).toContain("Global `krn` fallback invalidates the run");
     expect(readme).toContain("non-doc isolated `krn.config.json` adoption run");
-    expect(readme).toContain("Product-code target proof remains pending");
+    expect(readme).toContain(
+      "Product-code fixture proof exists; real target product-code proof remains pending",
+    );
     expect(readme).toContain("real Codex hook loading/trust remains unproven");
     expect(readme).toContain("docs/product/p0-exit-criteria.md");
     expect(readme).toContain("docs/product/p1-entry-contract.md");
