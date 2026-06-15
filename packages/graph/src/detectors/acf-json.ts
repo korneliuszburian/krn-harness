@@ -19,9 +19,9 @@ interface AcfGroup {
 
 export const acfJsonDetector: GraphDetector = {
   name: "acf-json",
-  async detect(cwd) {
-    const acfPaths = (await walkFiles(cwd, new Set([".json"]))).filter((file) =>
-      /(^|\/)(acf|acf-json)\//.test(toGraphPath(cwd, file)),
+  async detect(cwd, context) {
+    const acfPaths = (await walkFiles(cwd, new Set([".json"]), context?.scanPolicy)).filter(
+      (file) => /(^|\/)(acf|acf-json)\//.test(toGraphPath(cwd, file)),
     );
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];

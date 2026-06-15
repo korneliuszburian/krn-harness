@@ -26,6 +26,23 @@ Included v0 detectors:
 - CSS class relations: stylesheet class definitions, markup class uses, and file-to-file style relations when a class use matches a definition.
 - Tiny WordPress/ACF fixtures: ACF group/field relations and fixture-level WordPress site relations for `acf/`, `acf-json/`, `src/theme/`, `theme/`, and Composer files.
 
+## Scan Policy
+
+Graph-lite applies pre-read scan policy before content-reading detectors walk
+files. The current policy excludes:
+
+- task-contract `requiredDoNotUsePaths` patterns such as `raw/**`;
+- protected-looking paths under `protected-looking-v1`, including `.env`,
+  `.env.*`, `id_rsa`, dump/backup/key files, and path components containing
+  `credential`, `secret`, or `private`.
+
+`krn graph` and `krn context` both load the current task contract when present.
+`krn run --task-spec ...` writes that contract before graph/context steps, so
+task-spec do-not-use paths are available without adding a new CLI surface.
+
+This is path policy only. It does not classify instruction-like file contents
+as `context-poisoning-suspect`; that remains a later TASK-011 slice.
+
 ## Context Package Use
 
 Context package construction may consume graph-lite output through generic relation selectors:
@@ -81,6 +98,7 @@ Deprecated Docs, Module Dependencies, Evidence Examples, and P0 Limits sections.
 
 ## Deferred
 
-Tree-sitter, callgraph, dataflow, semantic embeddings, production WordPress/ACF
-detectors, package manager dependency resolution, runtime dependency inference,
-and repository-wide semantic graph ranking are not P0.
+Tree-sitter, callgraph, dataflow, semantic embeddings, instruction-content
+classification, production WordPress/ACF detectors, package manager dependency
+resolution, runtime dependency inference, and repository-wide semantic graph
+ranking are not P0.

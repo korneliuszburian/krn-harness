@@ -11,9 +11,13 @@ function uniqueSorted(values: Iterable<string>): string[] {
 
 export const cssClassDetector: GraphDetector = {
   name: "css-class",
-  async detect(cwd) {
-    const cssPaths = await walkFiles(cwd, new Set([".css", ".scss"]));
-    const markupPaths = await walkFiles(cwd, new Set([".php", ".html", ".tsx", ".jsx"]));
+  async detect(cwd, context) {
+    const cssPaths = await walkFiles(cwd, new Set([".css", ".scss"]), context?.scanPolicy);
+    const markupPaths = await walkFiles(
+      cwd,
+      new Set([".php", ".html", ".tsx", ".jsx"]),
+      context?.scanPolicy,
+    );
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
     const definedClasses = new Map<string, string[]>();

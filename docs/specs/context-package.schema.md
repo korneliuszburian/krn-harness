@@ -64,12 +64,12 @@ Graph selector matching is shallow and deterministic. Generic terms such as `sec
 
 Task-contract metadata may add explicit `expectedTouchedFiles` into the `mustRead` bucket and `requiredDoNotUsePaths` into the `doNotUse` bucket. Task text may also add explicit repo-relative paths into `shouldRead`. Explicit slash paths require a file-like final segment with a known extension; this keeps natural-language phrases such as `validation/checks` from becoming repo paths. This preserves dogfood/task-spec constraints and verify command paths as context evidence without adding graph semantics.
 
-TASK-011 context poisoning defense is accepted as a policy/spec contract in
-ADR-0023, but not yet implemented in this schema. Current `requiredDoNotUsePaths`
-are applied during context selection; future implementation must move protected
-and do-not-use path policy before graph detector content reads. Until then,
-approved target runs still require clean isolated worktrees and preflight before
-`krn run --task-spec ... --execute-verify --bundle`.
+TASK-011 context poisoning defense is accepted in ADR-0023. Graph/context scan
+policy now applies task-contract `requiredDoNotUsePaths` and protected-looking
+path exclusions before graph detector content reads. Suspicious
+instruction-like text from non-authority docs is not yet classified or
+downgraded, so approved target runs still require clean isolated worktrees and
+preflight before `krn run --task-spec ... --execute-verify --bundle`.
 
 Verify-profile-focused tasks narrow graph doc-match noise. When a task is focused on `krn verify --execute`, a verify profile, a readonly profile, or `check_all_readonly`, broad graph doc matches such as README/path/repo/source/validation/readonly/tooling/wiki/governance terms are suppressed unless the file is expected to be touched or explicitly named in the task text. The suppression applies to deprecated docs as well as available docs. This is a P1 hardening rule for measured real-repo over-inclusion, not semantic retrieval.
 

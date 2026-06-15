@@ -7,7 +7,7 @@ must defend before context is trusted, and what remains deferred.
 
 ## Current Implementation Status
 
-Not implemented.
+Partially implemented.
 
 Current KRN behavior has useful building blocks:
 
@@ -15,20 +15,25 @@ Current KRN behavior has useful building blocks:
   verify -> report path.
 - Task specs can record `expectedTouchedFiles`, `forbiddenTouchedFiles`, and
   `requiredDoNotUsePaths`.
-- Context packages can mark task-contract `requiredDoNotUsePaths` as
-  `do-not-use`.
+- Graph/context scan policy excludes task-contract `requiredDoNotUsePaths`
+  before content-reading graph detectors read files.
+- Graph/context scan policy excludes protected-looking paths before
+  content-reading graph detectors read files.
+- Context packages can still mark task-contract `requiredDoNotUsePaths` as
+  `do-not-use` operator evidence.
 - Verify execute policy is allowlisted, no-shell, timeout-bound, and output
   redacted.
 - Real target adoption requires preflight and a clean non-protected worktree.
 
-Current KRN behavior also has a known gap:
+Current KRN behavior also has known gaps:
 
-- `krn graph` runs before context selection and graph detectors can read
-  repository file contents before task-level `requiredDoNotUsePaths` are
-  applied.
+- Suspicious instruction-like text from non-authority docs is not yet
+  classified as `context-poisoning-suspect`.
+- Poisoning suspects are not yet downgraded in context package JSON/Markdown.
 
-This means the current defense is process-enforced for approved target runs,
-not yet a hard graph/context ingestion control.
+This means the current defense has pre-read path exclusion, but approved target
+runs still require clean isolated worktrees, target preflight, no protected
+data, explicit forbidden/do-not-use paths, and no production or hook-trust claim.
 
 ## Authority Model
 
@@ -51,19 +56,20 @@ accepted KRN ADR/spec truth.
 
 ## Required Future Behavior
 
-The implementation slice must add deterministic checks before claiming TASK-011
-complete:
+The implementation must add deterministic checks before claiming TASK-011
+complete. Current status:
 
-1. Path policy must be available before graph detectors read file contents.
-2. `requiredDoNotUsePaths` and protected-looking path policy must exclude files
-   from content-reading detectors before the first read.
-3. Suspicious instruction-like text from non-authority docs must be represented
-   as `context-poisoning-suspect` or equivalent local evidence.
-4. Poisoning suspects must not become `must-read` active edit context without a
-   stronger authority source.
-5. Context package JSON/Markdown must make the downgrade visible to the
-   operator.
-6. Trace or run-result evidence must record that the defense ran.
+1. Done: path policy is available before graph detectors read file contents.
+2. Done: `requiredDoNotUsePaths` and protected-looking path policy exclude
+   files from content-reading detectors before the first read.
+3. Deferred: suspicious instruction-like text from non-authority docs must be
+   represented as `context-poisoning-suspect` or equivalent local evidence.
+4. Deferred: poisoning suspects must not become `must-read` active edit context
+   without a stronger authority source.
+5. Deferred: context package JSON/Markdown must make the downgrade visible to
+   the operator.
+6. Done for path policy: `graph.built` and `context.built` trace payloads record
+   `graphScanPolicy` and `taskDoNotUsePathCount`.
 
 The first implementation should prefer deterministic string/path heuristics and
 fixtures. It must not require an LLM classifier.
@@ -85,10 +91,13 @@ The implementation must account for source authority before downgrading.
 
 ## Required Tests
 
-Before code implementation is accepted, add tests that prove:
+Implemented tests prove:
 
 - a task-spec do-not-use path is not read by graph detectors;
 - protected-looking files are excluded before detector content reads;
+
+Remaining tests before full TASK-011 completion must prove:
+
 - a stale/non-authority doc containing injection-like instructions is downgraded
   and cannot override task authority;
 - root `AGENTS.md` and accepted ADR/spec text are not downgraded merely because

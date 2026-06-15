@@ -1,7 +1,10 @@
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildGraph } from "./build-graph.js";
+import { graphPathExclusionFor } from "./scan-policy.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -209,6 +212,43 @@ describe("graph-lite detector v0", () => {
         kind: "owns-source",
         evidencePath: "src/theme/assets/hero.js",
       }),
+    );
+  });
+
+  it("excludes task do-not-use paths before content-reading detectors run", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-graph-policy-"));
+    await mkdir(path.join(cwd, "raw", "acf-json"), { recursive: true });
+    await writeFile(path.join(cwd, "raw", "acf-json", "broken.json"), "{not json", "utf8");
+    await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+
+    const graph = await buildGraph(cwd, undefined, {
+      excludePathPatterns: ["raw/**"],
+    });
+
+    expect(
+      graphPathExclusionFor("raw/acf-json/broken.json", { excludePathPatterns: ["raw/**"] }),
+    ).toEqual({
+      reason: "task-do-not-use",
+      pattern: "raw/**",
+    });
+    expect(graph.nodes.map((node) => node.evidencePath).join("\n")).not.toContain(
+      "raw/acf-json/broken.json",
+    );
+  });
+
+  it("excludes protected-looking paths before content-reading detectors run", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-graph-protected-"));
+    await mkdir(path.join(cwd, "acf-json"), { recursive: true });
+    await writeFile(path.join(cwd, "acf-json", "private-secret.json"), "{not json", "utf8");
+    await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+
+    const graph = await buildGraph(cwd);
+
+    expect(graphPathExclusionFor("acf-json/private-secret.json")).toEqual({
+      reason: "protected-looking",
+    });
+    expect(graph.nodes.map((node) => node.evidencePath).join("\n")).not.toContain(
+      "acf-json/private-secret.json",
     );
   });
 });

@@ -1,17 +1,19 @@
 import { buildContextPackage, renderContextPackageMarkdown } from "../../../context/src/index.js";
-import { buildGraph } from "../../../graph/src/index.js";
+import { buildGraph, protectedGraphPathPolicy } from "../../../graph/src/index.js";
 import { loadMemoryStore } from "../../../memory/src/index.js";
 import {
   readCurrentTaskContract,
   writeCurrentJson,
   writeCurrentMarkdown,
 } from "../current-state.js";
+import { graphScanOptionsForTaskContract } from "../graph-scan-policy.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 export async function contextCommand(runtime: CliRuntime): Promise<number> {
   const contract = await readCurrentTaskContract(runtime.cwd);
-  const graph = await buildGraph(runtime.cwd);
+  const scanOptions = graphScanOptionsForTaskContract(contract);
+  const graph = await buildGraph(runtime.cwd, undefined, scanOptions);
   const approvedMemory = await loadMemoryStore(runtime.cwd, "approved");
   const pkg = buildContextPackage(contract, graph, {
     approvedMemory: approvedMemory.records,
@@ -28,6 +30,8 @@ export async function contextCommand(runtime: CliRuntime): Promise<number> {
       estimatedTokens: pkg.budget.estimatedTokens,
       retainedTokens: pkg.budget.retainedTokens,
       prunedItems: pkg.budget.prunedItems.length,
+      graphScanPolicy: protectedGraphPathPolicy,
+      taskDoNotUsePathCount: scanOptions.excludePathPatterns?.length ?? 0,
     },
   });
 

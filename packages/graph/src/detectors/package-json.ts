@@ -10,8 +10,8 @@ interface PackageJsonShape {
 
 export const packageJsonDetector: GraphDetector = {
   name: "package-json",
-  async detect(cwd) {
-    const packagePaths = await walkFiles(cwd).then((files) =>
+  async detect(cwd, context) {
+    const packagePaths = await walkFiles(cwd, undefined, context?.scanPolicy).then((files) =>
       files.filter((file) => path.basename(file) === "package.json"),
     );
     const nodes: GraphNode[] = [];

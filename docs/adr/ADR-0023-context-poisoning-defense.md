@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted for policy/spec. Implementation deferred.
+Accepted. Pre-read path policy implemented; poisoning-suspect downgrade
+deferred.
 
 ## Context
 
@@ -11,13 +12,17 @@ partial protections: explicit task contracts, `requiredDoNotUsePaths`, ranked
 context buckets, STOP on missing context, governed memory gates, verify command
 policy, and local trace evidence.
 
-Those protections are not yet a complete context-poisoning defense. The current
-`krn run` sequence starts with the task contract, then builds graph-lite before
-context selection. Graph-lite detectors walk and read repository files without
-consuming task-level `requiredDoNotUsePaths` first. This is acceptable only
-under the current operator rule that real target runs use clean, non-protected,
-preflighted worktrees. It is not a hard protected-data or prompt-injection
-barrier.
+Those protections are not yet a complete context-poisoning defense. The first
+implementation slice makes task-level `requiredDoNotUsePaths` and
+protected-looking path policy available to graph-lite before content-reading
+detectors walk files. This narrows the earlier gap where graph-lite could read
+repository files before context selection applied task-level do-not-use
+boundaries.
+
+This is still not a full protected-data or prompt-injection barrier. Suspicious
+instruction-like text from non-authority docs is not yet downgraded as
+`context-poisoning-suspect`, and approved target runs still require clean,
+non-protected, preflighted worktrees.
 
 The relevant security model is that repository text and external files can
 carry indirect prompt injection. OWASP classifies prompt injection as a top
@@ -31,12 +36,11 @@ points, not a sandbox, and real hook loading/trust remains unproven.
 
 ## Decision
 
-Adopt a context-poisoning defense contract with implementation deferred to a
-future narrow slice.
+Adopt a context-poisoning defense contract and implement its first narrow slice:
+pre-read graph/context path exclusion.
 
-The future implementation must defend before model-facing context is trusted.
-The first implementation surface is graph/context ingestion policy, not a hook
-sanitizer:
+The implementation must defend before model-facing context is trusted. The first
+implementation surface is graph/context ingestion policy, not a hook sanitizer:
 
 - task-spec `requiredDoNotUsePaths` and forbidden/protected path policy must be
   available before any detector reads file contents;
@@ -62,9 +66,9 @@ The accepted future evidence vocabulary is:
 - `do-not-use`: protected, stale, forbidden, or poisoned material that must not
   become active edit context.
 
-The implementation slice must add tests before changing selection behavior. It
-must prove that a file marked by task-spec do-not-use policy is excluded before
-content-reading detectors process it.
+The first implementation slice adds tests proving that a file marked by
+task-spec do-not-use policy is excluded before content-reading detectors process
+it, and that protected-looking paths are excluded by default.
 
 ## Drivers
 
@@ -78,13 +82,18 @@ content-reading detectors process it.
 
 ## Consequences
 
-TASK-011 is accepted as ADR/spec first. No code behavior changes in this slice.
+TASK-011 now has a first source/test implementation slice for pre-read path
+exclusion.
 
-Future implementation may change graph/context APIs so `krn graph` can receive
-or load task policy before scanning. That change needs focused fixtures and must
-not create a new top-level command.
+`krn graph` and `krn context` load the current task contract and pass scan policy
+into graph-lite. `krn run` already starts by writing that task contract, so
+`krn run --task-spec ...` remains the primary proof workflow without adding a
+new CLI surface.
 
-Until implementation lands, real target runs still require:
+Future implementation still needs context-poisoning suspect detection and
+downgrade for non-authority instruction-like docs.
+
+Until the remaining defense lands, real target runs still require:
 
 - clean isolated target worktree;
 - preflight before `krn run`;
@@ -127,6 +136,6 @@ Until implementation lands, real target runs still require:
 
 ## Revisit When
 
-Revisit before implementing graph/context path exclusion, before allowing
+Revisit before adding poisoning-suspect content classification, before allowing
 protected-data workflows, before adding model-based poisoning detection, or
 before making hooks part of an enforcement claim.

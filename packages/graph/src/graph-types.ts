@@ -1,3 +1,5 @@
+import type { GraphScanPolicy } from "./scan-policy.js";
+
 export interface GraphNode {
   id: string;
   kind: string;
@@ -20,7 +22,11 @@ export interface GraphLite {
 
 export interface GraphDetector {
   name: string;
-  detect(cwd: string): Promise<GraphLite>;
+  detect(cwd: string, context?: GraphDetectorContext): Promise<GraphLite>;
+}
+
+export interface GraphDetectorContext {
+  scanPolicy: GraphScanPolicy;
 }
 
 export const emptyGraph: GraphLite = {

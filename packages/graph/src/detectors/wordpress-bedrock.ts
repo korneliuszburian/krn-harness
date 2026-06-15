@@ -21,8 +21,8 @@ function siteRootFor(graphPath: string): string | undefined {
 
 export const wordpressBedrockDetector: GraphDetector = {
   name: "wordpress-bedrock",
-  async detect(cwd) {
-    const files = await walkFiles(cwd);
+  async detect(cwd, context) {
+    const files = await walkFiles(cwd, undefined, context?.scanPolicy);
     const graphPaths = files.map((file) => toGraphPath(cwd, file));
     const siteRoots = new Set(graphPaths.map(siteRootFor).filter((root) => root !== undefined));
     const nodes: GraphNode[] = [];

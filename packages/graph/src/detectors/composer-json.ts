@@ -11,8 +11,8 @@ interface ComposerJsonShape {
 
 export const composerJsonDetector: GraphDetector = {
   name: "composer-json",
-  async detect(cwd) {
-    const composerPaths = (await walkFiles(cwd)).filter(
+  async detect(cwd, context) {
+    const composerPaths = (await walkFiles(cwd, undefined, context?.scanPolicy)).filter(
       (file) => path.basename(file) === "composer.json",
     );
     const nodes: GraphNode[] = [];

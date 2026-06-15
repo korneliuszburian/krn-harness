@@ -81,8 +81,8 @@ function moduleNode(graphPath: string): GraphNode {
 
 export const moduleImportsDetector: GraphDetector = {
   name: "module-imports",
-  async detect(cwd) {
-    const moduleFiles = await walkFiles(cwd, moduleExtensionSet);
+  async detect(cwd, context) {
+    const moduleFiles = await walkFiles(cwd, moduleExtensionSet, context?.scanPolicy);
     const modulePaths = moduleFiles.map((file) => toGraphPath(cwd, file));
     const modulePathSet = new Set(modulePaths);
     const nodes: GraphNode[] = modulePaths.map(moduleNode);

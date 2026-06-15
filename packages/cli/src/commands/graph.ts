@@ -4,8 +4,11 @@ import {
   buildGraph,
   buildGraphArtifact,
   defaultDetectors,
+  protectedGraphPathPolicy,
   renderGraphArtifactMarkdown,
 } from "../../../graph/src/index.js";
+import { readCurrentTaskContract } from "../current-state.js";
+import { graphScanOptionsForTaskContract } from "../graph-scan-policy.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
@@ -13,7 +16,9 @@ const graphJsonPath = ".krn/graph/repo-graph.json";
 const graphMarkdownPath = ".krn/graph/repo-graph.md";
 
 export async function graphCommand(runtime: CliRuntime): Promise<number> {
-  const graph = await buildGraph(runtime.cwd);
+  const contract = await readCurrentTaskContract(runtime.cwd);
+  const scanOptions = graphScanOptionsForTaskContract(contract);
+  const graph = await buildGraph(runtime.cwd, defaultDetectors, scanOptions);
   const artifact = buildGraphArtifact(graph, {
     generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
     detectors: defaultDetectors.map((detector) => detector.name),
@@ -39,6 +44,8 @@ export async function graphCommand(runtime: CliRuntime): Promise<number> {
       detectors: artifact.detectors,
       relationKindCounts: artifact.relationKindCounts,
       nodeKindCounts: artifact.nodeKindCounts,
+      graphScanPolicy: protectedGraphPathPolicy,
+      taskDoNotUsePathCount: scanOptions.excludePathPatterns?.length ?? 0,
     },
   });
 

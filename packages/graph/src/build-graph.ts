@@ -8,6 +8,7 @@ import { packageConventionsDetector } from "./detectors/package-conventions.js";
 import { packageJsonDetector } from "./detectors/package-json.js";
 import { wordpressBedrockDetector } from "./detectors/wordpress-bedrock.js";
 import type { GraphDetector, GraphEdge, GraphLite, GraphNode } from "./graph-types.js";
+import { createGraphScanPolicy, type GraphScanPolicyInput } from "./scan-policy.js";
 
 export const defaultDetectors: GraphDetector[] = [
   filesystemDetector,
@@ -20,6 +21,8 @@ export const defaultDetectors: GraphDetector[] = [
   acfJsonDetector,
   wordpressBedrockDetector,
 ];
+
+export type BuildGraphOptions = GraphScanPolicyInput;
 
 function uniqueNodes(nodes: GraphNode[]): GraphNode[] {
   return [...new Map(nodes.map((node) => [node.id, node])).values()].sort((left, right) =>
@@ -44,8 +47,12 @@ function uniqueEdges(edges: GraphEdge[]): GraphEdge[] {
 export async function buildGraph(
   cwd = process.cwd(),
   detectors = defaultDetectors,
+  options: BuildGraphOptions = {},
 ): Promise<GraphLite> {
-  const graphs = await Promise.all(detectors.map((detector) => detector.detect(cwd)));
+  const scanPolicy = createGraphScanPolicy(options);
+  const graphs = await Promise.all(
+    detectors.map((detector) => detector.detect(cwd, { scanPolicy })),
+  );
 
   return {
     nodes: uniqueNodes(graphs.flatMap((graph) => graph.nodes)),

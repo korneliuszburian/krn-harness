@@ -7,8 +7,8 @@ const deprecatedPattern = /\b(deprecated|outdated|stale|old plan)\b/i;
 
 export const docsLinksDetector: GraphDetector = {
   name: "docs-links",
-  async detect(cwd) {
-    const markdownPaths = await walkFiles(cwd, new Set([".md"]));
+  async detect(cwd, context) {
+    const markdownPaths = await walkFiles(cwd, new Set([".md"]), context?.scanPolicy);
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
 

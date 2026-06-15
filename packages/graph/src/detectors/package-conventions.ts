@@ -128,8 +128,10 @@ function ownedNode(kind: string, graphPath: string): GraphNode {
 
 export const packageConventionsDetector: GraphDetector = {
   name: "package-conventions",
-  async detect(cwd) {
-    const graphPaths = (await walkFiles(cwd)).map((file) => toGraphPath(cwd, file));
+  async detect(cwd, context) {
+    const graphPaths = (await walkFiles(cwd, undefined, context?.scanPolicy)).map((file) =>
+      toGraphPath(cwd, file),
+    );
     const packageJsonPaths = new Set(
       graphPaths.filter((graphPath) => path.posix.basename(graphPath) === "package.json"),
     );

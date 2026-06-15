@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
+import { type GraphScanPolicyInput, graphPathExclusionFor } from "./scan-policy.js";
 
 const skippedDirectories = new Set([".git", "node_modules", ".krn", "dist", "coverage"]);
 
@@ -11,7 +12,11 @@ export function graphPathJoin(...parts: string[]): string {
   return parts.filter(Boolean).join("/").replaceAll(/\/+/g, "/");
 }
 
-export async function walkFiles(cwd: string, extensions?: Set<string>): Promise<string[]> {
+export async function walkFiles(
+  cwd: string,
+  extensions?: Set<string>,
+  scanPolicy?: GraphScanPolicyInput | undefined,
+): Promise<string[]> {
   async function visit(directory: string): Promise<string[]> {
     const entries = await readdir(directory, { withFileTypes: true });
     const nested = await Promise.all(
@@ -19,6 +24,11 @@ export async function walkFiles(cwd: string, extensions?: Set<string>): Promise<
         .filter((entry) => !entry.isDirectory() || !skippedDirectories.has(entry.name))
         .map(async (entry) => {
           const absolutePath = path.join(directory, entry.name);
+          const graphPath = toGraphPath(cwd, absolutePath);
+
+          if (graphPathExclusionFor(graphPath, scanPolicy)) {
+            return [];
+          }
 
           if (entry.isDirectory()) {
             return visit(absolutePath);

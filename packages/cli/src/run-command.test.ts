@@ -130,6 +130,40 @@ describe("krn CLI run command", () => {
     expect(run.taskSpecPath).toBe("task.json");
   }, 15_000);
 
+  it("keeps task-spec do-not-use paths out of graph content reads during runs", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, "raw", "acf-json"), { recursive: true });
+    await writeFile(path.join(cwd, "raw", "acf-json", "broken.json"), "{not json", "utf8");
+    await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+    await writeFile(
+      path.join(cwd, "task.json"),
+      `${JSON.stringify(
+        {
+          prompt: "Update README without reading raw protected context.",
+          expectedTouchedFiles: ["README.md"],
+          requiredDoNotUsePaths: ["raw/**"],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    const graph = await readJson<{ nodes: Array<{ evidencePath: string }> }>(
+      cwd,
+      ".krn/graph/repo-graph.json",
+    );
+
+    expect(result.code).toBe(0);
+    expect(run.status).toBe("ran");
+    expect(run.steps.graph.status).toBe("ran");
+    expect(graph.nodes.map((node) => node.evidencePath).join("\n")).not.toContain(
+      "raw/acf-json/broken.json",
+    );
+  }, 15_000);
+
   it("surfaces schema-backed task spec errors in run results", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
     await writeFile(

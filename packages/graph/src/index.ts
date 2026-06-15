@@ -13,3 +13,4 @@ export * from "./detectors/php-template-part.js";
 export * from "./detectors/wordpress-bedrock.js";
 export * from "./graph-artifact.js";
 export * from "./graph-types.js";
+export * from "./scan-policy.js";
