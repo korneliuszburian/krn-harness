@@ -10,7 +10,7 @@ The context package identifies the smallest high-value context Codex should read
 - `items`: ranked context entries with `path`, `reason`, `priority`, `bucket`, and `status`.
   Optional explainability fields:
   - `source`: `base`, `graph`, `memory`, `task-contract`, or `task-policy`
-  - `selector`: shallow selector name such as `style-related-to`, `acf-group`, `package-owned-source`, `package-owned-test`, `tests-source-for-owned-source`, `package-owned-config`, `package-owned-doc`, `package-owned-deprecated-doc`, `expected-touched-file`, `explicit-task-path`, `required-do-not-use-path`, `approved-memory-task-match`, `approved-memory-explicit`, or `missing-context-policy`
+  - `selector`: shallow selector name such as `style-related-to`, `acf-group`, `package-owned-source`, `package-owned-test`, `tests-source-for-owned-source`, `package-owned-config`, `package-owned-doc`, `package-owned-deprecated-doc`, `context-poisoning-suspect-doc`, `package-owned-context-poisoning-suspect-doc`, `expected-touched-file`, `explicit-task-path`, `required-do-not-use-path`, `approved-memory-task-match`, `approved-memory-explicit`, or `missing-context-policy`
   - `matchedTerms`: task terms matched by the selector
   - `relationKind`: graph edge relation kind when relevant
   - `sourceNode`: graph source node id when relevant
@@ -66,14 +66,16 @@ Task-contract metadata may add explicit `expectedTouchedFiles` into the `mustRea
 
 TASK-011 context poisoning defense is accepted in ADR-0023. Graph/context scan
 policy now applies task-contract `requiredDoNotUsePaths` and protected-looking
-path exclusions before graph detector content reads. Suspicious
-instruction-like text from non-authority docs is not yet classified or
-downgraded, so approved target runs still require clean isolated worktrees and
-preflight before `krn run --task-spec ... --execute-verify --bundle`.
+path exclusions before graph detector content reads. Markdown graph detection
+marks instruction-like non-authority docs as `context-poisoning-suspect`, and
+context packages downgrade matching suspects into `doNotUse` with an
+operator-visible warning. This remains deterministic local risk reduction, so
+approved target runs still require clean isolated worktrees and preflight before
+`krn run --task-spec ... --execute-verify --bundle`.
 
 Verify-profile-focused tasks narrow graph doc-match noise. When a task is focused on `krn verify --execute`, a verify profile, a readonly profile, or `check_all_readonly`, broad graph doc matches such as README/path/repo/source/validation/readonly/tooling/wiki/governance terms are suppressed unless the file is expected to be touched or explicitly named in the task text. The suppression applies to deprecated docs as well as available docs. This is a P1 hardening rule for measured real-repo over-inclusion, not semantic retrieval.
 
-Package-owned graph selectors use deterministic graph-lite ownership edges. Matching package-owned source files become `must-read`, package-owned tests and config files become `should-read`, package-owned available docs become `reference-only`, and package-owned deprecated docs become `do-not-use`. When a `tests-source` path-convention edge points to an already selected package-owned source, the paired test may be ranked as `tests-source-for-owned-source` support. This context promotion remains path-convention-only and must not become AST, Tree-sitter, callgraph/dataflow, runtime dependency inference, embeddings, or semantic retrieval in P0.
+Package-owned graph selectors use deterministic graph-lite ownership edges. Matching package-owned source files become `must-read`, package-owned tests and config files become `should-read`, package-owned available docs become `reference-only`, and package-owned deprecated or `context-poisoning-suspect` docs become `do-not-use`. When a `tests-source` path-convention edge points to an already selected package-owned source, the paired test may be ranked as `tests-source-for-owned-source` support. This context promotion remains path-convention-only and must not become AST, Tree-sitter, callgraph/dataflow, runtime dependency inference, embeddings, or semantic retrieval in P0.
 
 Approved memory may appear only in `referenceOnly` context. It is selected only when the task explicitly asks for memory or the approved memory summary/evidence path matches at least two non-broad task terms. Explicit opt-out phrases such as `without approved memory`, `no memory`, `do not use prior decisions`, `bez pamięci`, `nie używaj pamięci`, `nie używaj poprzednich decyzji`, or `bez wcześniejszych ustaleń` suppress memory context even when terms match. Pending and deprecated memory must not appear in context.
 

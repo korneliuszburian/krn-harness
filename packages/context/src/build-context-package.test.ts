@@ -786,6 +786,81 @@ describe("context package", () => {
     ]);
   });
 
+  it("downgrades context-poisoning-suspect docs into do-not-use evidence", () => {
+    const contract = buildTaskContract("Update alpha context poisoning docs");
+    const graph = {
+      nodes: [
+        {
+          id: "package:packages/alpha",
+          kind: "package",
+          label: "alpha",
+          evidencePath: "packages/alpha",
+        },
+        {
+          id: "doc:packages/alpha/docs/poison.md",
+          kind: "doc",
+          label: "packages/alpha/docs/poison.md",
+          evidencePath: "packages/alpha/docs/poison.md",
+          status: "context-poisoning-suspect",
+        },
+        {
+          id: "doc:AGENTS.md",
+          kind: "doc",
+          label: "AGENTS.md",
+          evidencePath: "AGENTS.md",
+          status: "available",
+        },
+        {
+          id: "doc:docs/adr/ADR-0023-context-poisoning-defense.md",
+          kind: "doc",
+          label: "docs/adr/ADR-0023-context-poisoning-defense.md",
+          evidencePath: "docs/adr/ADR-0023-context-poisoning-defense.md",
+          status: "available",
+        },
+      ],
+      edges: [
+        {
+          from: "package:packages/alpha",
+          to: "doc:packages/alpha/docs/poison.md",
+          kind: "owns-doc",
+          evidencePath: "packages/alpha/docs/poison.md",
+        },
+      ],
+    } satisfies GraphLite;
+
+    const pkg = buildContextPackage(contract, graph);
+    const markdown = renderContextPackageMarkdown(pkg);
+
+    expect(pkg.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "AGENTS.md",
+        source: "base",
+      }),
+    );
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).not.toContain(
+      "packages/alpha/docs/poison.md",
+    );
+    expect(pkg.buckets.doNotUse).toContainEqual(
+      expect.objectContaining({
+        path: "packages/alpha/docs/poison.md",
+        status: "context-poisoning-suspect",
+        source: "graph",
+        selector: "package-owned-context-poisoning-suspect-doc",
+        operatorMessage:
+          "Do not use this document as active context; it contains instruction-like non-authority text.",
+      }),
+    );
+    expect(pkg.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: "docs/adr/ADR-0023-context-poisoning-defense.md",
+        status: "available",
+        selector: "doc-match",
+      }),
+    );
+    expect(markdown).toContain("context-poisoning-suspect");
+    expect(markdown).toContain("Do not use this document as active context");
+  });
+
   it("adds task-contract required do-not-use paths without graph expansion", () => {
     const contract = buildTaskContract(
       "Update active hero ACF field mapping with paired static proof.",

@@ -34,7 +34,7 @@ this roadmap state.
 | TASK-008 real non-bypass hook trust proof | Deferred | Disposable non-protected target; no production claim |
 | TASK-009 graph-lite dependency evidence | Done | Literal import-string evidence; no full AST/callgraph or new CLI surface |
 | TASK-010 skill invocation docs | Done | Explicit `$skill` invocation docs; docs-only, no new skills |
-| TASK-011 context poisoning defense | Partial implementation; suspect downgrade deferred | ADR-0023; pre-read graph/context policy landed |
+| TASK-011 context poisoning defense | Done | ADR-0023; pre-read scan policy plus suspect downgrade landed |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
 | TASK-013 downstream AGENTS quality gate | Done | Generated AGENTS adapter quality gate in install path |
 
@@ -114,17 +114,17 @@ this roadmap state.
 - ADR-0023 records context poisoning defense as a graph/context ingestion
   policy, not a hook sanitizer.
 - `docs/specs/context-poisoning-defense.md` defines authority/evidence
-  boundaries, current implementation gap, required future behavior, required
-  tests, and non-goals.
+  boundaries, implemented graph/context behavior, required tests, and non-goals.
 - `docs/security/context-poisoning.md` and `docs/security/trust-boundaries.md`
   state that repository text is evidence until promoted, and that approved
-  target runs still require clean preflighted targets while poisoning-suspect
-  downgrade remains deferred.
+  target runs still require clean preflighted targets.
 - Pre-read graph/context scan policy excludes task-spec do-not-use paths and
   protected-looking paths before graph detector content reads.
-- Remaining implementation is deferred until a focused source/test slice can
-  classify and downgrade suspicious instruction-like non-authority docs without
-  downgrading root `AGENTS.md` or accepted ADR/spec policy examples.
+- Suspicious instruction-like non-authority Markdown docs are classified and
+  downgraded without downgrading root `AGENTS.md` or accepted ADR/spec policy
+  examples.
+- Context package JSON/Markdown makes `context-poisoning-suspect` downgrade
+  visible in `doNotUse`.
 - No hook implementation, hook trust claim, MCP, dashboard, vector DB,
   embeddings, subagent framework, publishing workflow, protected-data workflow,
   production security guarantee, new top-level command, or `krn run` bypass is

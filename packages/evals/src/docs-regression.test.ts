@@ -471,26 +471,33 @@ describe("P0 docs anti-regression", () => {
     const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
     const adrIndex = await readDoc("docs/adr/README.md");
 
-    expect(contextPoisoningAdr).toContain("Pre-read path policy implemented");
+    expect(contextPoisoningAdr).toContain(
+      "Pre-read path policy and poisoning-suspect downgrade implemented",
+    );
     expect(contextPoisoningAdr).toContain("implementation surface is graph/context ingestion");
     expect(contextPoisoningAdr).toContain("No hook sanitizer implementation");
     expect(contextPoisoningAdr).toContain("No new top-level CLI command");
     expect(contextPoisoningSpec).toContain("Current Implementation Status");
-    expect(contextPoisoningSpec).toContain("Partially implemented");
+    expect(contextPoisoningSpec).toContain("Implemented for deterministic graph/context ingestion");
     expect(contextPoisoningSpec).toContain("before graph detectors read file contents");
     expect(contextPoisoningSpec).toContain("a task-spec do-not-use path is not read");
-    expect(contextPoisoningSpec).toContain("Deferred: suspicious instruction-like text");
-    expect(contextPoisoningSecurity).toContain("Current limitation");
+    expect(contextPoisoningSpec).toContain("context-poisoning-suspect");
+    expect(contextPoisoningSpec).toContain(
+      "root `AGENTS.md` and accepted ADR/spec text are not downgraded",
+    );
+    expect(contextPoisoningSecurity).toContain("deterministic local risk reduction");
     expect(contextPoisoningSecurity).toContain("clean isolated target");
     expect(trustBoundaries).toContain("file text is untrusted context");
     expect(trustBoundaries).toContain("Context poisoning defense must happen");
     expect(trustBoundaries).toContain("are not sufficient because hooks are not a sandbox");
     expect(contextSpec).toContain("before graph detector content reads");
+    expect(contextSpec).toContain("downgrade matching suspects into `doNotUse`");
     expect(graphSpec).toContain("protected-looking-v1");
+    expect(graphSpec).toContain("Context Poisoning Suspects");
     expect(graphSpec).toContain("without adding a new CLI surface");
     expect(traceSpec).toContain("graphScanPolicy");
     expect(goalRoadmap).toContain("TASK-011 context poisoning defense");
-    expect(goalRoadmap).toContain("Partial implementation; suspect downgrade deferred");
+    expect(goalRoadmap).toContain("pre-read scan policy plus suspect downgrade landed");
     expect(goalRoadmap).toContain("No hook implementation, hook trust claim");
     expect(adrIndex).toContain("ADR-0023: Context Poisoning Defense");
   });

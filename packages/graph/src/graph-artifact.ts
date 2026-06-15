@@ -160,6 +160,21 @@ function renderDeprecatedDocs(nodes: GraphNode[]): string {
     .join("\n");
 }
 
+function renderContextPoisoningSuspects(nodes: GraphNode[]): string {
+  const suspectDocs = nodes.filter(
+    (node) => node.kind === "doc" && node.status === "context-poisoning-suspect",
+  );
+
+  if (suspectDocs.length === 0) {
+    return "- none";
+  }
+
+  return suspectDocs
+    .slice(0, selectedEvidenceLimit)
+    .map((node) => `- \`${node.evidencePath}\` (${node.id})`)
+    .join("\n");
+}
+
 function renderModuleDependencies(moduleDependencies: GraphModuleDependency[]): string {
   const activeDependencies = moduleDependencies.filter(
     (dependency) => dependency.imports.length > 0 || dependency.importedBy.length > 0,
@@ -190,6 +205,7 @@ Status: graph-lite-p0
 - Nodes: ${artifact.nodeCount}
 - Edges: ${artifact.edgeCount}
 - Deprecated docs: ${artifact.statusCounts.deprecated ?? 0}
+- Context poisoning suspects: ${artifact.statusCounts["context-poisoning-suspect"] ?? 0}
 
 ## Detectors
 
@@ -206,6 +222,10 @@ ${renderCountList(artifact.relationKindCounts)}
 ## Deprecated Docs
 
 ${renderDeprecatedDocs(artifact.nodes)}
+
+## Context Poisoning Suspects
+
+${renderContextPoisoningSuspects(artifact.nodes)}
 
 ## Module Dependencies
 

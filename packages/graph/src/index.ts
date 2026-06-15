@@ -1,4 +1,5 @@
 export * from "./build-graph.js";
+export * from "./context-poisoning.js";
 export * from "./detectors/acf-json.js";
 export * from "./detectors/composer-json.js";
 export * from "./detectors/css-class.js";

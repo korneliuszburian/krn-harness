@@ -3,11 +3,11 @@
 ## Purpose
 
 This spec defines the accepted TASK-011 defense contract. It records what KRN
-must defend before context is trusted, and what remains deferred.
+defends before context is trusted, and the limits of that defense.
 
 ## Current Implementation Status
 
-Partially implemented.
+Implemented for deterministic graph/context ingestion.
 
 Current KRN behavior has useful building blocks:
 
@@ -19,21 +19,20 @@ Current KRN behavior has useful building blocks:
   before content-reading graph detectors read files.
 - Graph/context scan policy excludes protected-looking paths before
   content-reading graph detectors read files.
+- Markdown graph detection marks instruction-like non-authority docs as
+  `context-poisoning-suspect`.
+- Context package selection downgrades `context-poisoning-suspect` docs to
+  `do-not-use` evidence with an operator-visible message.
 - Context packages can still mark task-contract `requiredDoNotUsePaths` as
   `do-not-use` operator evidence.
 - Verify execute policy is allowlisted, no-shell, timeout-bound, and output
   redacted.
 - Real target adoption requires preflight and a clean non-protected worktree.
 
-Current KRN behavior also has known gaps:
-
-- Suspicious instruction-like text from non-authority docs is not yet
-  classified as `context-poisoning-suspect`.
-- Poisoning suspects are not yet downgraded in context package JSON/Markdown.
-
-This means the current defense has pre-read path exclusion, but approved target
-runs still require clean isolated worktrees, target preflight, no protected
-data, explicit forbidden/do-not-use paths, and no production or hook-trust claim.
+This means the current defense has pre-read path exclusion plus deterministic
+suspect downgrade, but approved target runs still require clean isolated
+worktrees, target preflight, no protected data, explicit forbidden/do-not-use
+paths, and no production or hook-trust claim.
 
 ## Authority Model
 
@@ -56,23 +55,23 @@ accepted KRN ADR/spec truth.
 
 ## Required Future Behavior
 
-The implementation must add deterministic checks before claiming TASK-011
-complete. Current status:
+The implementation uses deterministic checks before claiming TASK-011 complete.
+Current status:
 
 1. Done: path policy is available before graph detectors read file contents.
 2. Done: `requiredDoNotUsePaths` and protected-looking path policy exclude
    files from content-reading detectors before the first read.
-3. Deferred: suspicious instruction-like text from non-authority docs must be
+3. Done: suspicious instruction-like text from non-authority docs is
    represented as `context-poisoning-suspect` or equivalent local evidence.
-4. Deferred: poisoning suspects must not become `must-read` active edit context
+4. Done: poisoning suspects do not become `must-read` active edit context
    without a stronger authority source.
-5. Deferred: context package JSON/Markdown must make the downgrade visible to
+5. Done: context package JSON/Markdown makes the downgrade visible to
    the operator.
 6. Done for path policy: `graph.built` and `context.built` trace payloads record
    `graphScanPolicy` and `taskDoNotUsePathCount`.
 
-The first implementation should prefer deterministic string/path heuristics and
-fixtures. It must not require an LLM classifier.
+The implementation uses deterministic string/path heuristics and fixtures. It
+does not require an LLM classifier.
 
 ## Suspicious Instruction Examples
 
@@ -95,9 +94,6 @@ Implemented tests prove:
 
 - a task-spec do-not-use path is not read by graph detectors;
 - protected-looking files are excluded before detector content reads;
-
-Remaining tests before full TASK-011 completion must prove:
-
 - a stale/non-authority doc containing injection-like instructions is downgraded
   and cannot override task authority;
 - root `AGENTS.md` and accepted ADR/spec text are not downgraded merely because

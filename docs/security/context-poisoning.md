@@ -15,20 +15,22 @@ Prompt injection and stale or malicious context can steer Codex away from the op
 ## TASK-011 Contract
 
 ADR-0023 accepts context poisoning defense as a graph/context ingestion
-contract. The first source/test slice implements pre-read path exclusion for
-task-spec do-not-use paths and protected-looking paths.
+contract. The implementation includes pre-read path exclusion for task-spec
+do-not-use paths and protected-looking paths, plus deterministic downgrade of
+instruction-like non-authority Markdown docs.
 
 The important boundary is pre-context trust. Repository text is evidence, not
 authority, unless repo/operator policy promotes it. Non-authority files that try
 to override the task, safety policy, validation, memory, protected paths,
-commit/push limits, production proof, or hook trust must be treated as
-`context-poisoning-suspect` or `do-not-use` evidence in a future implementation.
+commit/push limits, production proof, or hook trust are treated as
+`context-poisoning-suspect` / `do-not-use` context evidence when detected by the
+deterministic Markdown policy.
 
-Current limitation: suspicious instruction-like text from non-authority docs is
-not yet classified or downgraded as `context-poisoning-suspect`. Therefore
-approved real target runs still require a clean isolated target, target
-preflight, no protected data, and explicit task-spec forbidden/do-not-use paths
-before `krn run --task-spec ... --execute-verify --bundle`.
+Current limitation: this is deterministic local risk reduction, not a sandbox
+or complete prompt-injection detector. Approved real target runs still require a
+clean isolated target, target preflight, no protected data, and explicit
+task-spec forbidden/do-not-use paths before
+`krn run --task-spec ... --execute-verify --bundle`.
 
 This is not a hook sanitizer, hook trust proof, protected-data workflow, or
 production security guarantee.

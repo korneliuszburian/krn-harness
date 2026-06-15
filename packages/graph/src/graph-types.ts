@@ -1,11 +1,13 @@
 import type { GraphScanPolicy } from "./scan-policy.js";
 
+export type GraphNodeStatus = "available" | "deprecated" | "missing" | "context-poisoning-suspect";
+
 export interface GraphNode {
   id: string;
   kind: string;
   label: string;
   evidencePath: string;
-  status?: "available" | "deprecated" | "missing" | undefined;
+  status?: GraphNodeStatus | undefined;
 }
 
 export interface GraphEdge {

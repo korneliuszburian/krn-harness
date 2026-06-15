@@ -18,7 +18,7 @@ Graph-lite v0 is a deterministic, shallow detector layer. It emits evidence path
 Included v0 detectors:
 
 - Filesystem: top-level file and directory nodes.
-- Docs links/status: Markdown doc nodes, local Markdown links, and deprecated status for explicitly stale/deprecated docs.
+- Docs links/status: Markdown doc nodes, local Markdown links, deprecated status for explicitly stale/deprecated docs, and `context-poisoning-suspect` status for instruction-like non-authority docs.
 - Package conventions: package/root nodes plus deterministic source, test, doc, and config ownership edges from path layout.
 - Package scripts: `package.json` nodes and declared npm script relations.
 - Composer scripts/type: `composer.json` nodes, Composer type, and declared Composer script relations.
@@ -40,8 +40,10 @@ files. The current policy excludes:
 `krn run --task-spec ...` writes that contract before graph/context steps, so
 task-spec do-not-use paths are available without adding a new CLI surface.
 
-This is path policy only. It does not classify instruction-like file contents
-as `context-poisoning-suspect`; that remains a later TASK-011 slice.
+Markdown detection also classifies deterministic instruction-like
+non-authority docs as `context-poisoning-suspect`. Root `AGENTS.md`, accepted
+ADR docs, and docs/specs policy examples stay authority examples and are not
+downgraded merely for describing attacks.
 
 ## Context Package Use
 
@@ -52,11 +54,11 @@ Context package construction may consume graph-lite output through generic relat
 - `owns-test` and `owns-config` edges promote matching package-owned tests/config files to `should-read`.
 - `tests-source` edges may promote a paired test to stronger `should-read` evidence when its source is already selected.
 - Package-owned tests may also become `should-read` when a source in the same package is selected.
-- `owns-doc` edges promote matching package-owned docs to `reference-only`, or `do-not-use` when the doc node is deprecated.
+- `owns-doc` edges promote matching package-owned docs to `reference-only`, or `do-not-use` when the doc node is deprecated or `context-poisoning-suspect`.
 - Matching ACF group nodes promote their JSON evidence paths to `must-read`.
 - Matching deprecated ACF group nodes become `do-not-use`.
 - Matching available docs become `reference-only`.
-- Matching deprecated docs become `do-not-use`.
+- Matching deprecated docs and `context-poisoning-suspect` docs become `do-not-use`.
 
 Selectors match task terms against graph labels, evidence paths, and package ownership nodes. They must not depend on fixture path prefixes.
 When selected source/package context exists, doc matches from neighboring fixture packages are ignored to reduce leakage.
@@ -94,11 +96,12 @@ The JSON artifact is deterministic for a fixed repository and timestamp:
 Status counts use `unknown` for graph nodes without an explicit status. Count keys are sorted alphabetically.
 
 The Markdown artifact contains Summary, Detectors, Node Kinds, Relation Kinds,
-Deprecated Docs, Module Dependencies, Evidence Examples, and P0 Limits sections.
+Deprecated Docs, Context Poisoning Suspects, Module Dependencies, Evidence
+Examples, and P0 Limits sections.
 
 ## Deferred
 
-Tree-sitter, callgraph, dataflow, semantic embeddings, instruction-content
-classification, production WordPress/ACF detectors, package manager dependency
-resolution, runtime dependency inference, and repository-wide semantic graph
-ranking are not P0.
+Tree-sitter, callgraph, dataflow, semantic embeddings, model-based
+instruction-content classification, production WordPress/ACF detectors, package
+manager dependency resolution, runtime dependency inference, and
+repository-wide semantic graph ranking are not P0.

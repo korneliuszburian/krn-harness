@@ -112,6 +112,7 @@ describe("graph artifact", () => {
     expect(markdown).toContain("## Node Kinds");
     expect(markdown).toContain("## Relation Kinds");
     expect(markdown).toContain("## Deprecated Docs");
+    expect(markdown).toContain("## Context Poisoning Suspects");
     expect(markdown).toContain("## Module Dependencies");
     expect(markdown).toContain("## Evidence Examples");
     expect(markdown).toContain("Graph-lite is shallow P0 evidence");

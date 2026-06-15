@@ -416,6 +416,36 @@ function shouldSuppressVerifyProfileDocMatch(
   return matchedTerms.every((term) => broadVerifyProfileDocTerms.has(term));
 }
 
+function contextPoisoningSuspectDocItem(
+  evidencePath: string,
+  matchedTerms: string[],
+  sourceNode: string,
+  selector: string,
+  relation?: {
+    kind: string;
+    sourceNode?: string | undefined;
+    targetNode?: string | undefined;
+  },
+): ContextItem {
+  return item(
+    "do-not-use",
+    evidencePath,
+    "Graph-lite marked this document context-poisoning-suspect",
+    100,
+    "context-poisoning-suspect",
+    {
+      source: "graph",
+      selector,
+      matchedTerms,
+      relationKind: relation?.kind,
+      sourceNode: relation?.sourceNode ?? sourceNode,
+      targetNode: relation?.targetNode,
+      operatorMessage:
+        "Do not use this document as active context; it contains instruction-like non-authority text.",
+    },
+  );
+}
+
 function graphItemsForTask(
   task: string,
   graph: GraphLite | undefined,
@@ -618,7 +648,21 @@ function graphItemsForTask(
       );
     }
 
-    if (edge.kind === "owns-doc" && to.status === "deprecated") {
+    if (edge.kind === "owns-doc" && to.status === "context-poisoning-suspect") {
+      items.push(
+        contextPoisoningSuspectDocItem(
+          to.evidencePath,
+          matchedTerms,
+          to.id,
+          "package-owned-context-poisoning-suspect-doc",
+          {
+            kind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    } else if (edge.kind === "owns-doc" && to.status === "deprecated") {
       items.push(
         item("do-not-use", to.evidencePath, "Package-owned doc is deprecated", 99, "deprecated", {
           source: "graph",
@@ -708,7 +752,11 @@ function graphItemsForTask(
     const from = nodeById.get(edge.from);
     const to = nodeById.get(edge.to);
 
-    if (!sourceMatchedTerms || !to?.evidencePath || to.status !== "deprecated") {
+    if (
+      !sourceMatchedTerms ||
+      !to?.evidencePath ||
+      (to.status !== "deprecated" && to.status !== "context-poisoning-suspect")
+    ) {
       continue;
     }
 
@@ -717,24 +765,40 @@ function graphItemsForTask(
       (left, right) => left.localeCompare(right),
     );
 
-    items.push(
-      item(
-        "do-not-use",
-        to.evidencePath,
-        "Package-owned doc is deprecated for the selected source package",
-        99,
-        "deprecated",
-        {
-          source: "graph",
-          selector: "package-deprecated-doc-for-owned-source",
+    if (to.status === "context-poisoning-suspect") {
+      items.push(
+        contextPoisoningSuspectDocItem(
+          to.evidencePath,
           matchedTerms,
-          relationKind: edge.kind,
-          sourceNode: edge.from,
-          targetNode: edge.to,
-          operatorMessage: "Do not use this package doc as active truth.",
-        },
-      ),
-    );
+          to.id,
+          "package-context-poisoning-suspect-doc-for-owned-source",
+          {
+            kind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+          },
+        ),
+      );
+    } else {
+      items.push(
+        item(
+          "do-not-use",
+          to.evidencePath,
+          "Package-owned doc is deprecated for the selected source package",
+          99,
+          "deprecated",
+          {
+            source: "graph",
+            selector: "package-deprecated-doc-for-owned-source",
+            matchedTerms,
+            relationKind: edge.kind,
+            sourceNode: edge.from,
+            targetNode: edge.to,
+            operatorMessage: "Do not use this package doc as active truth.",
+          },
+        ),
+      );
+    }
   }
 
   for (const edge of graph.edges) {
@@ -820,7 +884,7 @@ function graphItemsForTask(
 
     if (
       node.kind === "doc" &&
-      node.status !== "deprecated" &&
+      node.status === "available" &&
       matchedTerms.length > 0 &&
       !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
       !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
@@ -862,6 +926,23 @@ function graphItemsForTask(
             matchedTerms,
             sourceNode: node.id,
           },
+        ),
+      );
+    }
+
+    if (
+      node.kind === "doc" &&
+      node.status === "context-poisoning-suspect" &&
+      matchedTerms.length > 0 &&
+      !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
+      !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
+    ) {
+      items.push(
+        contextPoisoningSuspectDocItem(
+          node.evidencePath,
+          matchedTerms,
+          node.id,
+          "context-poisoning-suspect-doc",
         ),
       );
     }

@@ -2,8 +2,7 @@
 
 ## Status
 
-Accepted. Pre-read path policy implemented; poisoning-suspect downgrade
-deferred.
+Accepted. Pre-read path policy and poisoning-suspect downgrade implemented.
 
 ## Context
 
@@ -12,17 +11,18 @@ partial protections: explicit task contracts, `requiredDoNotUsePaths`, ranked
 context buckets, STOP on missing context, governed memory gates, verify command
 policy, and local trace evidence.
 
-Those protections are not yet a complete context-poisoning defense. The first
-implementation slice makes task-level `requiredDoNotUsePaths` and
+Those protections were not yet a complete context-poisoning defense. The first
+implementation slice made task-level `requiredDoNotUsePaths` and
 protected-looking path policy available to graph-lite before content-reading
 detectors walk files. This narrows the earlier gap where graph-lite could read
 repository files before context selection applied task-level do-not-use
 boundaries.
 
-This is still not a full protected-data or prompt-injection barrier. Suspicious
-instruction-like text from non-authority docs is not yet downgraded as
-`context-poisoning-suspect`, and approved target runs still require clean,
-non-protected, preflighted worktrees.
+The second implementation slice adds deterministic Markdown classification for
+instruction-like non-authority docs and downgrades those docs to
+`context-poisoning-suspect` / `do-not-use` context evidence. This is still not a
+full protected-data or prompt-injection barrier, and approved target runs still
+require clean, non-protected, preflighted worktrees.
 
 The relevant security model is that repository text and external files can
 carry indirect prompt injection. OWASP classifies prompt injection as a top
@@ -36,8 +36,8 @@ points, not a sandbox, and real hook loading/trust remains unproven.
 
 ## Decision
 
-Adopt a context-poisoning defense contract and implement its first narrow slice:
-pre-read graph/context path exclusion.
+Adopt a context-poisoning defense contract and implement it as deterministic
+graph/context ingestion policy.
 
 The implementation must defend before model-facing context is trusted. The first
 implementation surface is graph/context ingestion policy, not a hook sanitizer:
@@ -46,8 +46,8 @@ implementation surface is graph/context ingestion policy, not a hook sanitizer:
   available before any detector reads file contents;
 - detector file walking must be able to exclude protected/do-not-use paths
   before reading them;
-- suspicious instruction-like text found in non-authority repository content
-  must be represented as local evidence, not followed as an instruction;
+- suspicious instruction-like text found in non-authority Markdown content must
+  be represented as local evidence, not followed as an instruction;
 - downstream `AGENTS.md`, stale docs, generated artifacts, and target repo docs
   are context evidence unless explicitly promoted by repo/operator policy;
 - root/user/system instructions and the active task contract outrank repository
@@ -66,9 +66,11 @@ The accepted future evidence vocabulary is:
 - `do-not-use`: protected, stale, forbidden, or poisoned material that must not
   become active edit context.
 
-The first implementation slice adds tests proving that a file marked by
-task-spec do-not-use policy is excluded before content-reading detectors process
-it, and that protected-looking paths are excluded by default.
+The implementation adds tests proving that a file marked by task-spec
+do-not-use policy is excluded before content-reading detectors process it, that
+protected-looking paths are excluded by default, and that instruction-like
+non-authority docs are downgraded without downgrading root `AGENTS.md` or
+accepted ADR/spec examples.
 
 ## Drivers
 
@@ -82,18 +84,19 @@ it, and that protected-looking paths are excluded by default.
 
 ## Consequences
 
-TASK-011 now has a first source/test implementation slice for pre-read path
-exclusion.
+TASK-011 now has source/test implementation for pre-read path exclusion and
+poisoning-suspect downgrade.
 
 `krn graph` and `krn context` load the current task contract and pass scan policy
 into graph-lite. `krn run` already starts by writing that task contract, so
 `krn run --task-spec ...` remains the primary proof workflow without adding a
 new CLI surface.
 
-Future implementation still needs context-poisoning suspect detection and
-downgrade for non-authority instruction-like docs.
+Graph artifacts expose `context-poisoning-suspect` status counts and examples.
+Context packages place matching suspects in `do-not-use` with an operator
+message instead of `reference-only` or active context.
 
-Until the remaining defense lands, real target runs still require:
+This remains local risk reduction only. Real target runs still require:
 
 - clean isolated target worktree;
 - preflight before `krn run`;
@@ -136,6 +139,6 @@ Until the remaining defense lands, real target runs still require:
 
 ## Revisit When
 
-Revisit before adding poisoning-suspect content classification, before allowing
-protected-data workflows, before adding model-based poisoning detection, or
-before making hooks part of an enforcement claim.
+Revisit before allowing protected-data workflows, before adding model-based
+poisoning detection, before broadening authority-path exemptions, or before
+making hooks part of an enforcement claim.

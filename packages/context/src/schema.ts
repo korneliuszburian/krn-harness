@@ -5,7 +5,11 @@ export type ContextBucket =
   | "do-not-use"
   | "missing-context";
 
-export type ContextItemStatus = "available" | "deprecated" | "missing";
+export type ContextItemStatus =
+  | "available"
+  | "deprecated"
+  | "missing"
+  | "context-poisoning-suspect";
 
 export type ContextItemSource = "base" | "graph" | "memory" | "task-contract" | "task-policy";
 
