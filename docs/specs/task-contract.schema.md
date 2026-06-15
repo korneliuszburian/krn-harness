@@ -22,3 +22,7 @@ The task contract turns user intent into a typed artifact before edits.
 - `stopConditions`: typed STOP conditions with `code`, `reason`, and `active`.
 - `stop`: whether edits should stop.
 - `stopReason`: optional reason when STOP is true.
+
+## Normalized Helper Views
+
+P0 keeps `acceptance` and `proof` as existing string arrays for artifact compatibility. Callers that need structure can use `normalizeAcceptanceCriteria(contract)` and `normalizeProofRequirements(contract)` to derive typed records with stable ids, text, kind, and `required: true`.
