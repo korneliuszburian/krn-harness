@@ -32,7 +32,7 @@ this roadmap state.
 | TASK-006 context budget manager | Done | ADR-0022; deterministic context budget; no embeddings/vector DB |
 | TASK-007 run-eval refactor | Done | Commit `765f33a`; keep validation passing |
 | TASK-008 real non-bypass hook trust proof | Deferred | Disposable non-protected target; no production claim |
-| TASK-009 graph-lite dependency evidence | Deferred | Graph-lite contract update; no full AST/callgraph |
+| TASK-009 graph-lite dependency evidence | Done | Literal import-string evidence; no full AST/callgraph or new CLI surface |
 | TASK-010 skill invocation docs | Deferred | Redo intentionally as a docs-only slice |
 | TASK-011 context poisoning defense | Deferred | ADR-0023 unless numbering changes |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
@@ -86,6 +86,17 @@ this roadmap state.
 - `krn context` emits budget status in `context.built` trace payloads.
 - No tokenizer dependency, embeddings, vector DB, semantic retrieval, new CLI
   command, hook trust claim, or production proof is added.
+
+## TASK-009 Acceptance
+
+- `krn graph` keeps the existing artifact workflow and emits local module
+  dependency evidence in `.krn/graph/repo-graph.json`.
+- Graph artifact JSON includes `moduleDependencies` shaped as
+  `{ file, imports, importedBy }[]` and derived from `imports-file` edges.
+- Module import detection uses literal JS/TS import/export/require strings only.
+- No `krn graph --format`, new top-level command, dependency, AST, Tree-sitter,
+  callgraph/dataflow, package manager dependency resolver, semantic retrieval,
+  hook trust claim, or production proof is added.
 
 ## Proof Commands
 

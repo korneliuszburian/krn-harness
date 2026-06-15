@@ -74,6 +74,7 @@ async function writeGraphArtifact(cwd: string, input: { nodeCount: number; edgeC
         relationKindCounts: {},
         nodeKindCounts: {},
         statusCounts: {},
+        moduleDependencies: [],
         nodes: [],
         edges: [],
       },

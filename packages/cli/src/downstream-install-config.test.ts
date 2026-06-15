@@ -36,6 +36,7 @@ markdown: .krn/graph/repo-graph.md
       relationKindCounts: Record<string, number>;
       nodeKindCounts: Record<string, number>;
       statusCounts: Record<string, number>;
+      moduleDependencies: unknown[];
       nodes: unknown[];
       edges: unknown[];
     }>(result.cwd, ".krn/graph/repo-graph.json");
@@ -49,6 +50,7 @@ markdown: .krn/graph/repo-graph.md
       relationKindCounts: {},
       nodeKindCounts: {},
       statusCounts: {},
+      moduleDependencies: [],
       nodes: [],
       edges: [],
     });
@@ -58,6 +60,7 @@ markdown: .krn/graph/repo-graph.md
       "css-class",
       "docs-links",
       "filesystem",
+      "module-imports",
       "package-conventions",
       "package-json",
       "wordpress-bedrock",
@@ -65,6 +68,7 @@ markdown: .krn/graph/repo-graph.md
     expect(graphMarkdown).toContain("# Graph-Lite Repository Graph");
     expect(graphMarkdown).toContain("## Detectors");
     expect(graphMarkdown).toContain("## Relation Kinds");
+    expect(graphMarkdown).toContain("## Module Dependencies");
     expect(graphMarkdown).toContain("## Evidence Examples");
     expect(graphMarkdown).toContain("Graph-lite is shallow P0 evidence");
     await expect(stat(path.join(result.cwd, ".krn", "runs"))).rejects.toThrow();

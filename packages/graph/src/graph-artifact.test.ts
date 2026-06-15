@@ -65,6 +65,7 @@ describe("graph artifact", () => {
         deprecated: 1,
         unknown: 1,
       },
+      moduleDependencies: [],
       nodes: [
         {
           id: "doc:docs/old-plan.md",
@@ -111,8 +112,58 @@ describe("graph artifact", () => {
     expect(markdown).toContain("## Node Kinds");
     expect(markdown).toContain("## Relation Kinds");
     expect(markdown).toContain("## Deprecated Docs");
+    expect(markdown).toContain("## Module Dependencies");
     expect(markdown).toContain("## Evidence Examples");
     expect(markdown).toContain("Graph-lite is shallow P0 evidence");
+  });
+
+  it("summarizes shallow module dependency evidence", () => {
+    const artifact = buildGraphArtifact(
+      {
+        nodes: [
+          {
+            id: "module-file:src/index.ts",
+            kind: "module-file",
+            label: "src/index.ts",
+            evidencePath: "src/index.ts",
+          },
+          {
+            id: "module-file:src/util.ts",
+            kind: "module-file",
+            label: "src/util.ts",
+            evidencePath: "src/util.ts",
+          },
+        ],
+        edges: [
+          {
+            from: "module-file:src/index.ts",
+            to: "module-file:src/util.ts",
+            kind: "imports-file",
+            evidencePath: "src/index.ts",
+          },
+        ],
+      },
+      {
+        generatedAt: "2026-06-03T00:00:00.000Z",
+        detectors: ["module-imports"],
+      },
+    );
+
+    expect(artifact.moduleDependencies).toEqual([
+      {
+        file: "src/index.ts",
+        imports: ["src/util.ts"],
+        importedBy: [],
+      },
+      {
+        file: "src/util.ts",
+        imports: [],
+        importedBy: ["src/index.ts"],
+      },
+    ]);
+    expect(renderGraphArtifactMarkdown(artifact)).toContain(
+      "`src/index.ts` imports 1, imported by 0",
+    );
   });
 
   it("keeps summary keys sorted alphabetically", () => {

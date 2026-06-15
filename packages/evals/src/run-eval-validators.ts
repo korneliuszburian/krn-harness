@@ -32,6 +32,7 @@ export function gradeGraphBehavior(input: {
     "stylesheet",
     "acf-group",
     "doc",
+    "module-file",
     "package",
     "source-file",
     "test-file",
@@ -40,6 +41,7 @@ export function gradeGraphBehavior(input: {
     "style-related-to",
     "declares-acf-field",
     "has-acf-json",
+    "imports-file",
     "owns-source",
     "owns-test",
     "owns-doc",
@@ -103,6 +105,7 @@ function isGraphArtifact(value: unknown): value is {
   relationKindCounts: Record<string, unknown>;
   nodeKindCounts: Record<string, unknown>;
   statusCounts: Record<string, unknown>;
+  moduleDependencies: unknown[];
   nodes: unknown[];
   edges: unknown[];
 } {
@@ -114,6 +117,7 @@ function isGraphArtifact(value: unknown): value is {
     isRecord(value.relationKindCounts) &&
     isRecord(value.nodeKindCounts) &&
     isRecord(value.statusCounts) &&
+    Array.isArray(value.moduleDependencies) &&
     Array.isArray(value.nodes) &&
     Array.isArray(value.edges)
   );

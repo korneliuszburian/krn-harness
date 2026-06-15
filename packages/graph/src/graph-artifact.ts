@@ -9,8 +9,15 @@ export interface GraphArtifact {
   relationKindCounts: Record<string, number>;
   nodeKindCounts: Record<string, number>;
   statusCounts: Record<string, number>;
+  moduleDependencies: GraphModuleDependency[];
   nodes: GraphNode[];
   edges: GraphEdge[];
+}
+
+export interface GraphModuleDependency {
+  file: string;
+  imports: string[];
+  importedBy: string[];
 }
 
 export interface BuildGraphArtifactInput {
@@ -46,6 +53,44 @@ function sortedEdges(edges: GraphEdge[]): GraphEdge[] {
   );
 }
 
+function modulePathFromId(nodeId: string): string | undefined {
+  return nodeId.startsWith("module-file:") ? nodeId.slice("module-file:".length) : undefined;
+}
+
+function sortedUnique(values: Iterable<string>): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function buildModuleDependencies(nodes: GraphNode[], edges: GraphEdge[]): GraphModuleDependency[] {
+  const moduleFiles = sortedUnique(
+    nodes.flatMap((node) => (node.kind === "module-file" ? [node.evidencePath] : [])),
+  );
+  const imports = new Map<string, string[]>();
+  const importedBy = new Map<string, string[]>();
+
+  for (const edge of edges) {
+    if (edge.kind !== "imports-file") {
+      continue;
+    }
+
+    const from = modulePathFromId(edge.from);
+    const to = modulePathFromId(edge.to);
+
+    if (!from || !to) {
+      continue;
+    }
+
+    imports.set(from, [...(imports.get(from) ?? []), to]);
+    importedBy.set(to, [...(importedBy.get(to) ?? []), from]);
+  }
+
+  return moduleFiles.map((file) => ({
+    file,
+    imports: sortedUnique(imports.get(file) ?? []),
+    importedBy: sortedUnique(importedBy.get(file) ?? []),
+  }));
+}
+
 export function buildGraphArtifact(
   graph: GraphLite,
   input: BuildGraphArtifactInput,
@@ -62,6 +107,7 @@ export function buildGraphArtifact(
     relationKindCounts: countBy(edges.map((edge) => edge.kind)),
     nodeKindCounts: countBy(nodes.map((node) => node.kind)),
     statusCounts: countBy(nodes.map((node) => node.status ?? "unknown")),
+    moduleDependencies: buildModuleDependencies(nodes, edges),
     nodes,
     edges,
   };
@@ -114,6 +160,24 @@ function renderDeprecatedDocs(nodes: GraphNode[]): string {
     .join("\n");
 }
 
+function renderModuleDependencies(moduleDependencies: GraphModuleDependency[]): string {
+  const activeDependencies = moduleDependencies.filter(
+    (dependency) => dependency.imports.length > 0 || dependency.importedBy.length > 0,
+  );
+
+  if (activeDependencies.length === 0) {
+    return "- none";
+  }
+
+  return activeDependencies
+    .slice(0, selectedEvidenceLimit)
+    .map(
+      (dependency) =>
+        `- \`${dependency.file}\` imports ${dependency.imports.length}, imported by ${dependency.importedBy.length}`,
+    )
+    .join("\n");
+}
+
 export function renderGraphArtifactMarkdown(artifact: GraphArtifact): string {
   return `# Graph-Lite Repository Graph
 
@@ -143,6 +207,10 @@ ${renderCountList(artifact.relationKindCounts)}
 
 ${renderDeprecatedDocs(artifact.nodes)}
 
+## Module Dependencies
+
+${renderModuleDependencies(artifact.moduleDependencies)}
+
 ## Evidence Examples
 
 ### Nodes
@@ -155,6 +223,6 @@ ${renderEdgeExamples(artifact.edges)}
 
 ## P0 Limits
 
-Graph-lite is shallow P0 evidence. It does not include AST, Tree-sitter, callgraph, dataflow, embeddings, or production WordPress/ACF detection.
+Graph-lite is shallow P0 evidence. Module dependencies are import-string evidence only. It does not include AST, Tree-sitter, callgraph, dataflow, embeddings, runtime dependency inference, or production WordPress/ACF detection.
 `;
 }

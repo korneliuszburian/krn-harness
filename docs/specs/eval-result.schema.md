@@ -59,4 +59,4 @@ The downstream acceptance grader is harness-only. It checks fixture shape and ge
 
 The verify grader is harness-only. It checks safe record-only profile behavior, unsafe command blocking, output limits, and deterministic `execute` behavior using a tiny local node fixture. It does not run downstream project commands.
 
-The graph grader is harness-only. It checks shallow graph-lite node/relation kinds, graph-fed context selection, package-owned source/test/config/doc relations, downstream package context selection, and no-graph leakage prevention. It must not rely on AST, import graph, Tree-sitter, embeddings, or semantic retrieval.
+The graph grader is harness-only. It checks shallow graph-lite node/relation kinds, local import-string relation evidence, graph-fed context selection, package-owned source/test/config/doc relations, downstream package context selection, and no-graph leakage prevention. It must not rely on AST, Tree-sitter, package manager dependency resolution, callgraph/dataflow, embeddings, or semantic retrieval.

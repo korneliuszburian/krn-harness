@@ -173,6 +173,10 @@ describe("P0 docs anti-regression", () => {
     expect(graphSpec).toContain("`acf/`, `acf-json/`, `src/theme/`, `theme/`");
     expect(graphSpec).toContain("Package-owned tests may also become `should-read`");
     expect(graphSpec).toContain("doc matches from neighboring fixture packages are ignored");
+    expect(graphSpec).toContain("Module imports: local JS/TS import-string relations");
+    expect(graphSpec).toContain("moduleDependencies");
+    expect(graphSpec).toContain("This is import-string evidence only");
+    expect(graphSpec).toContain("AST parsing, callgraph, dataflow");
     expect(wpSpec).toContain("synthetic WordPress/ACF-style fixtures");
     expect(wpSpec).toContain("not production WordPress/ACF detection");
     expect(wpSpec).toContain("No PHP parsing");

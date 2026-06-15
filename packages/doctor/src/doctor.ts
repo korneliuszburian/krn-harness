@@ -254,6 +254,7 @@ function isGraphArtifact(value: unknown): value is {
   edgeCount: number;
   detectors: unknown[];
   relationKindCounts: Record<string, unknown>;
+  moduleDependencies: unknown[];
   nodes: unknown[];
   edges: unknown[];
 } {
@@ -263,6 +264,7 @@ function isGraphArtifact(value: unknown): value is {
     typeof value.edgeCount === "number" &&
     Array.isArray(value.detectors) &&
     isRecord(value.relationKindCounts) &&
+    Array.isArray(value.moduleDependencies) &&
     Array.isArray(value.nodes) &&
     Array.isArray(value.edges)
   );

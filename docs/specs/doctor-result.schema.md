@@ -23,7 +23,8 @@
 - Current verify result shape, not-runnable warning state, pass/command consistency, execute exit-code presence, and compact output budget.
 - Governed memory store presence, shape, status separation, and manual approval/deprecation timestamps.
 - Memory context gate: memory-sourced context must be reference-only, backed by approved store records, carry approved provenance, avoid broad single-term task matches, and honor English and Polish explicit opt-out.
-- Graph JSON/Markdown artifact presence, graph JSON shape, and graph summary fields.
+- Graph JSON/Markdown artifact presence, graph JSON shape, graph summary fields,
+  and module dependency summary presence.
 - Downstream `AGENTS.md`, runtime skill, and hooks template presence with source-checkout vs downstream messaging.
 - Downstream `AGENTS.md` without KRN workflow text warns because it may be project-owned but not KRN-ready.
 - Downstream runtime skill and hooks template shape. Missing files warn; malformed installed runtime skill or hooks fail.

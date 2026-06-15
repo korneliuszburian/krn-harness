@@ -31,6 +31,12 @@ describe("graph-lite detector v0", () => {
     );
     expect(graph.nodes).toContainEqual(
       expect.objectContaining({
+        id: "module-file:fixtures/repos/downstream-basic/src/index.test.ts",
+        kind: "module-file",
+      }),
+    );
+    expect(graph.nodes).toContainEqual(
+      expect.objectContaining({
         id: "test-file:fixtures/repos/downstream-basic/src/index.test.ts",
         kind: "test-file",
       }),
@@ -64,6 +70,14 @@ describe("graph-lite detector v0", () => {
         from: "test-file:fixtures/repos/downstream-basic/src/index.test.ts",
         to: "source-file:fixtures/repos/downstream-basic/src/index.ts",
         kind: "tests-source",
+        evidencePath: "fixtures/repos/downstream-basic/src/index.test.ts",
+      }),
+    );
+    expect(graph.edges).toContainEqual(
+      expect.objectContaining({
+        from: "module-file:fixtures/repos/downstream-basic/src/index.test.ts",
+        to: "module-file:fixtures/repos/downstream-basic/src/index.ts",
+        kind: "imports-file",
         evidencePath: "fixtures/repos/downstream-basic/src/index.test.ts",
       }),
     );

@@ -22,6 +22,7 @@ Included v0 detectors:
 - Package conventions: package/root nodes plus deterministic source, test, doc, and config ownership edges from path layout.
 - Package scripts: `package.json` nodes and declared npm script relations.
 - Composer scripts/type: `composer.json` nodes, Composer type, and declared Composer script relations.
+- Module imports: local JS/TS import-string relations between repository module files.
 - CSS class relations: stylesheet class definitions, markup class uses, and file-to-file style relations when a class use matches a definition.
 - Tiny WordPress/ACF fixtures: ACF group/field relations and fixture-level WordPress site relations for `acf/`, `acf-json/`, `src/theme/`, `theme/`, and Composer files.
 
@@ -43,7 +44,13 @@ Context package construction may consume graph-lite output through generic relat
 Selectors match task terms against graph labels, evidence paths, and package ownership nodes. They must not depend on fixture path prefixes.
 When selected source/package context exists, doc matches from neighboring fixture packages are ignored to reduce leakage.
 
-Package ownership is path-convention-only in P0. It may derive package roots from `packages/<name>`, `fixtures/repos/<name>`, or a downstream root with `src`, tests, docs, README, or config files. It must not inspect imports, build ASTs, or infer runtime dependencies.
+Package ownership is path-convention-only in P0. It may derive package roots from `packages/<name>`, `fixtures/repos/<name>`, or a downstream root with `src`, tests, docs, README, or config files. Package ownership must not inspect imports, build ASTs, or infer runtime dependencies.
+
+Module import evidence is separate from package ownership. It may read JS/TS
+module files and extract literal local import/export/require specifiers into
+`imports-file` edges. This is import-string evidence only; it must not become
+AST parsing, callgraph, dataflow, TypeScript type resolution, package manager
+resolution, or runtime dependency inference.
 
 ## P0 CLI Artifact
 
@@ -62,13 +69,18 @@ The JSON artifact is deterministic for a fixed repository and timestamp:
 - `relationKindCounts`
 - `nodeKindCounts`
 - `statusCounts`
+- `moduleDependencies`: deterministic summaries shaped as
+  `{ file, imports, importedBy }[]` and derived from `imports-file` edges
 - `nodes`
 - `edges`
 
 Status counts use `unknown` for graph nodes without an explicit status. Count keys are sorted alphabetically.
 
-The Markdown artifact contains Summary, Detectors, Node Kinds, Relation Kinds, Deprecated Docs, Evidence Examples, and P0 Limits sections.
+The Markdown artifact contains Summary, Detectors, Node Kinds, Relation Kinds,
+Deprecated Docs, Module Dependencies, Evidence Examples, and P0 Limits sections.
 
 ## Deferred
 
-Tree-sitter, callgraph, dataflow, semantic embeddings, production WordPress/ACF detectors, and repository-wide semantic graph ranking are not P0.
+Tree-sitter, callgraph, dataflow, semantic embeddings, production WordPress/ACF
+detectors, package manager dependency resolution, runtime dependency inference,
+and repository-wide semantic graph ranking are not P0.

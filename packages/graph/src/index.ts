@@ -6,6 +6,7 @@ export * from "./detectors/docs-links.js";
 export * from "./detectors/filesystem.js";
 export * from "./detectors/git-diff.js";
 export * from "./detectors/js-selector.js";
+export * from "./detectors/module-imports.js";
 export * from "./detectors/package-conventions.js";
 export * from "./detectors/package-json.js";
 export * from "./detectors/php-template-part.js";

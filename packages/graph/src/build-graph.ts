@@ -3,6 +3,7 @@ import { composerJsonDetector } from "./detectors/composer-json.js";
 import { cssClassDetector } from "./detectors/css-class.js";
 import { docsLinksDetector } from "./detectors/docs-links.js";
 import { filesystemDetector } from "./detectors/filesystem.js";
+import { moduleImportsDetector } from "./detectors/module-imports.js";
 import { packageConventionsDetector } from "./detectors/package-conventions.js";
 import { packageJsonDetector } from "./detectors/package-json.js";
 import { wordpressBedrockDetector } from "./detectors/wordpress-bedrock.js";
@@ -10,6 +11,7 @@ import type { GraphDetector, GraphEdge, GraphLite, GraphNode } from "./graph-typ
 
 export const defaultDetectors: GraphDetector[] = [
   filesystemDetector,
+  moduleImportsDetector,
   packageConventionsDetector,
   docsLinksDetector,
   packageJsonDetector,

@@ -46,7 +46,7 @@ The context package ranks minimal context items and records STOP state before ed
 
 ## Graph-Lite
 
-Graph-lite exposes nodes, edges, and detector interfaces. P0 ships shallow deterministic detectors for filesystem, docs links/status, package conventions, package and Composer scripts, CSS class relations, and tiny WordPress/ACF-style fixture relations. It does not inspect imports, build AST/callgraph/dataflow, use Tree-sitter, or perform semantic graph ranking.
+Graph-lite exposes nodes, edges, and detector interfaces. P0 ships shallow deterministic detectors for filesystem, docs links/status, package conventions, package and Composer scripts, JS/TS import-string relations, CSS class relations, and tiny WordPress/ACF-style fixture relations. Import evidence is local literal-specifier evidence only; graph-lite does not build AST/callgraph/dataflow, use Tree-sitter, resolve package manager dependency graphs, infer runtime dependencies, or perform semantic graph ranking.
 
 ## Trace
 

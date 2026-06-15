@@ -362,6 +362,7 @@ describe("doctor result", () => {
           relationKindCounts: {},
           nodeKindCounts: {},
           statusCounts: {},
+          moduleDependencies: [],
           nodes: [],
           edges: [],
         },
