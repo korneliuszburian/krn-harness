@@ -55,7 +55,8 @@ Dry-run init writes nothing.
 ## Init Profiles
 
 - `minimal`: runtime only.
-- `readonly-python`: `python3 tools/check_all_readonly.py`.
+- `readonly-python`: `python3 tools/check_all_readonly.py` with a beta-safe
+  360000ms timeout for slower real target check suites.
 - `node-test`: `node src/index.test.ts`.
 - `quality`: `pnpm lint`, `pnpm typecheck`, `pnpm test`.
 

@@ -112,7 +112,7 @@ export function configObjectForProfile(
       verify: {
         defaultProfile: "readonly",
         mode: "record-only",
-        timeoutMs: 180_000,
+        timeoutMs: 360_000,
         maxOutputBytes: 16_000,
         profiles: {
           readonly: {

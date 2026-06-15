@@ -43,6 +43,10 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
   `krn.config.json` plus KRN install artifacts, `krn verify --execute` passing
   `python3 tools/check_all_readonly.py`, and
   `krn-real-repo-execution-result-v1` with `status: pass`.
+- A 2026-06-15 beta install/config smoke on an isolated `krn-llm-wiki`
+  worktree passed `krn install --dry-run`, managed install with generated
+  `readonly-python` config, `krn config doctor`, `krn verify --execute`, and
+  `krn report --bundle` with `productionProof: false`.
 - Real Codex hook loading/trust remains unproven until a non-bypass Codex run
   emits a trusted hook-load marker.
 

@@ -35,7 +35,7 @@ agent-governance rules and explicit read-only validation:
   "verify": {
     "defaultProfile": "readonly",
     "mode": "record-only",
-    "timeoutMs": 180000,
+    "timeoutMs": 360000,
     "maxOutputBytes": 16000,
     "profiles": {
       "readonly": {
@@ -107,3 +107,38 @@ Result:
 
 The result supports applying the config after operator review. It does not prove
 product-code mutation or real Codex hook loading/trust.
+
+## 2026-06-15 Beta Candidate Install/Config Smoke
+
+An isolated detached worktree at
+`/tmp/krn-harness-beta-llm-wiki-20260615-0925` tested the beta install/config
+lifecycle against target `HEAD` `609d8bf2b6901c39533be59c35419864cad35ee7`.
+The active target checkout was dirty, so no direct target mutation or push was
+attempted.
+
+Pinned KRN command: `/tmp/krn-harness-beta-llm-wiki-bin-20260615-0925/krn`.
+
+Result:
+
+- `krn install --dry-run --with-config --config-profile readonly-python`: planned,
+  11 actions, wrote no files.
+- `krn install --with-config --config-profile readonly-python`: installed,
+  created 10 managed artifacts and skipped existing `AGENTS.md`.
+- `krn config doctor --json`: pass, profile `readonly`, command allowed.
+- `krn verify --execute`: pass, 1/1 command executed,
+  `python3 tools/check_all_readonly.py`.
+- verify limits: `timeoutMs: 360000`, `maxOutputBytes: 16000`.
+- `krn review --write`, `krn summary --write`, and `krn report --bundle`:
+  completed with warning caveats only.
+- report bundle manifest: `krn-report-bundle-manifest-v1`,
+  `productionProof: false`.
+- target worktree status contained only untracked KRN install/runtime artifacts
+  and captured smoke output files.
+- committed target repo: false.
+- pushed target repo: false.
+
+The first attempt with the previous 180000ms generated profile timed out while
+the target readonly suite was still emitting passing checks. The beta starter
+profile was updated to 360000ms before the passing rerun. This supports the
+install/config lifecycle and readonly verify profile for `krn-llm-wiki`; it
+still does not prove real target product-code mutation or Codex hook trust.

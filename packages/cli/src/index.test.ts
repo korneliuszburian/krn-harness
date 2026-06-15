@@ -2118,7 +2118,7 @@ markdown: .krn/graph/repo-graph.md
       status: string;
       dryRun: boolean;
       profile: string;
-      config: { verify?: { defaultProfile?: string } };
+      config: { verify?: { defaultProfile?: string; timeoutMs?: number } };
     };
     expect(initPlan).toMatchObject({
       status: "planned",
@@ -2126,6 +2126,7 @@ markdown: .krn/graph/repo-graph.md
       profile: "readonly-python",
     });
     expect(initPlan.config.verify?.defaultProfile).toBe("readonly");
+    expect(initPlan.config.verify?.timeoutMs).toBe(360_000);
     await expect(stat(path.join(cwd, "krn.config.json"))).rejects.toThrow();
 
     const write = await runInCwd(cwd, [
