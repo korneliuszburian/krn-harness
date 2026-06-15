@@ -43,3 +43,5 @@ P0 never auto-approves memory. Pending and deprecated records are not active mem
 Approved memory is still gated. `krn context` may surface approved records only as `referenceOnly` items, only when explicitly requested or task-relevant, and only with memory id, approval timestamp, summary, and evidence provenance. Task relevance requires at least two non-broad matched terms; English and Polish explicit opt-out phrases suppress approved memory.
 
 P0 Polish handling is deterministic phrase matching for operator safety, not semantic retrieval or morphology. Supported opt-outs include `bez pamięci`, `nie używaj pamięci`, `nie używaj poprzednich decyzji`, and `bez wcześniejszych ustaleń`. Supported Polish explicit request phrases are limited to approved-memory wording such as `użyj zatwierdzonej pamięci`.
+
+Store writes are dirty-only in P0: memory operations rewrite only the status stores whose records changed. If memory gains TTLs, tags, or larger indexing metadata, add explicit store-level change tests before broadening the write path.

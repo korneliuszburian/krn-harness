@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,6 +8,7 @@ import {
   deprecateMemoryById,
   listMemoryRecords,
   memoryCounts,
+  memoryDir,
   memoryStorePath,
   proposeMemory,
 } from "./memory-store.js";
@@ -16,6 +17,19 @@ import { snapshotMemory } from "./snapshot.js";
 
 async function tempRepo(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "krn-memory-"));
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function mtimeSeconds(filePath: string): Promise<number> {
+  return stat(filePath).then((fileStat) => Math.floor(fileStat.mtimeMs / 1000));
 }
 
 describe("governed memory store", () => {
@@ -109,5 +123,41 @@ describe("governed memory store", () => {
       counts: { pending: 0, approved: 0, deprecated: 0 },
     });
     await expect(memoryCounts(cwd)).resolves.toEqual({ pending: 0, approved: 0, deprecated: 0 });
+  });
+
+  it("writes only memory stores whose records changed", async () => {
+    const cwd = await tempRepo();
+    const oldDate = new Date("2020-01-01T00:00:00.000Z");
+    const approvedPath = memoryStorePath(cwd, "approved");
+    const deprecatedPath = memoryStorePath(cwd, "deprecated");
+    const unchangedDeprecatedMtime = Math.floor(oldDate.getTime() / 1000);
+
+    await mkdir(memoryDir(cwd), { recursive: true });
+    await writeFile(
+      approvedPath,
+      `${JSON.stringify({ schemaVersion: 1, status: "approved", records: [] }, null, 2)}\n`,
+      "utf8",
+    );
+    await writeFile(
+      deprecatedPath,
+      `${JSON.stringify({ schemaVersion: 1, status: "deprecated", records: [] }, null, 2)}\n`,
+      "utf8",
+    );
+    await utimes(approvedPath, oldDate, oldDate);
+    await utimes(deprecatedPath, oldDate, oldDate);
+
+    const created = await proposeMemory(cwd, {
+      summary: "Only changed memory stores are written.",
+      now: new Date("2026-06-03T00:00:00.000Z"),
+    });
+
+    await expect(fileExists(memoryStorePath(cwd, "pending"))).resolves.toBe(true);
+    await expect(mtimeSeconds(approvedPath)).resolves.toBe(unchangedDeprecatedMtime);
+    await expect(mtimeSeconds(deprecatedPath)).resolves.toBe(unchangedDeprecatedMtime);
+
+    await approveMemoryById(cwd, created.record?.id ?? "", new Date("2026-06-03T00:01:00.000Z"));
+
+    await expect(mtimeSeconds(approvedPath)).resolves.not.toBe(unchangedDeprecatedMtime);
+    await expect(mtimeSeconds(deprecatedPath)).resolves.toBe(unchangedDeprecatedMtime);
   });
 });

@@ -97,16 +97,36 @@ export async function memoryCounts(cwd: string): Promise<MemoryCounts> {
   };
 }
 
+function storeWithRecord(store: MemoryStoreFile, record: MemoryRecord): MemoryStoreFile {
+  const records = store.records.filter((existing) => existing.id !== record.id);
+  if (store.status === record.status) {
+    records.push(record);
+  }
+
+  return {
+    ...store,
+    records: sortRecords(records),
+  };
+}
+
+function recordsChanged(left: MemoryRecord[], right: MemoryRecord[]): boolean {
+  return JSON.stringify(sortRecords(left)) !== JSON.stringify(sortRecords(right));
+}
+
 async function putRecord(cwd: string, record: MemoryRecord): Promise<void> {
   const stores = await Promise.all(memoryStatuses.map((status) => loadMemoryStore(cwd, status)));
+  const changedStores = stores
+    .map((store) => {
+      const nextStore = storeWithRecord(store, record);
+      return {
+        store: nextStore,
+        changed: recordsChanged(store.records, nextStore.records),
+      };
+    })
+    .filter((entry) => entry.changed)
+    .map((entry) => entry.store);
 
-  for (const store of stores) {
-    store.records = store.records.filter((existing) => existing.id !== record.id);
-    if (store.status === record.status) {
-      store.records.push(record);
-    }
-    await writeMemoryStore(cwd, store);
-  }
+  await Promise.all(changedStores.map((store) => writeMemoryStore(cwd, store)));
 }
 
 async function findRecord(cwd: string, id: string): Promise<MemoryRecord | undefined> {
