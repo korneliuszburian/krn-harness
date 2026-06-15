@@ -6,9 +6,9 @@ GOAL-8H hardens KRN Harness before broader product-code adoption claims. Work
 must proceed as small, validated slices. Local evidence stays local evidence;
 `productionProof` and hook trust must not be upgraded without explicit proof.
 
-The current active order starts at TASK-001. TASK-007 is already complete in
-`765f33a`. Accidental TASK-010 local edits from an earlier false start are not
-part of this roadmap state.
+TASK-001 is complete in `74ec41f`. TASK-007 is complete in `765f33a`.
+Accidental TASK-010 local edits from an earlier false start are not part of
+this roadmap state.
 
 ## Execution Rules
 
@@ -24,8 +24,8 @@ part of this roadmap state.
 
 | Task | Status | Gate |
 | --- | --- | --- |
-| TASK-001 Zod runtime validation | In progress | ADR-0018; local tests and full validation |
-| TASK-002 queryable trace store | Deferred | ADR first; native dependency review before code |
+| TASK-001 Zod runtime validation | Done | Commit `74ec41f`; ADR-0018; local and remote validation passed |
+| TASK-002 queryable trace store | ADR/spec accepted; implementation deferred | ADR-0019; native dependency review before code |
 | TASK-003 interrupt/resume | Deferred | ADR first; explicit CLI-surface approval |
 | TASK-004 structured hook output validation | Deferred | Depends on TASK-001 and real hook trust evidence |
 | TASK-005 eval regression baseline | Deferred | Spec baseline artifact before CLI flags |
@@ -34,7 +34,7 @@ part of this roadmap state.
 | TASK-008 real non-bypass hook trust proof | Deferred | Disposable non-protected target; no production claim |
 | TASK-009 graph-lite dependency evidence | Deferred | Graph-lite contract update; no full AST/callgraph |
 | TASK-010 skill invocation docs | Deferred | Redo intentionally as a docs-only slice |
-| TASK-011 context poisoning defense | Deferred | ADR-0019 unless numbering changes |
+| TASK-011 context poisoning defense | Deferred | ADR-0020 unless numbering changes |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
 | TASK-013 downstream AGENTS quality gate | Deferred | Install lifecycle tests before template changes |
 
@@ -48,6 +48,15 @@ part of this roadmap state.
 - Invalid task specs produce path-aware failure evidence in `run-result`.
 - No unrelated JSON parser rewrite, hook work, MCP work, dashboard work, or new
   CLI command is included.
+
+## TASK-002 Acceptance Gate
+
+- ADR-0019 records JSONL as canonical and a queryable trace store as a derived
+  read model.
+- `docs/specs/trace-query-store.md` defines the first table shape, staleness
+  semantics, dependency gate, and non-goals.
+- No SQLite dependency, database file, or `krn traces query` CLI surface is
+  added until a separate implementation slice passes the dependency gate.
 
 ## Proof Commands
 

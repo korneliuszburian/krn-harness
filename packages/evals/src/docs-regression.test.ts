@@ -368,6 +368,25 @@ describe("P0 docs anti-regression", () => {
     expect(decision).toContain("verify execute policy: ADR-0017");
   });
 
+  it("keeps trace query storage derived, local, and gated", async () => {
+    const traceQuerySpec = await readDoc("docs/specs/trace-query-store.md");
+    const traceQueryAdr = await readDoc("docs/adr/ADR-0019-queryable-trace-read-model.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+
+    expect(traceQuerySpec).toContain("does not replace trace JSONL");
+    expect(traceQuerySpec).toContain("JSONL wins");
+    expect(traceQuerySpec).toContain(".krn/trace-index/");
+    expect(traceQuerySpec).toContain("must not mutate task contracts");
+    expect(traceQuerySpec).toContain("Before adding `better-sqlite3`");
+    expect(traceQuerySpec).toContain("No production observability claim");
+    expect(traceQueryAdr).toContain("Keep JSONL as the canonical write-ahead trace artifact");
+    expect(traceQueryAdr).toContain("Do not implement `krn traces query` in the ADR slice");
+    expect(traceQueryAdr).toContain("native dependency");
+    expect(goalRoadmap).toContain("TASK-002 queryable trace store");
+    expect(goalRoadmap).toContain("ADR/spec accepted; implementation deferred");
+    expect(goalRoadmap).toContain("No SQLite dependency, database file, or `krn traces query`");
+  });
+
   it("does not describe current P0 docs as skeleton-only output", async () => {
     const readme = await readDoc("README.md");
     const architecture = await readDoc("docs/architecture/architecture-spec-v0.1.md");

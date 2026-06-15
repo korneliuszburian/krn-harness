@@ -20,3 +20,4 @@ This index lists active architecture decisions. Individual ADR files remain the 
 - ADR-0016: Retrieval And Vector Experiment Harness
 - ADR-0017: Verify Execute Policy
 - ADR-0018: Runtime Schema Validation
+- ADR-0019: Queryable Trace Read Model

@@ -57,9 +57,9 @@ Unknown fields are not a new supported extension mechanism. Future schema
 expansion still needs docs/spec/ADR rationale when it changes operator-facing
 contracts.
 
-Future GOAL-8H ADR numbering shifts: the context-poisoning ADR planned in the
-GOAL-8H backlog should use ADR-0019 unless another accepted ADR claims that
-number first.
+Future GOAL-8H ADR numbering shifts: ADR-0019 is now reserved for the queryable
+trace read model, so the context-poisoning ADR planned in the GOAL-8H backlog
+should use ADR-0020 unless another accepted ADR claims that number first.
 
 ## Alternatives Considered
 
