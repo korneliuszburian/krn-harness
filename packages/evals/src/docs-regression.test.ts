@@ -413,6 +413,8 @@ describe("P0 docs anti-regression", () => {
     expect(traceQueryAdr).toContain("native dependency");
     expect(goalRoadmap).toContain("TASK-002 queryable trace store");
     expect(goalRoadmap).toContain("ADR/spec accepted; implementation deferred");
+    expect(goalRoadmap).toContain("Remaining Gated Work");
+    expect(goalRoadmap).toContain("Pass the ADR-0019 dependency gate");
     expect(goalRoadmap).toContain("No SQLite dependency, database file, or `krn traces query`");
   });
 
@@ -546,10 +548,29 @@ describe("P0 docs anti-regression", () => {
     expect(interruptAdr).toContain("ADR-0012 does not accept a Codex execution wrapper");
     expect(goalRoadmap).toContain("TASK-003 interrupt/resume");
     expect(goalRoadmap).toContain("ADR/spec accepted; implementation deferred");
+    expect(goalRoadmap).toContain("Explicit CLI-surface approval");
+    expect(goalRoadmap).toContain("no hook-based resume gate until hook trust changes");
     expect(goalRoadmap).toContain("No top-level `krn resume`, `krn run --resume`");
     expect(codexFeasibility).toContain("`codex exec --help` listed `resume`");
     expect(helpText).not.toContain("krn resume");
     expect(helpText).not.toContain("--resume");
+  });
+
+  it("keeps GOAL-8H remaining work behind explicit blockers", async () => {
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+
+    expect(goalRoadmap).toContain("Current Completion Position");
+    expect(goalRoadmap).toContain("Remaining Gated Work");
+    expect(goalRoadmap).toContain("TASK-004 structured hook output validation");
+    expect(goalRoadmap).toContain(
+      "Changes hook semantics while real Codex hook loading/trust remains unproven",
+    );
+    expect(goalRoadmap).toContain("TASK-008 real non-bypass hook trust proof");
+    expect(goalRoadmap).toContain("Operator-approved hook trust probe");
+    expect(goalRoadmap).toContain("TASK-012 `krn diff`");
+    expect(goalRoadmap).toContain("ADR/spec first and explicit approval for the top-level command");
+    expect(helpText).not.toContain("krn diff");
+    expect(helpText).not.toContain("traces query");
   });
 
   it("does not describe current P0 docs as skeleton-only output", async () => {

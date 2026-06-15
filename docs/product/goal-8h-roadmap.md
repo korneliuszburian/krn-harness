@@ -38,6 +38,33 @@ this roadmap state.
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
 | TASK-013 downstream AGENTS quality gate | Done | Generated AGENTS adapter quality gate in install path |
 
+## Current Completion Position
+
+Implemented GOAL-8H hardening that stays inside the current approved surface:
+
+- runtime schema validation;
+- eval rolling baseline;
+- deterministic context budget;
+- run-eval split;
+- graph-lite module dependency evidence;
+- build-time skill invocation docs;
+- context poisoning path policy and suspect downgrade;
+- downstream AGENTS quality gate.
+
+The remaining original audit items are intentionally not implementation-ready
+inside this goal's current safety envelope. They require explicit approval,
+dependency review, or hook-trust evidence before code changes.
+
+## Remaining Gated Work
+
+| Task | Current blocker | Required unlock before implementation |
+| --- | --- | --- |
+| TASK-002 queryable trace store | Adds a derived storage layer, likely SQLite/native dependency, and future query CLI surface. | Pass the ADR-0019 dependency gate; document native install behavior; explicitly approve any new query CLI surface. |
+| TASK-003 interrupt/resume | Adds resume semantics to `krn run` and possibly new CLI options; must not confuse KRN run state with Codex session state. | Explicit CLI-surface approval and implementation decision for `krn run --resume` or an accepted alternative; no hook-based resume gate until hook trust changes. |
+| TASK-004 structured hook output validation | Changes hook semantics while real Codex hook loading/trust remains unproven. | Separate hook-trust/structured-output goal with non-bypass hook evidence or an explicit decision to keep it diagnostic-only. |
+| TASK-008 real non-bypass hook trust proof | Requires disposable non-protected target and explicit hook-trust investigation approval. | Operator-approved hook trust probe that does not use manual/bypass evidence and does not claim production proof. |
+| TASK-012 `krn diff` | Adds a new top-level CLI command. | ADR/spec first and explicit approval for the top-level command or a narrower artifact-only comparison path. |
+
 ## TASK-001 Acceptance
 
 - `packages/config`, `packages/task-contract`, and `packages/trace` expose Zod
