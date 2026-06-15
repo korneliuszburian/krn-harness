@@ -5,6 +5,14 @@ description: KRN Harness review-ready handoff workflow. Use before the final res
 
 # Handoff
 
+## Invocation
+
+Use explicitly as `$handoff` before final responses after non-trivial KRN work,
+before context compaction, or before switching sessions.
+
+Expected output: a review-ready closeout with changed files, validation results,
+known gaps, P0 scope status, and the next concrete `/goal`.
+
 Use this to prepare KRN Harness work for external review and safe continuation.
 
 ## Workflow

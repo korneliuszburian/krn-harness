@@ -8,6 +8,22 @@
 - `wycinek`: small verified implementation slice.
 - `handoff`: review-ready summary.
 
+## Invocation
+
+Each required build-time skill documents an explicit invocation section in its
+`SKILL.md`:
+
+- `$buduj`
+- `$kanon`
+- `$pilnuj`
+- `$wycinek`
+- `$handoff`
+
+The repo-local skill index is `.agents/skills/README.md`. It lists when to use
+each skill and the expected output shape. Explicit invocation is the preferred
+operator path when the workflow matters; implicit invocation remains available
+through each skill's description.
+
 ## Creation Method
 
 These skills were initialized with the built-in `$skill-creator` helper script and then edited as instruction-only repo skills.
@@ -19,3 +35,6 @@ The local `krn-search` `coding-system` skill was reviewed as workflow inspiratio
 ## Layer Boundary
 
 Build-time skills live in `.agents/skills/*`. Runtime/downstream skills live in `packages/codex-adapter/src/templates/skills/*`.
+
+The invocation docs are build-time onboarding only. They do not create new CLI
+commands, runtime skills, plugin distribution, MCP tools, or hook trust claims.

@@ -5,6 +5,15 @@ description: KRN Harness architecture guardian and P0 scope-control workflow. Us
 
 # Pilnuj
 
+## Invocation
+
+Use explicitly as `$pilnuj` before or during work that can change KRN scope,
+package boundaries, runtime model, hooks, context, graph, memory, evals, MCP,
+dashboard, or multi-agent behavior.
+
+Expected output: a P0/P1/P2/P3/rejected classification, hidden complexity,
+scope boundaries, and the narrowest accepted slice.
+
 Use this to prevent P0 scope creep, overengineering, and architectural drift.
 
 ## Workflow

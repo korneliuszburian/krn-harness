@@ -435,6 +435,32 @@ describe("P0 docs anti-regression", () => {
     expect(traceSpec).toContain("budgetStatus");
   });
 
+  it("keeps build-time skill invocation docs explicit and bounded", async () => {
+    const skillIndex = await readDoc(".agents/skills/README.md");
+    const buildTimeSkills = ["buduj", "kanon", "pilnuj", "wycinek", "handoff"];
+    const agents = await readDoc("AGENTS.md");
+    const buildTimeSpec = await readDoc("docs/specs/build-time-skills.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+
+    for (const skillName of buildTimeSkills) {
+      const skill = await readDoc(`.agents/skills/${skillName}/SKILL.md`);
+
+      expect(skill).toContain("## Invocation");
+      expect(skill).toContain(`$${skillName}`);
+      expect(skill).toContain("Expected output:");
+      expect(skillIndex).toContain(`$${skillName}`);
+      expect(buildTimeSpec).toContain(`$${skillName}`);
+    }
+
+    expect(skillIndex).toContain("Build-time skills live here in `.agents/skills/*`");
+    expect(skillIndex).toContain("Runtime/downstream skill");
+    expect(skillIndex).toContain("Do not create new build-time skills by hand");
+    expect(agents).toContain("Invoke explicitly with `$skill-name`");
+    expect(goalRoadmap).toContain("TASK-010 skill invocation docs");
+    expect(goalRoadmap).toContain("Explicit `$skill` invocation docs");
+    expect(goalRoadmap).toContain("No new build-time skill, runtime/downstream skill");
+  });
+
   it("keeps run interrupt/resume local, deferred, and behind CLI approval", async () => {
     const interruptSpec = await readDoc("docs/specs/run-interrupt-resume.md");
     const interruptAdr = await readDoc("docs/adr/ADR-0020-run-interrupt-resume-contract.md");

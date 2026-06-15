@@ -33,7 +33,7 @@ this roadmap state.
 | TASK-007 run-eval refactor | Done | Commit `765f33a`; keep validation passing |
 | TASK-008 real non-bypass hook trust proof | Deferred | Disposable non-protected target; no production claim |
 | TASK-009 graph-lite dependency evidence | Done | Literal import-string evidence; no full AST/callgraph or new CLI surface |
-| TASK-010 skill invocation docs | Deferred | Redo intentionally as a docs-only slice |
+| TASK-010 skill invocation docs | Done | Explicit `$skill` invocation docs; docs-only, no new skills |
 | TASK-011 context poisoning defense | Deferred | ADR-0023 unless numbering changes |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
 | TASK-013 downstream AGENTS quality gate | Deferred | Install lifecycle tests before template changes |
@@ -97,6 +97,17 @@ this roadmap state.
 - No `krn graph --format`, new top-level command, dependency, AST, Tree-sitter,
   callgraph/dataflow, package manager dependency resolver, semantic retrieval,
   hook trust claim, or production proof is added.
+
+## TASK-010 Acceptance
+
+- Each tracked build-time skill documents an explicit `## Invocation` section
+  with `$skill-name` usage and expected output.
+- `.agents/skills/README.md` indexes required build-time skills, invocation
+  syntax, use cases, expected outputs, and layer boundaries.
+- `AGENTS.md` remains short and points to the skill index instead of becoming a
+  product manual.
+- No new build-time skill, runtime/downstream skill, CLI command, plugin
+  distribution, MCP tool, hook trust claim, or production proof is added.
 
 ## Proof Commands
 

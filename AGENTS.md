@@ -110,6 +110,8 @@ Required build-time skills:
 - `$wycinek` — small measurable implementation slice.
 - `$handoff` — review-ready summary for ChatGPT continuation.
 
+Invoke explicitly with `$skill-name` when the workflow matters; see `.agents/skills/README.md`.
+
 Existing `krn-search` skills may be reviewed only as inspiration.
 Do not copy them wholesale.
 Distill useful workflow patterns into KRN-specific skills/docs/ADRs.

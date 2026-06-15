@@ -5,6 +5,14 @@ description: KRN Harness small vertical implementation-slice workflow. Use when 
 
 # Wycinek
 
+## Invocation
+
+Use explicitly as `$wycinek` for one small measurable TypeScript/docs testable
+slice after the architecture scope is clear.
+
+Expected output: one vertical slice with owned files, acceptance criteria, proof
+commands, and a stop condition for unaccepted architecture.
+
 Use this to implement KRN Harness in small measurable vertical slices.
 
 ## Workflow

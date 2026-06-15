@@ -5,6 +5,13 @@ description: Top-level KRN Harness build workflow. Use when starting non-trivial
 
 # Buduj
 
+## Invocation
+
+Use explicitly as `$buduj` for non-trivial KRN Harness build work.
+
+Expected output: a scoped implementation bead with files/areas, acceptance,
+proof, and residual risk before any final handoff.
+
 Use this as the default operating loop for substantial KRN Harness work.
 
 ## Workflow

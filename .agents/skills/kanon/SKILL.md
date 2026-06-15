@@ -5,6 +5,14 @@ description: KRN Harness research-to-canon workflow. Use when working on researc
 
 # Kanon
 
+## Invocation
+
+Use explicitly as `$kanon` when changing active KRN canon, specs, ADRs,
+security docs, or research-backed architecture.
+
+Expected output: concise active-truth docs with sources, tradeoffs, uncertainty,
+and whether an ADR follow-up is needed.
+
 Use this when turning research, external docs, prior discussion, or architectural reasoning into durable KRN Harness canon.
 
 ## Workflow
