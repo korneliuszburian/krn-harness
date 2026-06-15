@@ -19,3 +19,4 @@ This index lists active architecture decisions. Individual ADR files remain the 
 - ADR-0015: MCP Read-Only Contract Spike
 - ADR-0016: Retrieval And Vector Experiment Harness
 - ADR-0017: Verify Execute Policy
+- ADR-0018: Runtime Schema Validation

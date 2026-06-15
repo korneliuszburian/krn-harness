@@ -4,6 +4,8 @@
 
 Trace JSONL records auditable KRN runtime events.
 
+Runtime validation lives in `packages/trace/src/schema.ts`.
+
 ## Fields
 
 - `id`: trace event id.

@@ -4,6 +4,8 @@
 
 The task contract turns user intent into a typed artifact before edits.
 
+Runtime validation lives in `packages/task-contract/src/schema.ts`.
+
 ## Fields
 
 - `id`: deterministic task identifier.

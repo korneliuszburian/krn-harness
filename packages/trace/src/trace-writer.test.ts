@@ -90,4 +90,17 @@ describe("trace determinism", () => {
       ),
     ).rejects.toThrow("Invalid trace event name: unknown.event");
   });
+
+  it("rejects malformed trace event payloads", async () => {
+    await expect(
+      readTraceLines(
+        `${JSON.stringify({
+          id: "trace-one",
+          timestamp: "2026-06-04T00:00:00.000Z",
+          name: "cli.status",
+          data: "not-an-object",
+        })}\n`,
+      ),
+    ).rejects.toThrow("Invalid trace event");
+  });
 });

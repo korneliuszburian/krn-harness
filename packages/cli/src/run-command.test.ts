@@ -130,6 +130,34 @@ describe("krn CLI run command", () => {
     expect(run.taskSpecPath).toBe("task.json");
   }, 15_000);
 
+  it("surfaces schema-backed task spec errors in run results", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(
+      path.join(cwd, "task.json"),
+      `${JSON.stringify(
+        {
+          prompt: "Invalid task spec smoke",
+          expectedTouchedFiles: [""],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+
+    expect(result.code).toBe(1);
+    expect(run.status).toBe("failed");
+    expect(run.steps.start.summary).toBe(
+      "KRN start: --task-spec JSON expectedTouchedFiles must be an array of non-empty strings",
+    );
+    expect(run.blockers).toEqual([
+      "KRN start: --task-spec JSON expectedTouchedFiles must be an array of non-empty strings",
+    ]);
+  }, 15_000);
+
   it("executes allowlisted verify only when requested", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
     await writeFile(path.join(cwd, "pass.cjs"), 'process.stdout.write("run-pass\\n");\n', "utf8");

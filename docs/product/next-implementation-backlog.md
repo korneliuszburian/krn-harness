@@ -10,6 +10,10 @@ local isolated-worktree evidence, `productionProof` remains false, and
 Do not add product surfaces before these items. Target commit/push remains
 separate from KRN source proof.
 
+GOAL-8H hardening work is tracked separately in
+`docs/product/goal-8h-roadmap.md`; use that roadmap for schema, trace, hook,
+eval, graph, and downstream-template hardening order.
+
 ## Priority 1: Review Target Config PR
 
 Status: PR #78 exists in `krn-llm-wiki` from

@@ -2,12 +2,17 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { buildTaskContract } from "../../task-contract/src/index.js";
 import {
   readTraceEvents,
   runInCwd,
   runInTemp,
   supportedP0CodexHookEvents,
 } from "./cli-test-utils.js";
+
+function taskContractJson(id: string, task: string): string {
+  return `${JSON.stringify({ ...buildTaskContract(task), id }, null, 2)}\n`;
+}
 
 describe("krn CLI hook guardrails", () => {
   it("handles Codex hook events with deterministic trace output", async () => {
@@ -208,7 +213,7 @@ describe("krn CLI hook guardrails", () => {
     await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
     await writeFile(
       path.join(cwd, ".krn", "current", "task-contract.json"),
-      '{"id":"task-hook","task":"Edit scoped file"}\n',
+      taskContractJson("task-hook", "Edit scoped file"),
       "utf8",
     );
     await writeFile(
@@ -293,7 +298,7 @@ describe("krn CLI hook guardrails", () => {
     await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
     await writeFile(
       path.join(cwd, ".krn", "current", "task-contract.json"),
-      '{"id":"task-hook","task":"Harden hook guardrail ownership hints"}\n',
+      taskContractJson("task-hook", "Harden hook guardrail ownership hints"),
       "utf8",
     );
     await writeFile(
@@ -412,7 +417,7 @@ describe("krn CLI hook guardrails", () => {
     await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
     await writeFile(
       path.join(cwd, ".krn", "current", "task-contract.json"),
-      '{"id":"task-config","task":"Harden config loading behavior"}\n',
+      taskContractJson("task-config", "Harden config loading behavior"),
       "utf8",
     );
     await writeFile(

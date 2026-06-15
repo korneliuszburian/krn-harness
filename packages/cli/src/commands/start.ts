@@ -1,16 +1,9 @@
 import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
-import { buildTaskContract } from "../../../task-contract/src/index.js";
+import { buildTaskContract, parseTaskSpecInput } from "../../../task-contract/src/index.js";
 import { ensureCurrentStateDir, writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
-
-interface TaskSpecInput {
-  prompt: string;
-  expectedTouchedFiles?: string[] | undefined;
-  forbiddenTouchedFiles?: string[] | undefined;
-  requiredDoNotUsePaths?: string[] | undefined;
-}
 
 function renderContractMarkdown(contract: ReturnType<typeof buildTaskContract>): string {
   const lines = [
@@ -123,50 +116,6 @@ function parseStartArgs(taskParts: string[]): {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function optionalStringArray(value: unknown, key: string): string[] | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (
-    !Array.isArray(value) ||
-    value.some((item) => typeof item !== "string" || item.trim().length === 0)
-  ) {
-    throw new Error(`--task-spec JSON ${key} must be an array of non-empty strings`);
-  }
-
-  return value;
-}
-
-function parseTaskSpec(raw: string): TaskSpecInput {
-  const parsed = JSON.parse(raw) as unknown;
-
-  if (!isRecord(parsed)) {
-    throw new Error("--task-spec JSON must be an object");
-  }
-
-  if (typeof parsed.prompt !== "string" || parsed.prompt.trim().length === 0) {
-    throw new Error("--task-spec JSON must include a prompt");
-  }
-
-  return {
-    prompt: parsed.prompt,
-    expectedTouchedFiles: optionalStringArray(parsed.expectedTouchedFiles, "expectedTouchedFiles"),
-    forbiddenTouchedFiles: optionalStringArray(
-      parsed.forbiddenTouchedFiles,
-      "forbiddenTouchedFiles",
-    ),
-    requiredDoNotUsePaths: optionalStringArray(
-      parsed.requiredDoNotUsePaths,
-      "requiredDoNotUsePaths",
-    ),
-  };
-}
-
 async function loadTaskSpec(
   cwd: string,
   taskSpecPath: string,
@@ -191,7 +140,19 @@ async function loadTaskSpec(
   }
 
   const raw = await readFile(resolvedTaskSpec, "utf8");
-  const parsed = parseTaskSpec(raw);
+  let taskSpecJson: unknown;
+  try {
+    taskSpecJson = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error("--task-spec JSON must be valid JSON");
+  }
+
+  let parsed: ReturnType<typeof parseTaskSpecInput>;
+  try {
+    parsed = parseTaskSpecInput(taskSpecJson);
+  } catch (error) {
+    throw new Error(`--task-spec JSON ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   return {
     task: parsed.prompt,

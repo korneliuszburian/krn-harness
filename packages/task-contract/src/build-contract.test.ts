@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildTaskContract } from "./build-contract.js";
 import { classifyTask, isNonTrivialTask, modeForClassification } from "./classify-task.js";
+import { parseTaskSpecInput, TaskContractSchema } from "./schema.js";
 import { validateContract } from "./validate-contract.js";
 
 describe("task contract", () => {
@@ -106,5 +107,30 @@ describe("task contract", () => {
       "contract.interpretation is required",
       "contract.evidenceRequirements must not be empty",
     ]);
+  });
+
+  it("validates task contracts through the runtime schema", () => {
+    const contract = buildTaskContract("goal 2 smoke task");
+
+    expect(TaskContractSchema.safeParse(contract).success).toBe(true);
+  });
+
+  it("parses task-spec input with deterministic path errors", () => {
+    expect(
+      parseTaskSpecInput({
+        prompt: "Task spec smoke",
+        expectedTouchedFiles: ["src/index.ts"],
+      }),
+    ).toEqual({
+      prompt: "Task spec smoke",
+      expectedTouchedFiles: ["src/index.ts"],
+    });
+
+    expect(() =>
+      parseTaskSpecInput({
+        prompt: "",
+        expectedTouchedFiles: [""],
+      }),
+    ).toThrow("must include a prompt; expectedTouchedFiles must be an array of non-empty strings");
   });
 });

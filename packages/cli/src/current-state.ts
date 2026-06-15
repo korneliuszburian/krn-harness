@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../context/src/index.js";
-import type { TaskContract } from "../../task-contract/src/index.js";
+import { parseTaskContract, type TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
 
 export function currentStateDir(cwd: string): string {
@@ -18,9 +18,14 @@ export async function ensureCurrentStateDir(cwd: string): Promise<string> {
   return dir;
 }
 
-async function readCurrentJson<T>(cwd: string, fileName: string): Promise<T | undefined> {
+async function readCurrentJson<T>(
+  cwd: string,
+  fileName: string,
+  parse?: (value: unknown) => T,
+): Promise<T | undefined> {
   try {
-    return JSON.parse(await readFile(currentStatePath(cwd, fileName), "utf8")) as T;
+    const value = JSON.parse(await readFile(currentStatePath(cwd, fileName), "utf8")) as unknown;
+    return parse ? parse(value) : (value as T);
   } catch {
     return undefined;
   }
@@ -45,7 +50,7 @@ export async function writeCurrentMarkdown(
 }
 
 export function readCurrentTaskContract(cwd: string): Promise<TaskContract | undefined> {
-  return readCurrentJson<TaskContract>(cwd, "task-contract.json");
+  return readCurrentJson<TaskContract>(cwd, "task-contract.json", parseTaskContract);
 }
 
 export async function readCurrentTaskId(cwd: string): Promise<string | undefined> {

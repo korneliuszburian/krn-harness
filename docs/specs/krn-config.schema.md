@@ -4,6 +4,8 @@
 
 `krn.config.json` is the stable downstream config entrypoint.
 
+Runtime validation lives in `packages/config/src/schemas.ts`.
+
 ## P0 Shape
 
 ```json

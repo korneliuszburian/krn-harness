@@ -161,7 +161,10 @@ async function runStep(
 ): Promise<{ step: StepResult; capture: CommandCapture }> {
   const capture: CommandCapture = { stdout: "", stderr: "" };
   const code = await action(captureRuntime(runtime, capture));
-  const summary = firstLine(capture.stdout, code === 0 ? "step completed" : "step failed");
+  const summary = firstLine(
+    capture.stdout,
+    code === 0 ? "step completed" : firstLine(capture.stderr, "step failed"),
+  );
 
   return {
     step: {

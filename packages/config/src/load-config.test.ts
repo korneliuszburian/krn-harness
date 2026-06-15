@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { ValidationError } from "../../core/src/index.js";
 import { loadConfig } from "./load-config.js";
+import { isKRNConfig, validateKRNConfig } from "./schemas.js";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = path.join(packageRoot, "fixtures");
@@ -117,5 +118,23 @@ describe("loadConfig", () => {
     const loaded = await loadConfig(path.join(fixturesRoot, "verify-profile-unsafe"));
 
     expect(loaded.config.verify?.profiles?.unsafe?.commands).toEqual(["pnpm test && rm -rf .krn"]);
+  });
+
+  it("keeps schema-backed compatibility validators deterministic", () => {
+    expect(
+      validateKRNConfig({
+        version: 1,
+        verify: {
+          profiles: {
+            unit: {
+              commands: [{ command: "node", args: "bad" }],
+            },
+          },
+        },
+      }),
+    ).toEqual(["verify.profiles.unit.commands[0].args must be an array of strings"]);
+
+    expect(isKRNConfig({ version: 1, runtime: { dir: ".krn" } })).toBe(true);
+    expect(isKRNConfig({ version: 2 })).toBe(false);
   });
 });
