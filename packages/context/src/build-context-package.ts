@@ -60,6 +60,7 @@ const taskStopWords = new Set([
   "avoid",
   "approved",
   "basic",
+  "code",
   "context",
   "docs",
   "implement",
@@ -72,8 +73,11 @@ const taskStopWords = new Set([
   "required",
   "root",
   "section",
+  "src",
   "stop",
   "task",
+  "test",
+  "tests",
   "theme",
   "treating",
   "truth",
@@ -285,6 +289,28 @@ function packageIdForContextPath(contextPath: string): string | undefined {
   return undefined;
 }
 
+function packageRelativeEvidencePath(packageId: string, evidencePath: string): string {
+  const packageRoot = packageId.replace(/^package:/, "");
+  if (packageRoot === ".") {
+    return evidencePath;
+  }
+
+  return evidencePath.startsWith(`${packageRoot}/`)
+    ? evidencePath.slice(packageRoot.length + 1)
+    : evidencePath;
+}
+
+function packageRelativeNodeText(
+  packageId: string,
+  node: { label: string; evidencePath: string } | undefined,
+): string {
+  if (!node) {
+    return "";
+  }
+
+  return packageRelativeEvidencePath(packageId, node.evidencePath);
+}
+
 function isOutsideSelectedPackage(
   contextPath: string,
   selectedPackageTerms: Map<string, string[]>,
@@ -350,6 +376,12 @@ function taskContractMetadataItems(contract?: TaskContract): ContextItem[] {
 function explicitTaskPathItems(hints: ContextSelectionHints): ContextItem[] {
   return [...hints.explicitTaskPaths]
     .filter((path) => !hints.expectedTouchedPaths.has(path))
+    .filter(
+      (path) =>
+        !hints.doNotUsePaths.some((doNotUsePath) =>
+          isPathWithin(normalizeContextPath(path), doNotUsePath),
+        ),
+    )
     .map((path) =>
       item("should-read", path, "Task text explicitly references this repo path", 78, "available", {
         source: "task-policy",
@@ -397,6 +429,19 @@ function graphItemsForTask(
   const matchedPackageTerms = new Map<string, string[]>();
   const matchedPackageSourceTerms = new Map<string, string[]>();
   const selectedSourcePackageTerms = new Map<string, string[]>();
+  const sourceEdgeCountByPackage = new Map<string, number>();
+  const testEdgeCountByPackage = new Map<string, number>();
+  const fileFocusedTask = hints.explicitTaskPaths.size > 0 || hints.expectedTouchedPaths.size > 0;
+
+  for (const edge of graph.edges) {
+    if (edge.kind === "owns-source") {
+      sourceEdgeCountByPackage.set(edge.from, (sourceEdgeCountByPackage.get(edge.from) ?? 0) + 1);
+    }
+
+    if (edge.kind === "owns-test") {
+      testEdgeCountByPackage.set(edge.from, (testEdgeCountByPackage.get(edge.from) ?? 0) + 1);
+    }
+  }
 
   for (const node of graph.nodes) {
     if (node.kind !== "package") {
@@ -484,6 +529,10 @@ function graphItemsForTask(
     }
 
     const relationMatchedTerms = matchedTermsForText(graphRelationText(edge, from, to), taskTerms);
+    const targetMatchedTerms = matchedTermsForText(
+      `${packageRelativeEvidencePath(edge.from, edge.evidencePath)} ${packageRelativeNodeText(edge.from, to)}`,
+      taskTerms,
+    );
     const matchedTerms = [...new Set([...packageMatchedTerms, ...relationMatchedTerms])].sort(
       (left, right) => left.localeCompare(right),
     );
@@ -493,6 +542,11 @@ function graphItemsForTask(
     }
 
     if (edge.kind === "owns-source") {
+      const packageSourceCount = sourceEdgeCountByPackage.get(edge.from) ?? 0;
+      if (fileFocusedTask && packageSourceCount > 1 && targetMatchedTerms.length === 0) {
+        continue;
+      }
+
       matchedPackageSourceTerms.set(edge.to, matchedTerms);
       selectedSourcePackageTerms.set(edge.from, matchedTerms);
       items.push(
@@ -516,6 +570,11 @@ function graphItemsForTask(
     }
 
     if (edge.kind === "owns-test") {
+      const packageTestCount = testEdgeCountByPackage.get(edge.from) ?? 0;
+      if (fileFocusedTask && packageTestCount > 1 && targetMatchedTerms.length === 0) {
+        continue;
+      }
+
       items.push(
         item(
           "should-read",
@@ -605,9 +664,18 @@ function graphItemsForTask(
     }
 
     const relationMatchedTerms = matchedTermsForText(graphRelationText(edge, from, to), taskTerms);
+    const targetMatchedTerms = matchedTermsForText(
+      `${packageRelativeEvidencePath(edge.from, edge.evidencePath)} ${packageRelativeNodeText(edge.from, to)}`,
+      taskTerms,
+    );
     const matchedTerms = [...new Set([...sourceMatchedTerms, ...relationMatchedTerms])].sort(
       (left, right) => left.localeCompare(right),
     );
+
+    const packageTestCount = testEdgeCountByPackage.get(edge.from) ?? 0;
+    if (fileFocusedTask && packageTestCount > 1 && targetMatchedTerms.length === 0) {
+      continue;
+    }
 
     items.push(
       item(

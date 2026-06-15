@@ -1,0 +1,14 @@
+{
+  "id": "product-code-tax-dogfood",
+  "task": "Fix product-code-dogfood regional tax behavior in src/regional-tax.ts so the paired src/regional-tax.test.ts oracle passes. Use docs/current-tax.md as reference and treat docs/stale-tax.md as stale do-not-use context.",
+  "expected": {
+    "stop": false,
+    "mustRead": ["AGENTS.md", "fixtures/repos/product-code-dogfood/src/regional-tax.ts"],
+    "shouldRead": [
+      "fixtures/repos/product-code-dogfood/src/regional-tax.test.ts",
+      "fixtures/repos/product-code-dogfood/krn.config.json"
+    ],
+    "referenceOnly": ["fixtures/repos/product-code-dogfood/docs/current-tax.md"],
+    "doNotUse": ["fixtures/repos/product-code-dogfood/docs/stale-tax.md"]
+  }
+}

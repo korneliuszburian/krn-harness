@@ -9,12 +9,15 @@ publication proof, or production proof.
 
 ## Writer
 
-`krn release-check [--json] [--write]`
+`krn release-check [--json] [--write] [--bundle]`
 
 With `--write`, the command writes:
 
 - `.krn/current/release-check.json`
 - `.krn/current/release-check.md`
+
+With `--bundle`, the command implies `--write` and also writes
+`.krn/current/release-bundle/`.
 
 ## Shape
 
@@ -37,6 +40,58 @@ With `--write`, the command writes:
   "nextActions": []
 }
 ```
+
+## Release Bundle
+
+`krn release-check --bundle` writes a local handoff directory that can be zipped
+or sent to another developer as release-candidate evidence:
+
+- `manifest.json`
+- `release-check.json`
+- `release-check.md`
+- `operator-report.md`
+- `operator-report.json`
+- `operator-report.html`
+- `report-bundle/manifest.json`
+- `evidence-summary.md`
+- `evidence-summary.json`
+- `known-gaps.md`
+- `commands-run.md`
+- `validation-summary.md`
+- `validation-summary.json`
+- `no-protected-data.md`
+
+The manifest schema is `krn-release-bundle-manifest-v1`.
+
+```json
+{
+  "schema": "krn-release-bundle-manifest-v1",
+  "generatedAt": "2026-06-14T00:00:00.000Z",
+  "releaseCheckStatus": "pass",
+  "productionProof": false,
+  "hookTrustStatus": "unproven",
+  "files": [
+    {
+      "path": "release-check.json",
+      "source": ".krn/current/release-check.json",
+      "present": true,
+      "required": true
+    }
+  ],
+  "validationCommands": [
+    {
+      "command": "pnpm verify:local",
+      "status": "recorded-not-executed-by-release-check",
+      "evidence": "The release bundle records the RC validation command set; it does not execute shell commands."
+    }
+  ],
+  "limits": ["Local release evidence only."]
+}
+```
+
+The bundle records the expected validation command set, but it does not execute
+those commands. Operators still need terminal output or CI metadata for command
+results.
 
 ## Status Semantics
 
@@ -70,6 +125,11 @@ The CLI exits non-zero only for `fail`.
 - The command reads local files only.
 - The command does not run lint, typecheck, tests, verify, Codex, network calls,
   package publication, or GitHub APIs.
+- `--bundle` does not copy raw trace dumps, external assets, giant files,
+  protected-looking paths, target repo artifacts, or secrets.
+- Bundle `productionProof` must remain `false`.
+- Bundle `hookTrustStatus` is inherited from the current operator report and is
+  usually `unproven`.
 - Current report artifacts are a warning because they are generated state, not
   source truth.
 - A passing release check means the local handoff contract is present. It does

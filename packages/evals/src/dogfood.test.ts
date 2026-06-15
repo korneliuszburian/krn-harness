@@ -523,10 +523,13 @@ describe("dogfood eval artifacts", () => {
     });
   });
 
-  it("loads the product-code dogfood task spec with executable verify requirements", async () => {
+  it("loads product-code dogfood task specs with executable verify requirements", async () => {
     const repoRoot = process.cwd();
     const spec = await loadDogfoodTaskSpec(
       path.join(repoRoot, "fixtures/dogfood/tasks/product-code-test-dogfood.json"),
+    );
+    const taxSpec = await loadDogfoodTaskSpec(
+      path.join(repoRoot, "fixtures/dogfood/tasks/product-code-tax-dogfood.json"),
     );
     const fixtureRoot = path.join(repoRoot, "fixtures/repos/product-code-dogfood");
 
@@ -557,6 +560,37 @@ describe("dogfood eval artifacts", () => {
       ...spec.expectedTouchedFiles,
       ...(spec.expectedUntouchedFiles ?? []),
       ...spec.forbiddenTouchedFiles,
+      "krn.config.json",
+    ]) {
+      expect(await fileExists(path.join(fixtureRoot, relativePath)), relativePath).toBe(true);
+    }
+
+    expect(taxSpec).toMatchObject({
+      id: "product-code-tax-dogfood",
+      expectedTouchedFiles: ["src/regional-tax.ts"],
+      expectedUntouchedFiles: [
+        "src/regional-tax.test.ts",
+        "src/index.ts",
+        "src/index.test.ts",
+        "docs/stale-tax.md",
+      ],
+      forbiddenTouchedFiles: ["docs/stale-tax.md"],
+      requiredDoNotUsePaths: ["docs/stale-tax.md"],
+      expectedVerifyStatus: "pass",
+      expectedVerifyMode: "execute",
+      minExecutedCommands: 1,
+      handoffRequired: true,
+      expectedContextStop: false,
+      minTaskIntentQuality: "high",
+    });
+    expect(taxSpec.expectedCommands).toEqual(
+      expect.arrayContaining(["krn verify --profile tax --execute"]),
+    );
+    for (const relativePath of [
+      ...taxSpec.expectedTouchedFiles,
+      ...(taxSpec.expectedUntouchedFiles ?? []),
+      ...taxSpec.forbiddenTouchedFiles,
+      "docs/current-tax.md",
       "krn.config.json",
     ]) {
       expect(await fileExists(path.join(fixtureRoot, relativePath)), relativePath).toBe(true);

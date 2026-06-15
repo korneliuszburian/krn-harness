@@ -18,6 +18,7 @@ interface ContextTaskFixture {
   expected: {
     stop: boolean;
     mustRead?: string[];
+    shouldRead?: string[];
     referenceOnly?: string[];
     doNotUse?: string[];
     missingContext?: string[];
@@ -516,6 +517,33 @@ describe("context package", () => {
     expect(markdown).toContain("Read source owned by the matched package.");
     expect(markdown).toContain("Review the paired test for the selected source.");
     expect(markdown).toContain("selector: tests-source-for-owned-source");
+  });
+
+  it("localizes product-code dogfood context to the expected source and paired test", async () => {
+    const fixture = readTaskFixture("product-code-tax-dogfood");
+    const contract = buildTaskContract(fixture.task);
+    const graph = await buildGraph(repoRoot);
+    const pkg = buildContextPackage(contract, graph);
+    const activePaths = [...pkg.buckets.mustRead, ...pkg.buckets.shouldRead].map(
+      (item) => item.path,
+    );
+
+    expect(pkg.stop).toBe(false);
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toEqual(fixture.expected.mustRead);
+    expect(pkg.buckets.shouldRead.map((item) => item.path)).toEqual(
+      expect.arrayContaining(fixture.expected.shouldRead ?? []),
+    );
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toContain(
+      "fixtures/repos/product-code-dogfood/docs/current-tax.md",
+    );
+    expect(pkg.buckets.doNotUse.map((item) => item.path)).toContain(
+      "fixtures/repos/product-code-dogfood/docs/stale-tax.md",
+    );
+    expect(activePaths).toContain("fixtures/repos/product-code-dogfood/src/regional-tax.ts");
+    expect(activePaths).toContain("fixtures/repos/product-code-dogfood/src/regional-tax.test.ts");
+    expect(activePaths).not.toContain("fixtures/repos/product-code-dogfood/src/index.ts");
+    expect(activePaths).not.toContain("fixtures/repos/product-code-dogfood/src/index.test.ts");
+    expect(activePaths).not.toContain("fixtures/repos/product-code-dogfood/docs/stale-tax.md");
   });
 
   it("does not leak source, test, or docs from neighboring packages", () => {

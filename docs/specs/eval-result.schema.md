@@ -33,10 +33,11 @@ The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, H
 - `missing-context-stop`: missing required context must produce STOP.
 - `downstream-basic-package-context`: package-owned source/test/config/doc context from graph-lite must be selected without leaking from fixture-specific prefixes.
 - `product-code-test-dogfood`: product-code source, paired test, config, current docs, and stale docs must be bucketed correctly for a fixture repair task.
+- `product-code-tax-dogfood`: second product-code fixture task that localizes context to `src/regional-tax.ts`, `src/regional-tax.test.ts`, `docs/current-tax.md`, and keeps `docs/stale-tax.md` in `do-not-use` without leaking neighboring product-code files.
 - `fixtures/hooks/guardrail-matrix.json`: expected hook `allow`/`warn`/`block` decisions, trace finding codes, compact remediation codes, and selected English/Polish operator wording.
 - `fixtures/hooks/remediation-taxonomy.json`: stable remediation-code list, English/Polish hints, and finding-code mappings.
 - `fixtures/repos/downstream-basic`: tiny downstream repo shape for onboarding acceptance checks.
-- `fixtures/repos/product-code-dogfood`: tiny product-code fixture with a failing implementation, paired test oracle, verify profile, and stale-doc trap.
+- `fixtures/repos/product-code-dogfood`: tiny product-code fixture with failing invoice and regional-tax implementations, paired test oracles, verify profiles, and stale-doc traps.
 
 ## P0 Rule
 

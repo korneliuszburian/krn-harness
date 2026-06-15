@@ -19,6 +19,17 @@
         ],
         "timeoutMs": 30000,
         "maxOutputBytes": 4096
+      },
+      "tax": {
+        "commands": [
+          {
+            "command": "node",
+            "args": ["src/regional-tax.test.ts"],
+            "label": "product-code tax unit"
+          }
+        ],
+        "timeoutMs": 30000,
+        "maxOutputBytes": 4096
       }
     }
   }

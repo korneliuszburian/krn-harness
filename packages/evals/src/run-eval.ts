@@ -667,8 +667,12 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     "README.md",
     "src/index.ts",
     "src/index.test.ts",
+    "src/regional-tax.ts",
+    "src/regional-tax.test.ts",
     "docs/current-pricing.md",
     "docs/stale-pricing.md",
+    "docs/current-tax.md",
+    "docs/stale-tax.md",
   ];
   const failures: string[] = [];
 
@@ -705,8 +709,12 @@ async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<EvalGrade
     for (const expected of [
       "src/index.ts",
       "src/index.test.ts",
+      "src/regional-tax.ts",
+      "src/regional-tax.test.ts",
       "docs/stale-pricing.md",
+      "docs/stale-tax.md",
       "node src/index.test.ts",
+      "node src/regional-tax.test.ts",
       "No Codex, CI, network",
     ]) {
       if (!readme.includes(expected)) {

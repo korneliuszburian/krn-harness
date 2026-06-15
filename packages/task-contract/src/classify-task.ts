@@ -7,6 +7,16 @@ export function classifyTask(task: string): TaskClassification {
     return "review";
   }
 
+  if (
+    /\b(fix|implement|repair|harden|change|update)\b/.test(normalized) &&
+    (normalized.includes("src/") ||
+      normalized.includes(".test.") ||
+      normalized.includes(" test ") ||
+      normalized.includes("source"))
+  ) {
+    return "implementation";
+  }
+
   if (normalized.includes("docs") || normalized.includes("adr") || normalized.includes("readme")) {
     return "docs";
   }

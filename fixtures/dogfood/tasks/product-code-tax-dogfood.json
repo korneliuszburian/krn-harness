@@ -1,0 +1,36 @@
+{
+  "id": "product-code-tax-dogfood",
+  "prompt": "Fix product-code-dogfood regional tax behavior in src/regional-tax.ts so the paired src/regional-tax.test.ts oracle passes. Use docs/current-tax.md as reference and treat docs/stale-tax.md as stale do-not-use context.",
+  "expectedTouchedFiles": ["src/regional-tax.ts"],
+  "expectedUntouchedFiles": [
+    "src/regional-tax.test.ts",
+    "src/index.ts",
+    "src/index.test.ts",
+    "docs/stale-tax.md"
+  ],
+  "forbiddenTouchedFiles": ["docs/stale-tax.md"],
+  "expectedCommands": [
+    "krn start",
+    "krn graph",
+    "krn context",
+    "krn verify --profile tax --execute",
+    "krn handoff"
+  ],
+  "requiredArtifacts": [
+    ".krn/current/task-contract.json",
+    ".krn/graph/repo-graph.json",
+    ".krn/current/context-package.json",
+    ".krn/current/verify-result.json",
+    ".krn/current/handoff.md"
+  ],
+  "requiredDoNotUsePaths": ["docs/stale-tax.md"],
+  "requiredTraceEvents": ["task.started", "context.built", "verify.ran", "handoff.created"],
+  "expectedVerifyStatus": "pass",
+  "expectedVerifyMode": "execute",
+  "minExecutedCommands": 1,
+  "handoffRequired": true,
+  "requireHandoffContent": ["## Verify", "Status: pass"],
+  "hooksExpected": false,
+  "expectedContextStop": false,
+  "minTaskIntentQuality": "high"
+}

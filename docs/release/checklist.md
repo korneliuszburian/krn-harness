@@ -31,6 +31,7 @@ pnpm --silent krn summary --write
 pnpm --silent krn report --write
 pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
+pnpm --silent krn release-check --bundle
 pnpm --silent krn uninstall --dry-run
 git diff --check
 git status --short
@@ -63,6 +64,13 @@ Expected result:
 - `docs/stale-pricing.md` remains `do-not-use`;
 - `git diff --name-only` reports `src/index.ts` only.
 
+The second product-code fixture task,
+`fixtures/dogfood/tasks/product-code-tax-dogfood.json`, should localize context
+to `src/regional-tax.ts`, `src/regional-tax.test.ts`, and `docs/current-tax.md`.
+After a code-only repair, `krn verify --profile tax --execute` should run
+`node src/regional-tax.test.ts`; `docs/stale-tax.md` should remain `do-not-use`;
+`git diff --name-only` should report `src/regional-tax.ts` only.
+
 ## Real-Repo Preflight Smoke
 
 Before a first real user-repo dogfood, run:
@@ -93,7 +101,8 @@ Do not include paid dogfood, real repo mutation beyond local `.krn` preflight st
 - `pnpm test`;
 - `pnpm verify:local`;
 - `pnpm --silent krn report --write`;
-- `pnpm --silent krn release-check --write`.
+- `pnpm --silent krn release-check --write`;
+- `pnpm --silent krn release-check --bundle`.
 
 It must not run paid Codex execution, real user-repo dogfood, package
 publication, deployment, or a Codex CLI CI dependency.

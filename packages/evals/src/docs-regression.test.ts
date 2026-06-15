@@ -33,6 +33,8 @@ describe("P0 docs anti-regression", () => {
     const demo = await readDoc("docs/demo/downstream-basic-demo.md");
 
     expect(evalSpec).toContain("Downstream Acceptance");
+    expect(evalSpec).toContain("product-code-tax-dogfood");
+    expect(evalSpec).toContain("src/regional-tax.ts");
     expect(evalSpec).toContain("without installing into the source checkout");
     expect(evalSpec).toContain("invoking Codex");
     expect(downstreamSpec).toContain("does not launch Codex");
@@ -239,6 +241,9 @@ describe("P0 docs anti-regression", () => {
     expect(operatorReportSchema).toContain("external CSS");
     expect(operatorReportSchema).toContain("productionProof.value` must remain `false");
     expect(releaseCheckSchema).toContain("krn-release-check-v1");
+    expect(releaseCheckSchema).toContain("krn release-check [--json] [--write] [--bundle]");
+    expect(releaseCheckSchema).toContain("krn-release-bundle-manifest-v1");
+    expect(releaseCheckSchema).toContain("recorded-not-executed-by-release-check");
     expect(releaseCheckSchema).toContain("does not run lint, typecheck, tests, verify, Codex");
     expect(installSchema).toContain("krn-install-result-v1");
     expect(uninstallSchema).toContain("krn-uninstall-result-v1");
@@ -264,9 +269,11 @@ describe("P0 docs anti-regression", () => {
     expect(reviewers).toContain(".krn/current/review-summary.json");
     expect(reviewers).toContain("normal tests must not call paid models");
     expect(evidenceMatrix).toContain("Deterministic reviewers");
+    expect(evidenceMatrix).toContain("product-code-tax-dogfood");
     expect(evidenceMatrix).toContain("Operator summary");
     expect(evidenceMatrix).toContain("Operator report");
     expect(evidenceMatrix).toContain("Artifact lifecycle");
+    expect(evidenceMatrix).toContain(".krn/current/release-bundle/manifest.json");
     expect(evidenceMatrix).toContain("Dashboard-lite | ADR-only");
     expect(evidenceMatrix).toContain("MCP | ADR-only");
     expect(evidenceMatrix).toContain("Retrieval/vector | ADR-only");
@@ -369,6 +376,9 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("pnpm --silent krn report --write");
     expect(checklist).toContain("pnpm --silent krn report --bundle");
     expect(checklist).toContain("pnpm --silent krn release-check --write");
+    expect(checklist).toContain("pnpm --silent krn release-check --bundle");
+    expect(checklist).toContain("product-code-tax-dogfood");
+    expect(checklist).toContain("node src/regional-tax.test.ts");
     expect(checklist).toContain("write a readiness report");
     expect(checklist).toContain("must not depend on paid Codex calls");
     expect(checklist).toContain("local `bin` metadata for dogfood linking only");

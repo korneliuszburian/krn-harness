@@ -10,6 +10,21 @@ Core product principle:
 contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 ```
 
+## What KRN Is
+
+KRN is a local operator runtime for Codex-assisted engineering. It turns a task
+into durable artifacts: task contract, context package, graph-lite evidence,
+trace events, verify results, handoff, deterministic review/summary/report, and
+a release-check.
+
+It is meant to be used from a source checkout with explicit validation evidence.
+
+## What KRN Is Not
+
+KRN is not a prompt pack, hosted dashboard, generic multi-agent framework,
+production MCP server, vector database, package publisher, hook trust proof, or
+production proof system.
+
 ## Current P0/P1 Surface
 
 - pnpm TypeScript workspace.
@@ -28,7 +43,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 ## Current Evidence Status
 
 - Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
-- Product-code fixture dogfood: `fixtures/repos/product-code-dogfood` proves local source/test/stale-doc context selection and executable `node src/index.test.ts` verification after a deterministic code-only repair.
+- Product-code fixture dogfood: `fixtures/repos/product-code-dogfood` proves local source/test/stale-doc context selection for invoice formatting and regional tax tasks, including executable `node src/index.test.ts` and `node src/regional-tax.test.ts` verification after deterministic code-only repairs.
 - WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
 - Dogfood CLI identity: KRN-assisted dogfood must use a pinned KRN command path and captured `krn doctor cli` identity. Global `krn` fallback invalidates the run.
 - Real user-repo dogfood: docs-only isolated `krn-llm-wiki` evidence exists, and a non-doc isolated `krn.config.json` adoption run passed executable readonly verify. Product-code fixture proof exists; real target product-code proof remains pending. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
@@ -43,41 +58,136 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - Dashboard-lite, MCP, and vector/retrieval remain contract or experiment lanes only under ADR-0014, ADR-0015, and ADR-0016.
 - No production dashboard, production MCP server, required vector DB, autonomous subagent swarm, protected-data workflow, or hook enforcement claim exists.
 
-## Commands
+## 10-Minute Operator Path
 
 ```bash
 pnpm install
+pnpm verify:local
+pnpm --silent krn doctor cli
+pnpm --silent krn start "Update example task with explicit outcome, constraints, and validation proof."
+pnpm --silent krn context
+pnpm --silent krn verify --execute
+pnpm --silent krn review --write
+pnpm --silent krn summary --write
+pnpm --silent krn report --bundle
+pnpm --silent krn release-check --write
+```
+
+Use `pnpm --silent krn start --task-spec <json>` when a task spec exists.
+
+## Install Into Target Repo
+
+Use a safe non-protected target checkout or an isolated worktree. Do not use
+global `krn` as proof; prefer the source checkout command or a pinned shim.
+
+```bash
+pnpm --silent krn install --dry-run --with-config
+pnpm --silent krn install --with-config
+pnpm --silent krn uninstall --dry-run
+```
+
+Install writes only managed onboarding/runtime files. Existing unmanaged files
+are preserved.
+
+## Generate Config
+
+```bash
+pnpm --silent krn config init --dry-run --profile readonly-python
+pnpm --silent krn config init --write --profile readonly-python
+```
+
+Starter profiles are conservative. Tune commands only to safe local validation
+that belongs to the target repo.
+
+## Validate Config
+
+```bash
+pnpm --silent krn config doctor
+pnpm --silent krn config doctor --json
+```
+
+`config doctor` checks whether verify commands are allowed by KRN policy. It
+does not execute the target command.
+
+## Run Verify
+
+```bash
+pnpm --silent krn verify
+pnpm --silent krn verify --execute
+pnpm --silent krn verify --profile readonly --execute
+```
+
+`krn verify` is record-only by default. `--execute` is required for executable
+local validation and still uses exact command allowlists, scrubbed env, no shell
+mode, timeout limits, and compact output.
+
+## Generate Report Bundle
+
+```bash
+pnpm --silent krn report --write
+pnpm --silent krn report --bundle
+pnpm --silent krn release-check --bundle
+```
+
+`report --bundle` writes `.krn/current/report-bundle/`. `release-check --bundle`
+writes `.krn/current/release-bundle/` with release-check artifacts, operator
+report files, validation command list, evidence summary, known gaps, and a no
+protected data note.
+
+## Read Proof States
+
+- `productionProof.value: false` means the artifact is local evidence only.
+- `hookTrust.status: unproven` means hook loading/trust has not been proven by a
+  non-bypass Codex run.
+- `verify.mode: execute` plus executed commands is local validation evidence.
+- `realRepoEvidence.status: readiness` is not real target mutation proof.
+- Historical `.krn` caveats may warn without blocking current report artifacts.
+
+## Known Limits
+
+- Hook trust remains unproven unless scoped non-bypass hook provenance exists.
+- Production proof remains false.
+- Product-code proof is fixture-level unless an approved target worktree task is
+  executed and validated.
+- Report and release bundles do not copy raw trace dumps by default.
+- KRN does not publish packages, push target repos, run paid Codex, or call
+  network services in local release gates.
+
+## Target Repo Safety
+
+Do not touch protected data: `.env`, dumps, uploads/media, client documents,
+credentials, private corpora, or protected corpora. For real target adoption,
+run:
+
+```bash
+scripts/krn-real-repo-preflight.sh <repo-path>
+scripts/krn-real-repo-dogfood.sh
+```
+
+The real-repo dogfood scaffold is report-only unless explicit operator approval
+environment variables are present. Do not push target repos without explicit
+approval.
+
+## Command Reference
+
+```bash
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm verify:local
-scripts/krn-real-repo-preflight.sh <repo-path>
-scripts/krn-real-repo-dogfood.sh
 pnpm --silent krn --help
 pnpm --silent krn status
-pnpm --silent krn install --dry-run
-pnpm --silent krn install
-pnpm --silent krn config doctor
-pnpm --silent krn config init --dry-run --profile readonly-python
-pnpm --silent krn start "Update example task with explicit outcome, constraints, and validation proof."
-pnpm --silent krn start --task-spec <json>
 pnpm --silent krn graph
-pnpm --silent krn context
-pnpm --silent krn verify
-pnpm --silent krn verify --execute
 pnpm --silent krn handoff
 pnpm --silent krn doctor
-pnpm --silent krn doctor cli
 pnpm --silent krn eval
-pnpm --silent krn summary
 pnpm --silent krn review
-pnpm --silent krn report --write
+pnpm --silent krn summary
 pnpm --silent krn report --json
-pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
+pnpm --silent krn release-check --bundle
 pnpm --silent krn artifacts list
 pnpm --silent krn artifacts archive --dry-run
-pnpm --silent krn uninstall --dry-run
 pnpm --silent krn memory list
 pnpm --silent krn hook codex SessionStart
 ```

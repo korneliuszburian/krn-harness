@@ -18,6 +18,9 @@ if (!sourceRoot) {
 const repoPathInput = process.env.KRN_REAL_REPO_DOGFOOD_PATH ?? "";
 const dogfoodApproved = process.env.KRN_REAL_REPO_DOGFOOD_APPROVED === "1";
 const codexApproved = process.env.KRN_REAL_REPO_CODEX_APPROVED === "1";
+const artifactRootOverride = process.env.KRN_REAL_REPO_DOGFOOD_ARTIFACT_ROOT
+  ? path.resolve(process.env.KRN_REAL_REPO_DOGFOOD_ARTIFACT_ROOT)
+  : null;
 const runId =
   process.env.KRN_REAL_REPO_DOGFOOD_RUN_ID ??
   `real-repo-${new Date().toISOString().replace(/[:.]/g, "-")}`;
@@ -54,7 +57,13 @@ function reportRootFor(status, repoPath, preflight) {
     return path.join(repoPath, ".krn", "dogfood", "real-repo-dogfood", runId);
   }
 
-  return path.join(sourceRoot, ".krn", "dogfood", "real-repo-skipped", runId);
+  return path.join(
+    artifactRootOverride ?? sourceRoot,
+    ".krn",
+    "dogfood",
+    "real-repo-skipped",
+    runId,
+  );
 }
 
 const missingEnv = [];

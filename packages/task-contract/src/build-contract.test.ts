@@ -44,6 +44,9 @@ describe("task contract", () => {
   it("classifies basic task types and modes", () => {
     expect(classifyTask("review this diff")).toBe("review");
     expect(classifyTask("update ADR docs")).toBe("docs");
+    expect(classifyTask("fix src/regional-tax.ts using docs/current-tax.md")).toBe(
+      "implementation",
+    );
     expect(classifyTask("research official source")).toBe("research");
     expect(modeForClassification("review")).toBe("review");
     expect(modeForClassification("research")).toBe("read-only");

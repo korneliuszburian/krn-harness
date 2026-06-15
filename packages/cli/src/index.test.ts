@@ -228,7 +228,7 @@ interface ArchivePlanFixture {
 interface OperatorReportFixture {
   schema: string;
   verdict: string;
-  task: { text?: string };
+  task: { text?: string; classification?: string };
   realRepoEvidence: { status: string; staleHistoricalBlocker: boolean };
   hookTrust: { status: string };
   productionProof: { value: boolean; summary: string };
@@ -696,6 +696,180 @@ describe("krn CLI", () => {
     await expectFile(cwd, ".krn/current/release-check.md");
   });
 
+  it("writes a v0.1 release bundle with local proof-state caveats", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const files = [
+      "packages/cli/src/commands/report.ts",
+      "packages/cli/src/commands/artifacts.ts",
+      "packages/cli/src/commands/uninstall.ts",
+      "packages/cli/src/commands/config.ts",
+      "docs/specs/install-result.schema.md",
+      "docs/specs/uninstall-result.schema.md",
+      "docs/specs/config-doctor.schema.md",
+      "docs/specs/operator-report.schema.md",
+      "docs/specs/release-check.schema.md",
+      "docs/product/evidence-matrix.md",
+      "docs/product/mvp-state.md",
+      ".github/workflows/verify.yml",
+      "packages/verify/src/command-policy.ts",
+    ];
+
+    await writeFile(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        scripts: {
+          lint: "biome check .",
+          typecheck: "tsc --noEmit",
+          test: "vitest",
+          "verify:local": "pnpm lint && pnpm typecheck && pnpm test",
+        },
+      }),
+      "utf8",
+    );
+    for (const relativePath of files) {
+      await mkdir(path.dirname(path.join(cwd, relativePath)), { recursive: true });
+      await writeFile(path.join(cwd, relativePath), `${relativePath}\n`, "utf8");
+    }
+
+    await mkdir(path.join(cwd, ".krn", "current", "report-bundle"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "operator-report.json"),
+      `${JSON.stringify(
+        {
+          schema: "krn-operator-report-v1",
+          verdict: "warn",
+          hookTrust: { status: "unproven", summary: "No trusted hook provenance." },
+          productionProof: {
+            value: false,
+            summary: "KRN report is local operator evidence only.",
+          },
+          realRepoEvidence: {
+            status: "warn",
+            summary: "Readiness only.",
+            staleHistoricalBlocker: true,
+          },
+          blockers: [],
+          warnings: ["stale source-local dogfood caveat"],
+          nextActions: ["Run real-repo product-code proof after approval."],
+          historicalCaveatCount: 1,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "operator-report.md"),
+      "# KRN Operator Report\n\nProduction proof: false\nHook trust: unproven\n",
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "operator-report.html"),
+      "<!doctype html><html><body>Local file only</body></html>\n",
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "report-bundle", "manifest.json"),
+      `${JSON.stringify(
+        {
+          schema: "krn-report-bundle-manifest-v1",
+          productionProof: false,
+          files: [{ path: "verify-result.json", present: false }],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "eval-result.json"),
+      `${JSON.stringify(
+        {
+          status: "pass",
+          passCount: 1,
+          failCount: 0,
+          fixtures: [{ name: "product-code-test-dogfood", status: "pass" }],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["release-check", "--bundle"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Bundle: .krn/current/release-bundle/manifest.json");
+
+    const manifest = await readJson<{
+      schema: string;
+      productionProof: boolean;
+      hookTrustStatus: string;
+      files: Array<{ path: string; present: boolean; required: boolean }>;
+      validationCommands: Array<{ command: string; status: string }>;
+    }>(cwd, ".krn/current/release-bundle/manifest.json");
+    const evidenceSummary = await readFile(
+      path.join(cwd, ".krn", "current", "release-bundle", "evidence-summary.md"),
+      "utf8",
+    );
+    const commandsRun = await readFile(
+      path.join(cwd, ".krn", "current", "release-bundle", "commands-run.md"),
+      "utf8",
+    );
+    const knownGaps = await readFile(
+      path.join(cwd, ".krn", "current", "release-bundle", "known-gaps.md"),
+      "utf8",
+    );
+    const noProtectedData = await readFile(
+      path.join(cwd, ".krn", "current", "release-bundle", "no-protected-data.md"),
+      "utf8",
+    );
+    const bundleHtml = await readFile(
+      path.join(cwd, ".krn", "current", "release-bundle", "operator-report.html"),
+      "utf8",
+    );
+
+    expect(manifest.schema).toBe("krn-release-bundle-manifest-v1");
+    expect(manifest.productionProof).toBe(false);
+    expect(manifest.hookTrustStatus).toBe("unproven");
+    expect(manifest.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "release-check.json", present: true, required: true }),
+        expect.objectContaining({ path: "release-check.md", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.md", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.json", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.html", present: true, required: true }),
+        expect.objectContaining({ path: "report-bundle/manifest.json", present: true }),
+        expect.objectContaining({ path: "evidence-summary.md", present: true, required: true }),
+        expect.objectContaining({ path: "known-gaps.md", present: true, required: true }),
+        expect.objectContaining({ path: "commands-run.md", present: true, required: true }),
+        expect.objectContaining({ path: "validation-summary.md", present: true, required: true }),
+        expect.objectContaining({ path: "no-protected-data.md", present: true, required: true }),
+      ]),
+    );
+    expect(manifest.files.map((file) => file.path).join("\n")).not.toContain("trace");
+    expect(manifest.validationCommands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          command: "pnpm verify:local",
+          status: "recorded-not-executed-by-release-check",
+        }),
+        expect.objectContaining({ command: "pnpm --silent krn release-check --bundle" }),
+        expect.objectContaining({ command: "git diff --check" }),
+      ]),
+    );
+    expect(evidenceSummary).toContain("Production proof: false");
+    expect(evidenceSummary).toContain("Hook trust: unproven");
+    expect(evidenceSummary).toContain("Historical caveats: 1");
+    expect(commandsRun).toContain("does not execute shell validation");
+    expect(knownGaps).toContain("`productionProof` remains `false`");
+    expect(knownGaps).toContain("Hook trust remains unproven");
+    expect(noProtectedData).toContain("`.env`");
+    expect(noProtectedData).toContain("raw trace dumps");
+    expect(bundleHtml).not.toMatch(/https?:\/\//);
+    await expectFile(cwd, ".krn/current/release-bundle/validation-summary.json");
+    await expectFile(cwd, ".krn/current/release-bundle/evidence-summary.json");
+  });
+
   it("fails release readiness when required local contracts are missing", async () => {
     const result = await runInTemp(["release-check", "--json"]);
     const releaseCheck = JSON.parse(result.stdout) as ReleaseCheckFixture;
@@ -969,10 +1143,12 @@ describe("krn CLI", () => {
   }, 20_000);
 
   it("writes a skipped real-repo dogfood report when approval env is missing", async () => {
+    const artifactRoot = await mkdtemp(path.join(os.tmpdir(), "krn-real-dogfood-artifacts-"));
     const { result, summary } = runRealRepoDogfood({
       KRN_REAL_REPO_DOGFOOD_RUN_ID: "test-missing-env",
       KRN_REAL_REPO_DOGFOOD_PATH: "",
       KRN_REAL_REPO_DOGFOOD_APPROVED: "",
+      KRN_REAL_REPO_DOGFOOD_ARTIFACT_ROOT: artifactRoot,
     });
 
     expect(result.status).toBe(0);
@@ -1002,21 +1178,25 @@ describe("krn CLI", () => {
         "set_KRN_REAL_REPO_DOGFOOD_APPROVED",
       ]),
     );
-    expect(summary.summaryJsonPath).toContain(".krn/dogfood/real-repo-skipped/test-missing-env");
-    await expectFile(process.cwd(), ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md");
+    expect(summary.summaryJsonPath).toBe(
+      path.join(artifactRoot, ".krn/dogfood/real-repo-skipped/test-missing-env/summary.json"),
+    );
+    await expectFile(artifactRoot, ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md");
     await expect(
       readFile(
-        path.join(process.cwd(), ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md"),
+        path.join(artifactRoot, ".krn/dogfood/real-repo-skipped/test-missing-env/summary.md"),
         "utf8",
       ),
     ).resolves.toContain("Skipped and readiness reports are not real-repo validation.");
   });
 
-  it("blocks real-repo dogfood when preflight rejects the source checkout", () => {
+  it("blocks real-repo dogfood when preflight rejects the source checkout", async () => {
+    const artifactRoot = await mkdtemp(path.join(os.tmpdir(), "krn-real-dogfood-artifacts-"));
     const { result, summary } = runRealRepoDogfood({
       KRN_REAL_REPO_DOGFOOD_RUN_ID: "test-source-checkout",
       KRN_REAL_REPO_DOGFOOD_PATH: process.cwd(),
       KRN_REAL_REPO_DOGFOOD_APPROVED: "1",
+      KRN_REAL_REPO_DOGFOOD_ARTIFACT_ROOT: artifactRoot,
     });
 
     expect(result.status).toBe(0);
@@ -1024,8 +1204,8 @@ describe("krn CLI", () => {
     expect(summary.preflightEligible).toBe(false);
     expect(summary.blockers).toContain("repo_path_is_krn_source_checkout");
     expect(summary.pinnedKrnPath).toBeNull();
-    expect(summary.summaryJsonPath).toContain(
-      ".krn/dogfood/real-repo-skipped/test-source-checkout",
+    expect(summary.summaryJsonPath).toBe(
+      path.join(artifactRoot, ".krn/dogfood/real-repo-skipped/test-source-checkout/summary.json"),
     );
   });
 
@@ -2582,6 +2762,136 @@ markdown: .krn/graph/repo-graph.md
     const handoffMarkdown = await readFile(path.join(cwd, ".krn/current/handoff.md"), "utf8");
     expect(handoffMarkdown).toContain("## Verify");
     expect(handoffMarkdown).toContain("Status: pass");
+  });
+
+  it("runs product-code tax fixture with localized context and report classification", async () => {
+    const cwd = await copyFixtureRepo("product-code-dogfood");
+    await mkdir(path.join(cwd, "fixtures", "dogfood", "tasks"), { recursive: true });
+    await writeFile(
+      path.join(cwd, "fixtures", "dogfood", "tasks", "product-code-tax-dogfood.json"),
+      await readFile(
+        path.join(process.cwd(), "fixtures", "dogfood", "tasks", "product-code-tax-dogfood.json"),
+        "utf8",
+      ),
+      "utf8",
+    );
+
+    spawnSync("git", ["init", "-q"], { cwd, encoding: "utf8" });
+    spawnSync("git", ["add", "."], { cwd, encoding: "utf8" });
+    spawnSync(
+      "git",
+      [
+        "-c",
+        "user.email=krn@example.invalid",
+        "-c",
+        "user.name=KRN Test",
+        "commit",
+        "-q",
+        "-m",
+        "fixture baseline",
+      ],
+      { cwd, encoding: "utf8" },
+    );
+
+    await expect(
+      runInCwd(cwd, [
+        "start",
+        "--task-spec",
+        "fixtures/dogfood/tasks/product-code-tax-dogfood.json",
+      ]),
+    ).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["graph"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["context"])).resolves.toMatchObject({ code: 0 });
+
+    const contextJson = await readJson<{
+      buckets: {
+        mustRead: Array<{ path: string; selector?: string }>;
+        shouldRead: Array<{ path: string; selector?: string }>;
+        referenceOnly: Array<{ path: string; selector?: string }>;
+        doNotUse: Array<{ path: string; selector?: string }>;
+      };
+    }>(cwd, ".krn/current/context-package.json");
+    const activePaths = [
+      ...contextJson.buckets.mustRead.map((item) => item.path),
+      ...contextJson.buckets.shouldRead.map((item) => item.path),
+      ...contextJson.buckets.referenceOnly.map((item) => item.path),
+    ];
+
+    expect(contextJson.buckets.mustRead).toContainEqual(
+      expect.objectContaining({
+        path: "src/regional-tax.ts",
+        selector: "expected-touched-file",
+      }),
+    );
+    expect(contextJson.buckets.shouldRead).toContainEqual(
+      expect.objectContaining({
+        path: "src/regional-tax.test.ts",
+        selector: "explicit-task-path",
+      }),
+    );
+    expect(contextJson.buckets.referenceOnly).toContainEqual(
+      expect.objectContaining({
+        path: "docs/current-tax.md",
+        selector: "package-owned-doc",
+      }),
+    );
+    expect(contextJson.buckets.doNotUse).toContainEqual(
+      expect.objectContaining({
+        path: "docs/stale-tax.md",
+        selector: "required-do-not-use-path",
+      }),
+    );
+    expect(activePaths).not.toContain("src/index.ts");
+    expect(activePaths).not.toContain("src/index.test.ts");
+    expect(activePaths).not.toContain("docs/stale-tax.md");
+
+    const failingVerify = await runInCwd(cwd, ["verify", "--profile", "tax", "--execute"]);
+    expect(failingVerify.code).toBe(0);
+    expect(failingVerify.stdout).toContain("KRN verify: fail");
+
+    await writeFile(
+      path.join(cwd, "src", "regional-tax.ts"),
+      [
+        'export type TaxRegion = "standard" | "reduced";',
+        "",
+        "const rates: Record<TaxRegion, number> = {",
+        "  standard: 0.075,",
+        "  reduced: 0.025,",
+        "};",
+        "",
+        "export function calculateRegionalTax(cents: number, region: TaxRegion): number {",
+        "  return Math.round(cents * rates[region]);",
+        "}",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const passingVerify = await runInCwd(cwd, ["verify", "--profile", "tax", "--execute"]);
+    expect(passingVerify.code).toBe(0);
+    expect(passingVerify.stdout).toContain("KRN verify: pass");
+    await expect(runInCwd(cwd, ["handoff"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["review", "--write"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["summary", "--write"])).resolves.toMatchObject({ code: 0 });
+    await expect(runInCwd(cwd, ["report", "--write"])).resolves.toMatchObject({ code: 0 });
+
+    const diff = spawnSync("git", ["diff", "--name-only"], { cwd, encoding: "utf8" });
+    expect(diff.stdout.trim()).toBe("src/regional-tax.ts");
+    await expect(readJson(cwd, ".krn/current/verify-result.json")).resolves.toMatchObject({
+      status: "pass",
+      mode: "execute",
+      profileName: "tax",
+      summary: { executedCommands: 1 },
+      executedCommands: ["node src/regional-tax.test.ts"],
+    });
+    await expect(readJson(cwd, ".krn/current/operator-report.json")).resolves.toMatchObject({
+      schema: "krn-operator-report-v1",
+      task: {
+        classification: "implementation",
+      },
+      productionProof: { value: false },
+      hookTrust: { status: "unproven" },
+    });
   });
 
   it("handles Codex hook events with deterministic trace output", async () => {
@@ -4167,7 +4477,7 @@ markdown: .krn/graph/repo-graph.md
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 22,
+      passCount: 25,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
@@ -4184,6 +4494,7 @@ markdown: .krn/graph/repo-graph.md
       "missing-context-stop",
       "downstream-basic-package-context",
       "product-code-test-dogfood",
+      "product-code-tax-dogfood",
     ]);
     expect(evalJson.fixtures.every((fixture) => fixture.status === "pass")).toBe(true);
     expect(evalMarkdown).toContain("### frontend-section-context");
@@ -4219,8 +4530,8 @@ markdown: .krn/graph/repo-graph.md
         name: "eval.ran",
         data: {
           status: "pass",
-          fixtures: 5,
-          passCount: 22,
+          fixtures: 6,
+          passCount: 25,
           failCount: 0,
           downstreamStatus: "pass",
           verifyStatus: "pass",

@@ -48,6 +48,11 @@ export const harnessFixtures: EvalFixture[] = [
     taskPath: "fixtures/tasks/product-code-test-dogfood.json",
     repoPath: "fixtures/repos/product-code-dogfood",
   },
+  {
+    name: "product-code-tax-dogfood",
+    taskPath: "fixtures/tasks/product-code-tax-dogfood.json",
+    repoPath: "fixtures/repos/product-code-dogfood",
+  },
 ];
 
 export async function loadEvalTaskFixture(
