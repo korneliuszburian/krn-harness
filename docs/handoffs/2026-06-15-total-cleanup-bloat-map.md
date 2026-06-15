@@ -3,7 +3,7 @@
 ## Scope
 
 - Baseline source floor: `de38cd06b09cd7a2a684a82cd3710919ba74dc55` or newer.
-- Source files inspected: `398` (tracked: `377`, new source-intended untracked: `21`).
+- Source files inspected: `405` (tracked: `398`, new source-intended untracked: `7`).
 - Protected scratch observed but not content-read or staged: `5`.
 - Audit status vocabulary is binary: `FLAGGED` means active burn-down risk/intentional quarantine; `NOT FLAGGED` means inspected with no active burn-down flag.
 - Runtime `.krn/**`, `node_modules/**`, and protected scratch files are excluded from content inspection.
@@ -13,13 +13,13 @@
 - Inventory: `git ls-files`, `git ls-files --others --exclude-standard`, and `git status --short --branch`.
 - Content: every source file listed in the complete ledger was opened and read by the audit generator.
 - Classification: line count, path role, tracked/source-untracked source, prior bloat-map membership, and current P0 scope risk.
-- Manual review: all `FLAGGED` files and all split CLI/doc/script clusters were reviewed directly during the burn-down.
+- Manual review: all `FLAGGED` files and all split CLI/doc/script/eval clusters were reviewed directly during the burn-down.
 
 ## Summary
 
-- Inspected source files `398`.
-- `FLAGGED`: `9`.
-- `NOT FLAGGED`: `389`.
+- Inspected source files `405`.
+- `FLAGGED`: `8`.
+- `NOT FLAGGED`: `397`.
 - Target met: active tracked/source flagged count is `<= 10`.
 - Remaining flags are intentional quarantines or protected/generated ownership boundaries.
 
@@ -32,7 +32,6 @@
 | `packages/context/src/build-context-package.ts` | tracked | source | 1090 | FLAGGED | quarantined context algorithm monolith; future characterization-backed extraction |
 | `packages/doctor/src/doctor.test.ts` | tracked | test | 1239 | FLAGGED | quarantined doctor characterization safety net paired with source monolith |
 | `packages/doctor/src/doctor.ts` | tracked | source | 1401 | FLAGGED | quarantined doctor implementation monolith; future characterization-backed extraction |
-| `packages/evals/src/run-eval.ts` | tracked | source | 1042 | FLAGGED | quarantined eval runner monolith; future fixture/status extraction |
 | `packages/hooks/src/codex-hook-entry.test.ts` | tracked | test | 708 | FLAGGED | quarantined hook characterization safety net paired with source monolith |
 | `packages/hooks/src/codex-hook-entry.ts` | tracked | source | 1119 | FLAGGED | quarantined hook semantics monolith; hook-trust work remains out of scope |
 | `pnpm-lock.yaml` | tracked | yaml | 1186 | FLAGGED | generated lockfile; inspect for size/ownership but do not hand-edit |
@@ -104,11 +103,12 @@
 | `docs/handoffs/2026-06-14-real-repo-dogfood-skipped.md` | tracked | handoff | 59 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
 | `docs/handoffs/2026-06-14-real-repo-executable-verify.md` | tracked | handoff | 265 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
 | `docs/handoffs/2026-06-14-real-repo-execution-result-schema.md` | tracked | handoff | 130 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
+| `docs/handoffs/2026-06-15-goal-8h-triage-and-run-eval-refactor.md` | source-untracked | handoff | 61 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
 | `docs/handoffs/2026-06-15-krn-llm-wiki-beta-install-config-smoke.md` | tracked | handoff | 39 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
 | `docs/handoffs/2026-06-15-product-code-dogfood-fixture.md` | tracked | handoff | 42 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
 | `docs/handoffs/2026-06-15-real-target-krn-run-product-code-proof.md` | tracked | handoff | 66 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
-| `docs/handoffs/2026-06-15-total-bloat-burn-down-plan.md` | source-untracked | handoff | 61 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
-| `docs/handoffs/2026-06-15-total-bloat-burn-down-result.md` | source-untracked | handoff | 80 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
+| `docs/handoffs/2026-06-15-total-bloat-burn-down-plan.md` | tracked | handoff | 61 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
+| `docs/handoffs/2026-06-15-total-bloat-burn-down-result.md` | tracked | handoff | 80 | NOT FLAGGED | full text read; historical/current handoff evidence artifact, no active burn-down flag |
 | `docs/handoffs/2026-06-15-total-cleanup-bloat-map.md` | tracked | handoff | 451 | NOT FLAGGED | full text read; complete generated audit artifact required by current goal |
 | `docs/product/evidence-matrix.md` | tracked | product-doc | 60 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
 | `docs/product/knowledge-condensation.md` | tracked | product-doc | 50 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
@@ -118,7 +118,7 @@
 | `docs/product/p0-exit-criteria.md` | tracked | product-doc | 45 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
 | `docs/product/p0-p1-decision.md` | tracked | product-doc | 84 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
 | `docs/product/p1-entry-contract.md` | tracked | product-doc | 45 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
-| `docs/product/refactor-backlog.md` | tracked | product-doc | 118 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
+| `docs/product/refactor-backlog.md` | tracked | product-doc | 129 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
 | `docs/product/research-backed-architecture.md` | tracked | product-doc | 98 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
 | `docs/product/reviewers.md` | tracked | product-doc | 93 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
 | `docs/product/stage-scorecard.md` | tracked | product-doc | 49 | NOT FLAGGED | full text read; documentation/canon role checked, no active burn-down flag |
@@ -260,7 +260,7 @@
 | `packages/cli/package.json` | tracked | json | 10 | NOT FLAGGED | full text read; json role checked, no active burn-down flag |
 | `packages/cli/src/artifact-scope.ts` | tracked | source | 202 | NOT FLAGGED | full text read; TypeScript/JavaScript source (202 lines), no active burn-down flag |
 | `packages/cli/src/bin.js` | tracked | source | 34 | NOT FLAGGED | full text read; TypeScript/JavaScript source (34 lines), no active burn-down flag |
-| `packages/cli/src/cli-test-utils.ts` | source-untracked | source | 452 | NOT FLAGGED | full text read; new split CLI source (452 lines); no active burn-down flag |
+| `packages/cli/src/cli-test-utils.ts` | tracked | source | 452 | NOT FLAGGED | full text read; TypeScript/JavaScript source (452 lines), no active burn-down flag |
 | `packages/cli/src/commands/artifacts.ts` | tracked | source | 310 | NOT FLAGGED | full text read; TypeScript/JavaScript source (310 lines), no active burn-down flag |
 | `packages/cli/src/commands/config.ts` | tracked | source | 332 | NOT FLAGGED | full text read; TypeScript/JavaScript source (332 lines), no active burn-down flag |
 | `packages/cli/src/commands/context.ts` | tracked | source | 36 | NOT FLAGGED | full text read; TypeScript/JavaScript source (36 lines), no active burn-down flag |
@@ -282,31 +282,31 @@
 | `packages/cli/src/commands/verify.ts` | tracked | source | 122 | NOT FLAGGED | full text read; TypeScript/JavaScript source (122 lines), no active burn-down flag |
 | `packages/cli/src/current-artifacts.test.ts` | tracked | test | 82 | NOT FLAGGED | full text read; focused test shard (82 lines), no active burn-down flag |
 | `packages/cli/src/current-artifacts.ts` | tracked | source | 141 | NOT FLAGGED | full text read; TypeScript/JavaScript source (141 lines), no active burn-down flag |
-| `packages/cli/src/current-flow.test.ts` | source-untracked | test | 800 | NOT FLAGGED | full text read; new split CLI test (800 lines); no active burn-down flag |
+| `packages/cli/src/current-flow.test.ts` | tracked | test | 800 | NOT FLAGGED | full text read; focused test shard (800 lines), no active burn-down flag |
 | `packages/cli/src/current-state.ts` | tracked | source | 61 | NOT FLAGGED | full text read; TypeScript/JavaScript source (61 lines), no active burn-down flag |
-| `packages/cli/src/downstream-install-config.test.ts` | source-untracked | test | 941 | NOT FLAGGED | full text read; new split CLI test (941 lines); no active burn-down flag |
-| `packages/cli/src/hooks-memory-flow.test.ts` | source-untracked | test | 524 | NOT FLAGGED | full text read; new split CLI test (524 lines); no active burn-down flag |
+| `packages/cli/src/downstream-install-config.test.ts` | tracked | test | 941 | NOT FLAGGED | full text read; focused test shard (941 lines), no active burn-down flag |
+| `packages/cli/src/hooks-memory-flow.test.ts` | tracked | test | 524 | NOT FLAGGED | full text read; focused test shard (524 lines), no active burn-down flag |
 | `packages/cli/src/identity.ts` | tracked | source | 99 | NOT FLAGGED | full text read; TypeScript/JavaScript source (99 lines), no active burn-down flag |
 | `packages/cli/src/index.test.ts` | tracked | test | 47 | NOT FLAGGED | full text read; focused test shard (47 lines), no active burn-down flag |
 | `packages/cli/src/index.ts` | tracked | source | 157 | NOT FLAGGED | full text read; TypeScript/JavaScript source (157 lines), no active burn-down flag |
 | `packages/cli/src/install-lifecycle.ts` | tracked | source | 380 | NOT FLAGGED | full text read; TypeScript/JavaScript source (380 lines), no active burn-down flag |
-| `packages/cli/src/memory-current-flow.test.ts` | source-untracked | test | 360 | NOT FLAGGED | full text read; new split CLI test (360 lines); no active burn-down flag |
-| `packages/cli/src/operator-report-render.ts` | source-untracked | source | 201 | NOT FLAGGED | full text read; new split CLI source (201 lines); no active burn-down flag |
+| `packages/cli/src/memory-current-flow.test.ts` | tracked | test | 360 | NOT FLAGGED | full text read; focused test shard (360 lines), no active burn-down flag |
+| `packages/cli/src/operator-report-render.ts` | tracked | source | 201 | NOT FLAGGED | full text read; TypeScript/JavaScript source (201 lines), no active burn-down flag |
 | `packages/cli/src/operator-report.ts` | tracked | source | 315 | NOT FLAGGED | full text read; TypeScript/JavaScript source (315 lines), no active burn-down flag |
-| `packages/cli/src/operator-summary-problems.ts` | source-untracked | source | 105 | NOT FLAGGED | full text read; new split CLI source (105 lines); no active burn-down flag |
-| `packages/cli/src/operator-summary-real-repo.ts` | source-untracked | source | 273 | NOT FLAGGED | full text read; new split CLI source (273 lines); no active burn-down flag |
-| `packages/cli/src/operator-summary-render.ts` | source-untracked | source | 74 | NOT FLAGGED | full text read; new split CLI source (74 lines); no active burn-down flag |
+| `packages/cli/src/operator-summary-problems.ts` | tracked | source | 105 | NOT FLAGGED | full text read; TypeScript/JavaScript source (105 lines), no active burn-down flag |
+| `packages/cli/src/operator-summary-real-repo.ts` | tracked | source | 273 | NOT FLAGGED | full text read; TypeScript/JavaScript source (273 lines), no active burn-down flag |
+| `packages/cli/src/operator-summary-render.ts` | tracked | source | 74 | NOT FLAGGED | full text read; TypeScript/JavaScript source (74 lines), no active burn-down flag |
 | `packages/cli/src/operator-summary.ts` | tracked | source | 525 | NOT FLAGGED | full text read; TypeScript/JavaScript source (525 lines), no active burn-down flag |
-| `packages/cli/src/real-repo-dogfood.test.ts` | source-untracked | test | 340 | NOT FLAGGED | full text read; new split CLI test (340 lines); no active burn-down flag |
-| `packages/cli/src/real-repo-review-summary.test.ts` | source-untracked | test | 696 | NOT FLAGGED | full text read; new split CLI test (696 lines); no active burn-down flag |
-| `packages/cli/src/release-check-bundle.ts` | source-untracked | source | 374 | NOT FLAGGED | full text read; new split CLI source (374 lines); no active burn-down flag |
-| `packages/cli/src/report-release.test.ts` | source-untracked | test | 586 | NOT FLAGGED | full text read; new split CLI test (586 lines); no active burn-down flag |
-| `packages/cli/src/review-args.ts` | source-untracked | source | 39 | NOT FLAGGED | full text read; new split CLI source (39 lines); no active burn-down flag |
-| `packages/cli/src/review-dogfood.ts` | source-untracked | source | 178 | NOT FLAGGED | full text read; new split CLI source (178 lines); no active burn-down flag |
-| `packages/cli/src/review-render.ts` | source-untracked | source | 51 | NOT FLAGGED | full text read; new split CLI source (51 lines); no active burn-down flag |
-| `packages/cli/src/run-artifacts.ts` | source-untracked | source | 137 | NOT FLAGGED | full text read; new split CLI source (137 lines); no active burn-down flag |
-| `packages/cli/src/run-command.test.ts` | source-untracked | test | 342 | NOT FLAGGED | full text read; new split CLI test (342 lines); no active burn-down flag |
-| `packages/cli/src/run-result-builder.ts` | source-untracked | source | 194 | NOT FLAGGED | full text read; new split CLI source (194 lines); no active burn-down flag |
+| `packages/cli/src/real-repo-dogfood.test.ts` | tracked | test | 340 | NOT FLAGGED | full text read; focused test shard (340 lines), no active burn-down flag |
+| `packages/cli/src/real-repo-review-summary.test.ts` | tracked | test | 696 | NOT FLAGGED | full text read; focused test shard (696 lines), no active burn-down flag |
+| `packages/cli/src/release-check-bundle.ts` | tracked | source | 374 | NOT FLAGGED | full text read; TypeScript/JavaScript source (374 lines), no active burn-down flag |
+| `packages/cli/src/report-release.test.ts` | tracked | test | 586 | NOT FLAGGED | full text read; focused test shard (586 lines), no active burn-down flag |
+| `packages/cli/src/review-args.ts` | tracked | source | 39 | NOT FLAGGED | full text read; TypeScript/JavaScript source (39 lines), no active burn-down flag |
+| `packages/cli/src/review-dogfood.ts` | tracked | source | 178 | NOT FLAGGED | full text read; TypeScript/JavaScript source (178 lines), no active burn-down flag |
+| `packages/cli/src/review-render.ts` | tracked | source | 51 | NOT FLAGGED | full text read; TypeScript/JavaScript source (51 lines), no active burn-down flag |
+| `packages/cli/src/run-artifacts.ts` | tracked | source | 137 | NOT FLAGGED | full text read; TypeScript/JavaScript source (137 lines), no active burn-down flag |
+| `packages/cli/src/run-command.test.ts` | tracked | test | 342 | NOT FLAGGED | full text read; focused test shard (342 lines), no active burn-down flag |
+| `packages/cli/src/run-result-builder.ts` | tracked | source | 194 | NOT FLAGGED | full text read; TypeScript/JavaScript source (194 lines), no active burn-down flag |
 | `packages/cli/src/run-result.ts` | tracked | source | 134 | NOT FLAGGED | full text read; TypeScript/JavaScript source (134 lines), no active burn-down flag |
 | `packages/cli/src/run-trace.ts` | tracked | source | 217 | NOT FLAGGED | full text read; TypeScript/JavaScript source (217 lines), no active burn-down flag |
 | `packages/cli/src/runtime.ts` | tracked | source | 31 | NOT FLAGGED | full text read; TypeScript/JavaScript source (31 lines), no active burn-down flag |
@@ -366,8 +366,14 @@
 | `packages/evals/src/graders/types.ts` | tracked | source | 6 | NOT FLAGGED | full text read; TypeScript/JavaScript source (6 lines), no active burn-down flag |
 | `packages/evals/src/harness-only.ts` | tracked | source | 5 | NOT FLAGGED | full text read; TypeScript/JavaScript source (5 lines), no active burn-down flag |
 | `packages/evals/src/index.ts` | tracked | source | 12 | NOT FLAGGED | full text read; TypeScript/JavaScript source (12 lines), no active burn-down flag |
+| `packages/evals/src/run-eval-core.ts` | source-untracked | source | 154 | NOT FLAGGED | full text read; new split eval source (154 lines); no active burn-down flag |
+| `packages/evals/src/run-eval-hook-validator.ts` | source-untracked | source | 225 | NOT FLAGGED | full text read; new split eval source (225 lines); no active burn-down flag |
+| `packages/evals/src/run-eval-memory-validator.ts` | source-untracked | source | 189 | NOT FLAGGED | full text read; new split eval source (189 lines); no active burn-down flag |
+| `packages/evals/src/run-eval-reporters.ts` | source-untracked | source | 81 | NOT FLAGGED | full text read; new split eval source (81 lines); no active burn-down flag |
+| `packages/evals/src/run-eval-types.ts` | source-untracked | source | 29 | NOT FLAGGED | full text read; new split eval source (29 lines); no active burn-down flag |
+| `packages/evals/src/run-eval-validators.ts` | source-untracked | source | 385 | NOT FLAGGED | full text read; new split eval source (385 lines); no active burn-down flag |
 | `packages/evals/src/run-eval.test.ts` | tracked | test | 210 | NOT FLAGGED | full text read; focused test shard (210 lines), no active burn-down flag |
-| `packages/evals/src/run-eval.ts` | tracked | source | 1042 | FLAGGED | quarantined eval runner monolith; future fixture/status extraction |
+| `packages/evals/src/run-eval.ts` | tracked | source | 3 | NOT FLAGGED | full text read; TypeScript/JavaScript source (3 lines), no active burn-down flag |
 | `packages/evals/src/wp-acf-index-benchmark.test.ts` | tracked | test | 87 | NOT FLAGGED | full text read; focused test shard (87 lines), no active burn-down flag |
 | `packages/evals/src/wp-acf-index-benchmark.ts` | tracked | source | 862 | NOT FLAGGED | full text read; TypeScript/JavaScript source (862 lines), no active burn-down flag |
 | `packages/graph/package.json` | tracked | json | 7 | NOT FLAGGED | full text read; json role checked, no active burn-down flag |

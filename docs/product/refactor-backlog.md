@@ -89,6 +89,17 @@ Stop condition:
 
 ## `packages/evals/src/run-eval.ts`
 
+Status: resolved 2026-06-15 by splitting the eval runner into:
+
+- `run-eval-core.ts` for orchestration;
+- `run-eval-reporters.ts` for Markdown rendering;
+- `run-eval-validators.ts` for graph/downstream/verify validators;
+- `run-eval-hook-validator.ts` for hook guardrail fixture validation;
+- `run-eval-memory-validator.ts` for memory governance validation;
+- `run-eval-types.ts` for shared result types.
+
+Keep the notes below as the extraction rationale and regression boundary.
+
 Current responsibility:
 
 - loads fixtures, runs context/eval graders, checks graph/downstream/verify/hook/memory/trace coverage, and renders eval artifacts.
