@@ -408,6 +408,29 @@ describe("P0 docs anti-regression", () => {
     expect(helpText).not.toContain("--compare-baseline");
   });
 
+  it("keeps context budget deterministic and free of retrieval scope creep", async () => {
+    const contextSpec = await readDoc("docs/specs/context-package.schema.md");
+    const contextAdr = await readDoc("docs/adr/ADR-0022-context-budget-manager.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+    const traceSpec = await readDoc("docs/specs/trace.schema.md");
+
+    expect(contextSpec).toContain("maxTokens");
+    expect(contextSpec).toContain("chars-div-4-v1");
+    expect(contextSpec).toContain("task-contract-and-safety-before-memory-before-graph");
+    expect(contextSpec).toContain("does not read full files");
+    expect(contextSpec).toContain("use embeddings, or use a vector DB");
+    expect(contextSpec).toContain("protected evidence alone exceeds `maxTokens`");
+    expect(contextAdr).toContain("Add a deterministic context budget manager");
+    expect(contextAdr).toContain("default max budget is 8,000 estimated tokens");
+    expect(contextAdr).toContain("Pruning keeps safety and task-owned evidence");
+    expect(contextAdr).toContain('status: "over-budget"');
+    expect(contextAdr).toContain("Lost in the Middle");
+    expect(goalRoadmap).toContain("TASK-006 context budget manager");
+    expect(goalRoadmap).toContain("No tokenizer dependency, embeddings, vector DB");
+    expect(traceSpec).toContain("context.built");
+    expect(traceSpec).toContain("budgetStatus");
+  });
+
   it("keeps run interrupt/resume local, deferred, and behind CLI approval", async () => {
     const interruptSpec = await readDoc("docs/specs/run-interrupt-resume.md");
     const interruptAdr = await readDoc("docs/adr/ADR-0020-run-interrupt-resume-contract.md");

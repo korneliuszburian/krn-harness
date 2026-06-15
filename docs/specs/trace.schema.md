@@ -28,6 +28,9 @@ When a current task exists, P0 loop commands also append the same event to `.krn
 
 The active run pointer is `.krn/current/run.json`. It records `taskId`, `runDir`, `tracePath`, `runMetadataPath`, and the current artifact paths for task contract, graph artifact, context package, verify result, handoff, doctor result, eval result, review summary, and operator summary.
 
+`context.built` records context STOP state and compact budget evidence:
+`budgetStatus`, `estimatedTokens`, `retainedTokens`, and `prunedItems`.
+
 Minimal run metadata:
 
 - `schemaVersion`

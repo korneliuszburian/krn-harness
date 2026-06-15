@@ -30,6 +30,16 @@ The context package identifies the smallest high-value context Codex should read
 - `coverage`: P0 scoring placeholders for required/present/missing counts, confidence, and over-inclusion risk.
 - `compactness`: deterministic Markdown item budgets plus total, visible, and hidden item counts.
 - `overInclusion`: deterministic P0 metrics with active/reference/total item counts, score, risk, and reason codes.
+- `budget`: deterministic context budget evidence:
+  - `maxTokens`: declared max estimated tokens for this context package
+  - `estimatedTokens`: estimated tokens before pruning
+  - `retainedTokens`: estimated tokens retained after pruning
+  - `prunedTokens`: estimated tokens removed by pruning
+  - `status`: `within-budget`, `pruned`, or `over-budget`
+  - `estimator`: `chars-div-4-v1`
+  - `itemCountBefore` and `itemCountAfter`
+  - `prunedItems`: compact summaries of items removed by budget pressure
+  - `retentionPolicy`: `task-contract-and-safety-before-memory-before-graph`
 - `stop`: whether edits must stop.
 - `stopReason`: optional STOP explanation.
 
@@ -40,6 +50,15 @@ P0 writes `.krn/current/context-package.md` and `.krn/current/context-package.js
 JSON remains the full machine artifact. Markdown is the compact operator artifact: each bucket renders a summary and only its deterministic Markdown budget, then points to JSON when additional items are hidden. Default Markdown budgets are `mustRead: 8`, `shouldRead: 8`, `referenceOnly: 6`, `doNotUse: 8`, and `missingContext: 8`.
 
 Over-inclusion metrics are deterministic counters only. They do not change selector semantics or ranking; they make noisy context packages visible to the operator.
+
+The budget manager is deterministic and approximate. It estimates context item
+metadata with `chars-div-4-v1`, defaults to `maxTokens: 8000`, and records
+whether pruning occurred. It does not read full files, call model/tokenizer APIs,
+use embeddings, or use a vector DB. Budget pruning must retain `do-not-use` and
+`missingContext` safety evidence before optional active/reference context.
+Base repo context plus task-contract and task-policy evidence are also protected
+from pruning. If protected evidence alone exceeds `maxTokens`, the package
+records `status: over-budget` rather than hiding those boundaries.
 
 Graph selector matching is shallow and deterministic. Generic terms such as `section` are treated as too broad for graph promotion. P0 does not normalize Polish morphology or perform semantic search.
 

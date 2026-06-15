@@ -24,6 +24,10 @@ export async function contextCommand(runtime: CliRuntime): Promise<number> {
     runScoped: true,
     data: {
       stop: pkg.stop,
+      budgetStatus: pkg.budget.status,
+      estimatedTokens: pkg.budget.estimatedTokens,
+      retainedTokens: pkg.budget.retainedTokens,
+      prunedItems: pkg.budget.prunedItems.length,
     },
   });
 

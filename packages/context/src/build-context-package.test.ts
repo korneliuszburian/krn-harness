@@ -1256,4 +1256,49 @@ describe("context package", () => {
     expect(markdown).toContain("approved: 2026-06-03T00:01:00.000Z");
     expect(markdown).toContain("evidence: docs/specs/graph-lite.md");
   });
+
+  it("records context budget and prunes low-priority graph context under a tight cap", () => {
+    const contract = buildTaskContract("Harden alpha package with approved memory");
+    const memory = approvedMemory(
+      "Alpha package memory should survive budget pressure",
+      "docs/specs/memory.schema.md",
+    );
+    const graph = {
+      nodes: [
+        {
+          id: "package:packages/alpha",
+          kind: "package",
+          label: "alpha",
+          evidencePath: "packages/alpha",
+        },
+        ...Array.from({ length: 5 }, (_, index) => ({
+          id: `source-file:packages/alpha/src/file-${index}.ts`,
+          kind: "source-file" as const,
+          label: `packages/alpha/src/file-${index}.ts`,
+          evidencePath: `packages/alpha/src/file-${index}.ts`,
+        })),
+      ],
+      edges: Array.from({ length: 5 }, (_, index) => ({
+        from: "package:packages/alpha",
+        to: `source-file:packages/alpha/src/file-${index}.ts`,
+        kind: "owns-source" as const,
+        evidencePath: `packages/alpha/src/file-${index}.ts`,
+      })),
+    } satisfies GraphLite;
+    const pkg = buildContextPackage(contract, graph, {
+      approvedMemory: [memory],
+      maxTokens: 160,
+    });
+    const markdown = renderContextPackageMarkdown(pkg);
+
+    expect(pkg.budget.status).toBe("pruned");
+    expect(pkg.budget.maxTokens).toBe(160);
+    expect(pkg.budget.prunedItems.length).toBeGreaterThan(0);
+    expect(pkg.budget.prunedItems.every((item) => item.source === "graph")).toBe(true);
+    expect(pkg.buckets.mustRead.map((item) => item.path)).toContain("AGENTS.md");
+    expect(pkg.buckets.referenceOnly.map((item) => item.path)).toContain(
+      `.krn/memory/approved.json#${memory.id}`,
+    );
+    expect(markdown).toContain("Budget: pruned");
+  });
 });

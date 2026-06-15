@@ -59,9 +59,10 @@ contracts.
 
 Future GOAL-8H ADR numbering shifts: ADR-0019 is now reserved for the queryable
 trace read model, ADR-0020 is now reserved for the run interrupt/resume
-contract, and ADR-0021 is now reserved for the eval regression baseline, so the
-context-poisoning ADR planned in the GOAL-8H backlog should use ADR-0022 unless
-another accepted ADR claims that number first.
+contract, ADR-0021 is now reserved for the eval regression baseline, and
+ADR-0022 is now reserved for the context budget manager, so the context-poisoning
+ADR planned in the GOAL-8H backlog should use ADR-0023 unless another accepted
+ADR claims that number first.
 
 ## Alternatives Considered
 

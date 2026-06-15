@@ -7,13 +7,15 @@ export type ContextBucket =
 
 export type ContextItemStatus = "available" | "deprecated" | "missing";
 
+export type ContextItemSource = "base" | "graph" | "memory" | "task-contract" | "task-policy";
+
 export interface ContextItem {
   path: string;
   reason: string;
   priority: number;
   bucket: ContextBucket;
   status: ContextItemStatus;
-  source?: "base" | "graph" | "memory" | "task-contract" | "task-policy" | undefined;
+  source?: ContextItemSource | undefined;
   selector?: string | undefined;
   matchedTerms?: string[] | undefined;
   relationKind?: string | undefined;
@@ -86,6 +88,30 @@ export interface ContextOverInclusionMetrics {
   reasons: string[];
 }
 
+export type ContextBudgetStatus = "within-budget" | "pruned" | "over-budget";
+
+export interface ContextBudgetPrunedItem {
+  path: string;
+  bucket: ContextBucket;
+  source?: ContextItemSource | undefined;
+  selector?: string | undefined;
+  estimatedTokens: number;
+  reason: "context-budget-pruned";
+}
+
+export interface ContextBudget {
+  maxTokens: number;
+  estimatedTokens: number;
+  retainedTokens: number;
+  prunedTokens: number;
+  status: ContextBudgetStatus;
+  estimator: "chars-div-4-v1";
+  itemCountBefore: number;
+  itemCountAfter: number;
+  prunedItems: ContextBudgetPrunedItem[];
+  retentionPolicy: "task-contract-and-safety-before-memory-before-graph";
+}
+
 export interface ContextPackage {
   taskId?: string | undefined;
   items: ContextItem[];
@@ -94,6 +120,7 @@ export interface ContextPackage {
   coverage: ContextCoverage;
   compactness: ContextCompactness;
   overInclusion: ContextOverInclusionMetrics;
+  budget: ContextBudget;
   stop: boolean;
   stopReason?: string | undefined;
 }

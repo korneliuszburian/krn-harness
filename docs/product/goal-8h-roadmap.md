@@ -29,12 +29,12 @@ this roadmap state.
 | TASK-003 interrupt/resume | ADR/spec accepted; implementation deferred | ADR-0020; explicit CLI-surface approval before code |
 | TASK-004 structured hook output validation | Deferred | Depends on TASK-001 and real hook trust evidence |
 | TASK-005 eval regression baseline | Done | ADR-0021; rolling baseline artifact; no CLI flag |
-| TASK-006 context budget manager | Deferred | Context spec update; no embeddings/vector DB |
+| TASK-006 context budget manager | Done | ADR-0022; deterministic context budget; no embeddings/vector DB |
 | TASK-007 run-eval refactor | Done | Commit `765f33a`; keep validation passing |
 | TASK-008 real non-bypass hook trust proof | Deferred | Disposable non-protected target; no production claim |
 | TASK-009 graph-lite dependency evidence | Deferred | Graph-lite contract update; no full AST/callgraph |
 | TASK-010 skill invocation docs | Deferred | Redo intentionally as a docs-only slice |
-| TASK-011 context poisoning defense | Deferred | ADR-0022 unless numbering changes |
+| TASK-011 context poisoning defense | Deferred | ADR-0023 unless numbering changes |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
 | TASK-013 downstream AGENTS quality gate | Deferred | Install lifecycle tests before template changes |
 
@@ -77,6 +77,15 @@ this roadmap state.
   `.krn/current/eval-baseline.json`.
 - No `krn eval --compare-baseline` flag, Codex runner, dashboard, MCP, vector
   DB, hook trust claim, or production proof is added.
+
+## TASK-006 Acceptance
+
+- ADR-0022 records deterministic context budget policy.
+- Context package JSON includes `budget` with max, estimated, retained, pruned,
+  status, estimator, item counts, pruned item summaries, and retention policy.
+- `krn context` emits budget status in `context.built` trace payloads.
+- No tokenizer dependency, embeddings, vector DB, semantic retrieval, new CLI
+  command, hook trust claim, or production proof is added.
 
 ## Proof Commands
 

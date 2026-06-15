@@ -21,6 +21,7 @@ export function renderContextPackageMarkdown(pkg: ContextPackage): string {
     `Missing: ${pkg.coverage.missing}`,
     `Items: ${pkg.compactness.totalItems} total, ${pkg.compactness.markdownVisibleItems} shown, ${pkg.compactness.markdownHiddenItems} hidden from markdown`,
     `Over-inclusion: ${pkg.overInclusion.risk} (score ${pkg.overInclusion.score}, active ${pkg.overInclusion.activeItems}, reference ${pkg.overInclusion.referenceOnlyItems})`,
+    `Budget: ${pkg.budget.status}, ${pkg.budget.retainedTokens}/${pkg.budget.maxTokens} estimated tokens retained (${pkg.budget.prunedItems.length} pruned)`,
   ];
 
   if (pkg.stopReason) {

@@ -1,6 +1,7 @@
 import type { GraphLite } from "../../graph/src/index.js";
 import type { MemoryRecord } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
+import { applyContextBudget } from "./budget-manager.js";
 import {
   explicitlyRequestsMemory,
   hasExplicitMemoryOptOut,
@@ -22,6 +23,7 @@ import { shouldStop } from "./stop-policy.js";
 
 export interface BuildContextPackageOptions {
   approvedMemory?: MemoryRecord[] | undefined;
+  maxTokens?: number | undefined;
 }
 
 interface ContextSelectionHints {
@@ -1057,7 +1059,7 @@ export function buildContextPackage(
 ): ContextPackage {
   const task = contract?.task ?? "";
   const selectionHints = selectionHintsFor(contract);
-  const items = rankContext(
+  const itemsBeforeBudget = rankContext(
     dedupeItems([
       ...baseItems(),
       ...taskPolicyItems(task),
@@ -1067,6 +1069,11 @@ export function buildContextPackage(
       ...memoryItemsForTask(task, options.approvedMemory),
     ]),
   );
+  const budgeted = applyContextBudget({
+    items: itemsBeforeBudget,
+    maxTokens: options.maxTokens,
+  });
+  const items = rankContext(budgeted.items);
   const buckets = bucketItems(items);
   const bucketSummaries = bucketSummariesFor(buckets);
   const overInclusion = overInclusionFor(buckets);
@@ -1079,6 +1086,7 @@ export function buildContextPackage(
     coverage: coverageFor(buckets, overInclusion),
     compactness: compactnessFor(bucketSummaries),
     overInclusion,
+    budget: budgeted.budget,
     stop: stop.stop,
   };
 
