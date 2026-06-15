@@ -17,6 +17,8 @@ describe("P0 docs anti-regression", () => {
 
     for (const command of helpCommands) {
       const commandPrefix = command
+        .replace(' --task "<task>" [--dry-run] [--json] [--execute-verify] [--bundle]', " --task")
+        .replace(" --task-spec <json> [--execute-verify] [--bundle]", " --task-spec")
         .replace(' "<task>"', "")
         .replace(" [--profile <name>] [--execute]", "")
         .replace(" <command>", "")
@@ -194,6 +196,7 @@ describe("P0 docs anti-regression", () => {
     const scorecard = await readDoc("docs/product/stage-scorecard.md");
     const decision = await readDoc("docs/product/p0-p1-decision.md");
     const reviewers = await readDoc("docs/product/reviewers.md");
+    const runResultSchema = await readDoc("docs/specs/run-result.schema.md");
     const operatorSummarySchema = await readDoc("docs/specs/operator-summary.schema.md");
     const operatorReportSchema = await readDoc("docs/specs/operator-report.schema.md");
     const releaseCheckSchema = await readDoc("docs/specs/release-check.schema.md");
@@ -240,9 +243,15 @@ describe("P0 docs anti-regression", () => {
     expect(operatorReportSchema).toContain("Historical source `.krn` dogfood blockers");
     expect(operatorReportSchema).toContain("external CSS");
     expect(operatorReportSchema).toContain("productionProof.value` must remain `false");
+    expect(runResultSchema).toContain("krn-run-result-v1");
+    expect(runResultSchema).toContain("krn run --task <text>");
+    expect(runResultSchema).toContain(".krn/current/run-bundle/manifest.json");
+    expect(runResultSchema).toContain("productionProof");
+    expect(runResultSchema).toContain("Historical `.krn` caveats");
     expect(releaseCheckSchema).toContain("krn-release-check-v1");
     expect(releaseCheckSchema).toContain("krn release-check [--json] [--write] [--bundle]");
     expect(releaseCheckSchema).toContain("krn-release-bundle-manifest-v1");
+    expect(releaseCheckSchema).toContain("advanced compatibility surface");
     expect(releaseCheckSchema).toContain("recorded-not-executed-by-release-check");
     expect(releaseCheckSchema).toContain("does not run lint, typecheck, tests, verify, Codex");
     expect(installSchema).toContain("krn-install-result-v1");
@@ -269,11 +278,15 @@ describe("P0 docs anti-regression", () => {
     expect(reviewers).toContain(".krn/current/review-summary.json");
     expect(reviewers).toContain("normal tests must not call paid models");
     expect(evidenceMatrix).toContain("Deterministic reviewers");
+    expect(evidenceMatrix).toContain("Condensed run workflow");
+    expect(evidenceMatrix).toContain(
+      "run-result -> operator-report -> release-check as internal gate",
+    );
     expect(evidenceMatrix).toContain("product-code-tax-dogfood");
     expect(evidenceMatrix).toContain("Operator summary");
     expect(evidenceMatrix).toContain("Operator report");
     expect(evidenceMatrix).toContain("Artifact lifecycle");
-    expect(evidenceMatrix).toContain(".krn/current/release-bundle/manifest.json");
+    expect(evidenceMatrix).toContain(".krn/current/run-bundle/manifest.json");
     expect(evidenceMatrix).toContain("Dashboard-lite | ADR-only");
     expect(evidenceMatrix).toContain("MCP | ADR-only");
     expect(evidenceMatrix).toContain("Retrieval/vector | ADR-only");
@@ -282,8 +295,8 @@ describe("P0 docs anti-regression", () => {
     expect(doctrine).toContain("Security By Architecture, Not Prompt");
     expect(doctrine).toContain("https://arxiv.org/abs/2405.15793");
     expect(doctrine).toContain("https://genai.owasp.org/llm-top-10/");
-    expect(backlog).toContain("Priority 1: Real-Repo Manual Dogfood Execution");
-    expect(backlog).toContain("Priority 7: Reviewer Expansion");
+    expect(backlog).toContain("Priority 1: Condensed Run Dogfood");
+    expect(backlog).toContain("Priority 8: Reviewer Expansion");
     expect(backlog).toContain("Do Not Build Yet");
     expect(subagents).toContain("not as an autonomous execution framework");
     expect(subagents).toContain(
@@ -317,6 +330,8 @@ describe("P0 docs anti-regression", () => {
     expect(handoff).toContain("not production WordPress proof");
 
     expect(readme).toContain("Tiny downstream fixture dogfood");
+    expect(readme).toContain("pnpm --silent krn run --task");
+    expect(readme).toContain(".krn/current/run-result.json");
     expect(readme).toContain("Product-code fixture dogfood");
     expect(readme).toContain("WordPress/ACF fixture");
     expect(readme).toContain("Global `krn` fallback invalidates the run");
@@ -368,6 +383,8 @@ describe("P0 docs anti-regression", () => {
     const checklist = await readDoc("docs/release/checklist.md");
 
     expect(checklist).toContain("pnpm verify:local");
+    expect(checklist).toContain("pnpm --silent krn run --task");
+    expect(checklist).toContain('pnpm --silent krn run --task "CI local smoke" --dry-run --json');
     expect(checklist).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
     expect(checklist).toContain("scripts/krn-real-repo-dogfood.sh");
     expect(checklist).toContain("pnpm --silent krn install --dry-run");
@@ -376,7 +393,7 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("pnpm --silent krn report --write");
     expect(checklist).toContain("pnpm --silent krn report --bundle");
     expect(checklist).toContain("pnpm --silent krn release-check --write");
-    expect(checklist).toContain("pnpm --silent krn release-check --bundle");
+    expect(checklist).not.toContain("pnpm --silent krn release-check --bundle");
     expect(checklist).toContain("product-code-tax-dogfood");
     expect(checklist).toContain("node src/regional-tax.test.ts");
     expect(checklist).toContain("write a readiness report");

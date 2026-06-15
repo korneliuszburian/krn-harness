@@ -246,6 +246,47 @@ interface ReleaseCheckFixture {
   nextActions: string[];
 }
 
+interface RunResultFixture {
+  schema: string;
+  status: string;
+  dryRun: boolean;
+  executeVerify: boolean;
+  taskText?: string;
+  taskSpecPath?: string;
+  steps: {
+    start: { status: string; summary: string };
+    graph: { status: string; summary: string };
+    context: { status: string; summary: string };
+    verify: { status: string; summary: string };
+    handoff: { status: string; summary: string };
+    review: { status: string; summary: string };
+    summary: { status: string; summary: string };
+    report: { status: string; summary: string };
+    releaseCheck?: { status: string; summary: string };
+  };
+  context: { stop: boolean };
+  verify: {
+    mode?: string;
+    status?: string;
+    executedCommands?: number;
+    totalCommands?: number;
+    profileName?: string;
+  };
+  proof: { productionProof: boolean; hookTrustStatus: string };
+  blockers: string[];
+  warnings: string[];
+  nextActions: string[];
+  artifacts: Record<string, string>;
+}
+
+interface RunBundleManifestFixture {
+  schema: string;
+  runStatus: string;
+  productionProof: boolean;
+  hookTrustStatus: string;
+  files: Array<{ path: string; present: boolean; required: boolean }>;
+}
+
 function parseRealRepoPreflightSummary(stdout: string): RealRepoPreflightSummary {
   const start = stdout.indexOf("{\n");
   const end = stdout.indexOf("\n--- markdown ---", start);
@@ -317,6 +358,44 @@ async function createGitRepoForPreflight(
   return cwd;
 }
 
+async function writeReleaseCheckFixtureFiles(cwd: string): Promise<void> {
+  const files = [
+    "packages/cli/src/commands/run.ts",
+    "packages/cli/src/commands/report.ts",
+    "packages/cli/src/commands/artifacts.ts",
+    "packages/cli/src/commands/uninstall.ts",
+    "packages/cli/src/commands/config.ts",
+    "docs/specs/install-result.schema.md",
+    "docs/specs/uninstall-result.schema.md",
+    "docs/specs/config-doctor.schema.md",
+    "docs/specs/run-result.schema.md",
+    "docs/specs/operator-report.schema.md",
+    "docs/specs/release-check.schema.md",
+    "docs/product/evidence-matrix.md",
+    "docs/product/mvp-state.md",
+    ".github/workflows/verify.yml",
+    "packages/verify/src/command-policy.ts",
+  ];
+
+  await writeFile(
+    path.join(cwd, "package.json"),
+    JSON.stringify({
+      scripts: {
+        lint: "biome check .",
+        typecheck: "tsc --noEmit",
+        test: "vitest",
+        "verify:local": "pnpm lint && pnpm typecheck && pnpm test",
+      },
+    }),
+    "utf8",
+  );
+
+  for (const relativePath of files) {
+    await mkdir(path.dirname(path.join(cwd, relativePath)), { recursive: true });
+    await writeFile(path.join(cwd, relativePath), `${relativePath}\n`, "utf8");
+  }
+}
+
 function runRealRepoPreflight(repoPath: string, env: Record<string, string> = {}) {
   const result = spawnSync(
     path.join(process.cwd(), "scripts/krn-real-repo-preflight.sh"),
@@ -376,13 +455,16 @@ describe("krn CLI", () => {
     );
     expect(parseGitStatusPath("?? docs/specs/handoff.md")).toBe("docs/specs/handoff.md");
     expect(parseGitStatusPath("R  old/path.ts -> new/path.ts")).toBe("new/path.ts");
-  });
+  }, 15_000);
 
   it("prints help", async () => {
     const result = await runInTemp(["--help"]);
 
     expect(result.code).toBe(0);
     for (const command of [
+      'krn run --task "<task>" [--dry-run] [--json] [--execute-verify] [--bundle]',
+      "krn run --task-spec <json> [--execute-verify] [--bundle]",
+      "Advanced plumbing / troubleshooting:",
       "krn status",
       'krn start "<task>"',
       "krn graph",
@@ -406,7 +488,262 @@ describe("krn CLI", () => {
     ]) {
       expect(result.stdout).toContain(command);
     }
-  });
+    expect(result.stdout).not.toContain("release-check --bundle");
+  }, 15_000);
+
+  it("runs the condensed workflow from task text", async () => {
+    const result = await runInTemp(["run", "--task", "Smoke local run"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("KRN run: ran");
+    await expectFile(result.cwd, ".krn/current/run-result.json");
+    await expectFile(result.cwd, ".krn/current/run-result.md");
+    await expectFile(result.cwd, ".krn/current/operator-report.json");
+
+    const run = await readJson<RunResultFixture>(result.cwd, ".krn/current/run-result.json");
+    expect(run).toMatchObject({
+      schema: "krn-run-result-v1",
+      status: "ran",
+      dryRun: false,
+      executeVerify: false,
+      taskText: "Smoke local run",
+      verify: {
+        mode: "record-only",
+        status: "not-runnable",
+        executedCommands: 0,
+      },
+      proof: {
+        productionProof: false,
+        hookTrustStatus: "unproven",
+      },
+    });
+    expect(run.steps.start.status).toBe("ran");
+    expect(run.steps.graph.status).toBe("ran");
+    expect(run.steps.context.status).toBe("ran");
+    expect(run.steps.verify.status).toBe("ran");
+    expect(run.steps.report.status).toBe("ran");
+    expect(run.artifacts.runResultJson).toBe(".krn/current/run-result.json");
+  }, 15_000);
+
+  it("keeps dry-run verify record-only even when execute is requested", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "pass.cjs"), 'process.stdout.write("dry-pass\\n");\n', "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            mode: "execute",
+            profiles: {
+              unit: {
+                commands: [{ command: "node", args: ["pass.cjs"], label: "unit smoke" }],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, [
+      "run",
+      "--task",
+      "Dry run smoke",
+      "--dry-run",
+      "--execute-verify",
+    ]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+
+    expect(result.code).toBe(0);
+    expect(run.status).toBe("planned");
+    expect(run.dryRun).toBe(true);
+    expect(run.executeVerify).toBe(true);
+    expect(run.verify).toMatchObject({
+      mode: "record-only",
+      status: "warn",
+      executedCommands: 0,
+      totalCommands: 1,
+      profileName: "unit",
+    });
+    expect(run.warnings).toContain(
+      "KRN run: --dry-run kept verify in record-only mode despite --execute-verify.",
+    );
+  }, 15_000);
+
+  it("prints run-result JSON without subcommand chatter", async () => {
+    const result = await runInTemp(["run", "--task", "JSON smoke", "--json"]);
+    const run = JSON.parse(result.stdout) as RunResultFixture;
+
+    expect(result.code).toBe(0);
+    expect(run.schema).toBe("krn-run-result-v1");
+    expect(run.taskText).toBe("JSON smoke");
+    expect(result.stdout.trimStart().startsWith("{")).toBe(true);
+  }, 15_000);
+
+  it("runs from task spec paths", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(
+      path.join(cwd, "task.json"),
+      `${JSON.stringify(
+        {
+          prompt: "Task spec smoke",
+          expectedTouchedFiles: ["src/index.ts"],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+
+    expect(result.code).toBe(0);
+    expect(run.taskText).toBe("Task spec smoke");
+    expect(run.taskSpecPath).toBe("task.json");
+  }, 15_000);
+
+  it("executes allowlisted verify only when requested", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "pass.cjs"), 'process.stdout.write("run-pass\\n");\n', "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: [{ command: "node", args: ["pass.cjs"], label: "unit smoke" }],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const recordOnly = await runInCwd(cwd, ["run", "--task", "Record-only run"]);
+    const recordOnlyResult = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    expect(recordOnly.code).toBe(0);
+    expect(recordOnlyResult.status).toBe("ran");
+    expect(recordOnlyResult.verify).toMatchObject({
+      mode: "record-only",
+      executedCommands: 0,
+    });
+
+    const executed = await runInCwd(cwd, [
+      "run",
+      "--task",
+      "Execute verify run",
+      "--execute-verify",
+    ]);
+    const executedResult = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+
+    expect(executed.code).toBe(0);
+    expect(executedResult.status).toBe("verified");
+    expect(executedResult.steps.verify.status).toBe("verified");
+    expect(executedResult.verify).toMatchObject({
+      mode: "execute",
+      status: "pass",
+      executedCommands: 1,
+      totalCommands: 1,
+      profileName: "unit",
+    });
+  }, 15_000);
+
+  it("writes a run bundle without expanding release-check bundle", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeReleaseCheckFixtureFiles(cwd);
+
+    const result = await runInCwd(cwd, ["run", "--task", "Bundle smoke", "--bundle"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    const manifest = await readJson<RunBundleManifestFixture>(
+      cwd,
+      ".krn/current/run-bundle/manifest.json",
+    );
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("bundle: .krn/current/run-bundle/manifest.json");
+    expect(run.status).toBe("ran");
+    expect(run.steps.releaseCheck?.summary).toBe("KRN release-check: pass");
+    expect(manifest).toMatchObject({
+      schema: "krn-run-bundle-manifest-v1",
+      runStatus: "ran",
+      productionProof: false,
+      hookTrustStatus: "unproven",
+    });
+    expect(manifest.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "run-result.json", present: true, required: true }),
+        expect.objectContaining({ path: "run-result.md", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.md", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.json", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.html", present: true, required: true }),
+        expect.objectContaining({ path: "release-check.json", present: true, required: true }),
+        expect.objectContaining({ path: "release-check.md", present: true, required: true }),
+      ]),
+    );
+    expect(manifest.files.map((file) => file.path).join("\n")).not.toContain("trace");
+    await expect(
+      stat(path.join(cwd, ".krn/current/release-bundle/manifest.json")),
+    ).rejects.toThrow();
+  }, 15_000);
+
+  it("blocks later run steps when context STOP is active", async () => {
+    const result = await runInTemp([
+      "run",
+      "--task",
+      "Stop when required context is missing",
+      "--execute-verify",
+      "--bundle",
+    ]);
+    const run = await readJson<RunResultFixture>(result.cwd, ".krn/current/run-result.json");
+    const manifest = await readJson<RunBundleManifestFixture>(
+      result.cwd,
+      ".krn/current/run-bundle/manifest.json",
+    );
+
+    expect(result.code).toBe(1);
+    expect(run.status).toBe("blocked");
+    expect(run.context.stop).toBe(true);
+    expect(run.steps.verify.status).toBe("blocked");
+    expect(run.steps.report.status).toBe("blocked");
+    expect(run.steps.releaseCheck?.status).toBe("blocked");
+    expect(run.blockers).toEqual(["Required context is missing: docs/required-context.md"]);
+    expect(manifest.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "operator-report.json", present: false }),
+        expect.objectContaining({ path: "release-check.json", present: false }),
+      ]),
+    );
+  }, 15_000);
+
+  it("keeps stale source dogfood caveats from blocking current run", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const stalePath = ".krn/dogfood/real-repo-skipped/test-source-checkout/summary.json";
+    await mkdir(path.dirname(path.join(cwd, stalePath)), { recursive: true });
+    await writeFile(
+      path.join(cwd, stalePath),
+      JSON.stringify({ schema: "krn-real-repo-dogfood-v1", status: "blocked" }),
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task", "Stale caveat smoke"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+
+    expect(result.code).toBe(0);
+    expect(run.status).toBe("ran");
+    expect(run.blockers).toEqual([]);
+    expect(run.warnings.join("\n")).toContain("stale source-local test caveat");
+  }, 15_000);
 
   it("lists current and historical runtime artifacts by scope", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
@@ -637,6 +974,7 @@ describe("krn CLI", () => {
   it("runs a local release readiness check and writes artifacts", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
     const files = [
+      "packages/cli/src/commands/run.ts",
       "packages/cli/src/commands/report.ts",
       "packages/cli/src/commands/artifacts.ts",
       "packages/cli/src/commands/uninstall.ts",
@@ -644,6 +982,7 @@ describe("krn CLI", () => {
       "docs/specs/install-result.schema.md",
       "docs/specs/uninstall-result.schema.md",
       "docs/specs/config-doctor.schema.md",
+      "docs/specs/run-result.schema.md",
       "docs/specs/operator-report.schema.md",
       "docs/specs/release-check.schema.md",
       "docs/product/evidence-matrix.md",
@@ -684,8 +1023,10 @@ describe("krn CLI", () => {
     expect(releaseCheck.checks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "package-scripts", status: "pass" }),
+        expect.objectContaining({ id: "run-command", status: "pass" }),
         expect.objectContaining({ id: "uninstall-command", status: "pass" }),
         expect.objectContaining({ id: "config-command", status: "pass" }),
+        expect.objectContaining({ id: "run-result-schema", status: "pass" }),
         expect.objectContaining({ id: "release-check-schema", status: "pass" }),
         expect.objectContaining({ id: "ci-workflow", status: "pass" }),
         expect.objectContaining({ id: "operator-report-artifacts", status: "pass" }),
@@ -699,6 +1040,7 @@ describe("krn CLI", () => {
   it("writes a v0.1 release bundle with local proof-state caveats", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
     const files = [
+      "packages/cli/src/commands/run.ts",
       "packages/cli/src/commands/report.ts",
       "packages/cli/src/commands/artifacts.ts",
       "packages/cli/src/commands/uninstall.ts",
@@ -706,6 +1048,7 @@ describe("krn CLI", () => {
       "docs/specs/install-result.schema.md",
       "docs/specs/uninstall-result.schema.md",
       "docs/specs/config-doctor.schema.md",
+      "docs/specs/run-result.schema.md",
       "docs/specs/operator-report.schema.md",
       "docs/specs/release-check.schema.md",
       "docs/product/evidence-matrix.md",
@@ -913,7 +1256,7 @@ describe("krn CLI", () => {
     expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
     expect(result.stdout).toContain("package: @krn-harness/cli");
     expect(result.stdout).toContain(
-      "supported_commands: status,start,graph,context,verify,handoff,doctor,eval,install,uninstall,config,summary,review,report,release-check,artifacts,memory,hook",
+      "supported_commands: run,status,start,graph,context,verify,handoff,doctor,eval,install,uninstall,config,summary,review,report,release-check,artifacts,memory,hook",
     );
     expect(result.stdout).toContain("required_commands_present: true");
     expect(result.stdout).toContain(`runtime_cwd: ${result.cwd}`);
