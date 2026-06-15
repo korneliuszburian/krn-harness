@@ -50,6 +50,10 @@ The run summary Markdown records task id, event count, last event, artifact path
 
 `summary.ran` records operator-summary aggregate evidence: status, blocker count, warning count, hook status, real-repo dogfood status, reviewer status, and whether current summary artifacts were written.
 
+`eval.ran` records harness-only eval aggregate evidence: status, fixture count,
+pass/fail counts, selected grader statuses, run trace mode, baseline comparison
+status, and `.krn/evals/baseline.json` as the rolling local baseline path.
+
 `report.ran` records operator-report aggregate evidence: verdict, blocker count, warning count, hook trust status, production-proof flag, and whether Markdown/JSON/HTML report artifacts were written.
 
 `hook.received` trace payloads must not include long operator text such as `userFacingMessage` or full `remediationHints`. Those belong in hook command output only.

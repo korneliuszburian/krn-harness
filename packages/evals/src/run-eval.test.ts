@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { renderEvalResultMarkdown, runEval } from "./run-eval.js";
+import { buildEvalBaselineArtifact, renderEvalResultMarkdown, runEval } from "./run-eval.js";
 
 async function writeTrace(cwd: string, names: string[]): Promise<string> {
   const tracePath = path.join(cwd, ".krn", "traces", "trace.jsonl");
@@ -206,5 +206,50 @@ describe("harness-only eval", () => {
       status: "fail",
       detail: ".krn/graph/repo-graph.json count fields do not match arrays",
     });
+  });
+
+  it("builds a rolling local baseline comparison without production claims", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-eval-"));
+    const tracePath = await writeTrace(cwd, [
+      "task.started",
+      "context.built",
+      "verify.ran",
+      "handoff.created",
+    ]);
+    const passing = await runEval({ cwd, tracePath });
+    const previous = buildEvalBaselineArtifact({
+      result: passing,
+      generatedAt: "2026-06-03T00:00:00.000Z",
+    });
+
+    await writeGraphArtifact(cwd, { nodeCount: 1, edgeCount: 0 });
+    const regressed = await runEval({ cwd, tracePath });
+    const baseline = buildEvalBaselineArtifact({
+      result: regressed,
+      previous,
+      generatedAt: "2026-06-03T00:01:00.000Z",
+    });
+
+    expect(baseline).toMatchObject({
+      schema: "krn-eval-baseline-v1",
+      baselinePath: ".krn/evals/baseline.json",
+      currentResultPath: ".krn/current/eval-result.json",
+      previous: {
+        generatedAt: "2026-06-03T00:00:00.000Z",
+        status: "pass",
+        failCount: 0,
+      },
+      comparison: {
+        status: "regressed",
+        regressions: ["graphArtifact:graph-artifact-shape"],
+      },
+      limits: {
+        productionProof: false,
+        codexExecutionProof: false,
+        hookTrustProof: false,
+        baselineMode: "rolling-local-last-run",
+      },
+    });
+    expect(baseline.current.gradeCount).toBe(previous.current.gradeCount);
   });
 });

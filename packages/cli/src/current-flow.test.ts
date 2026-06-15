@@ -657,6 +657,7 @@ describe("krn CLI current flow artifacts", () => {
     const evalResult = await runInCwd(start.cwd, ["eval"]);
     expect(evalResult).toMatchObject({ code: 0 });
     expect(evalResult.stdout).toContain("KRN eval: pass");
+    expect(evalResult.stdout).toContain("baseline: .krn/evals/baseline.json");
 
     const finalHandoff = await runInCwd(start.cwd, ["handoff"]);
     expect(finalHandoff).toMatchObject({ code: 0 });
@@ -690,6 +691,17 @@ describe("krn CLI current flow artifacts", () => {
       path.join(start.cwd, ".krn/current/eval-result.md"),
       "utf8",
     );
+    const evalBaseline = await readJson<{
+      schema: string;
+      baselinePath: string;
+      current: { status: string; gradeCount: number };
+      comparison: { status: string };
+      limits: { productionProof: boolean; codexExecutionProof: boolean; hookTrustProof: boolean };
+    }>(start.cwd, ".krn/current/eval-baseline.json");
+    const persistedEvalBaseline = await readJson<{
+      schema: string;
+      comparison: { status: string };
+    }>(start.cwd, ".krn/evals/baseline.json");
     const handoffMarkdown = await readFile(path.join(start.cwd, ".krn/current/handoff.md"), "utf8");
 
     expect(doctorJson.status).toBe("warn");
@@ -756,6 +768,21 @@ describe("krn CLI current flow artifacts", () => {
     expect(evalMarkdown).toContain("## Memory Governance");
     expect(evalMarkdown).toContain("## Trace Coverage");
     expect(evalMarkdown).toContain("## P0 Limits");
+    expect(evalBaseline).toMatchObject({
+      schema: "krn-eval-baseline-v1",
+      baselinePath: ".krn/evals/baseline.json",
+      current: { status: "pass", gradeCount: 25 },
+      comparison: { status: "created" },
+      limits: {
+        productionProof: false,
+        codexExecutionProof: false,
+        hookTrustProof: false,
+      },
+    });
+    expect(persistedEvalBaseline).toMatchObject({
+      schema: "krn-eval-baseline-v1",
+      comparison: { status: "created" },
+    });
     expect(handoffMarkdown).toContain("## Graph");
     expect(handoffMarkdown).toContain("Status: present");
     expect(handoffMarkdown).toContain("Nodes:");
@@ -788,6 +815,8 @@ describe("krn CLI current flow artifacts", () => {
           verifyStatus: "pass",
           hookStatus: "pass",
           memoryStatus: "pass",
+          baselineStatus: "created",
+          baselinePath: ".krn/evals/baseline.json",
         },
       },
       {

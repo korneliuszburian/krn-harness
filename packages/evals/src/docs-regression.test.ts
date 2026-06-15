@@ -387,6 +387,27 @@ describe("P0 docs anti-regression", () => {
     expect(goalRoadmap).toContain("No SQLite dependency, database file, or `krn traces query`");
   });
 
+  it("keeps eval regression baseline local, rolling, and flag-free", async () => {
+    const evalSpec = await readDoc("docs/specs/eval-result.schema.md");
+    const baselineSpec = await readDoc("docs/specs/eval-baseline.schema.md");
+    const baselineAdr = await readDoc("docs/adr/ADR-0021-eval-regression-baseline.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+    const evidenceMatrix = await readDoc("docs/product/evidence-matrix.md");
+
+    expect(evalSpec).toContain(".krn/current/eval-baseline.json");
+    expect(evalSpec).toContain(".krn/evals/baseline.json");
+    expect(evalSpec).toContain("rolling-last-run local evidence only");
+    expect(baselineSpec).toContain("krn-eval-baseline-v1");
+    expect(baselineSpec).toContain("rolling local comparison");
+    expect(baselineSpec).toContain("No `krn eval --compare-baseline` flag exists");
+    expect(baselineAdr).toContain("Do not add `krn eval --compare-baseline`");
+    expect(baselineAdr).toContain("rolling local baseline artifact");
+    expect(goalRoadmap).toContain("TASK-005 eval regression baseline");
+    expect(goalRoadmap).toContain("rolling baseline artifact; no CLI flag");
+    expect(evidenceMatrix).toContain("rolling local regression baseline");
+    expect(helpText).not.toContain("--compare-baseline");
+  });
+
   it("keeps run interrupt/resume local, deferred, and behind CLI approval", async () => {
     const interruptSpec = await readDoc("docs/specs/run-interrupt-resume.md");
     const interruptAdr = await readDoc("docs/adr/ADR-0020-run-interrupt-resume-contract.md");

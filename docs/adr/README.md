@@ -22,3 +22,4 @@ This index lists active architecture decisions. Individual ADR files remain the 
 - ADR-0018: Runtime Schema Validation
 - ADR-0019: Queryable Trace Read Model
 - ADR-0020: Run Interrupt/Resume Contract
+- ADR-0021: Eval Regression Baseline

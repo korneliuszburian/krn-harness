@@ -8,8 +8,12 @@
 
 - `.krn/current/eval-result.json`
 - `.krn/current/eval-result.md`
+- `.krn/current/eval-baseline.json`
 
 The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, Hook Guardrails, Memory Governance, Fixture Results, Trace Coverage, Failures, and P0 Limits sections.
+
+`krn eval` also writes `.krn/evals/baseline.json` as rolling local runtime
+state. See `docs/specs/eval-baseline.schema.md`.
 
 ## Fields
 
@@ -42,6 +46,10 @@ The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, H
 ## P0 Rule
 
 Eval uses fixture-built task contracts and context packages only. It is not a real non-interactive agent runner.
+
+The eval baseline is rolling-last-run local evidence only. It is not a golden
+baseline, production proof, hook trust proof, Codex execution proof, or model
+quality benchmark.
 
 The memory grader is harness-only. It verifies that pending memory is inactive, approved memory is active only through the context gate, deprecated memory is excluded, unrelated approved memory does not leak, broad single-term matches do not surface memory, English and Polish explicit opt-out suppress memory, Polish explicit approved-memory requests work only through the reference-only gate, and surfaced approved memory carries provenance.
 

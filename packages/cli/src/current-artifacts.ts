@@ -28,6 +28,7 @@ export const currentArtifactPaths = {
   verifyResult: ".krn/current/verify-result.json",
   handoff: ".krn/current/handoff.md",
   evalResult: ".krn/current/eval-result.json",
+  evalBaseline: ".krn/current/eval-baseline.json",
   reviewSummary: ".krn/current/review-summary.json",
   reviewResult: ".krn/current/review-result.json",
   operatorSummary: ".krn/current/operator-summary.json",
