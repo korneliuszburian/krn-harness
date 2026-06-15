@@ -2,7 +2,8 @@
 
 ## Purpose
 
-This matrix records current repo truth for KRN Harness surfaces.
+This matrix records surface-level evidence for KRN Harness. It should stay a
+ledger, not a second narrative copy of `docs/product/mvp-state.md`.
 
 It is local evidence only. It is not production proof.
 

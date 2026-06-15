@@ -44,25 +44,22 @@ production proof system.
 - Release-check command as a supporting/internal handoff gate plus minimal local-validation CI workflow; no publish automation.
 - Repo-scoped build-time skills in `.agents/skills/*`.
 
-## v0.1 Evidence Status
+## Current Operating Truth
 
-KRN v0.1 local proof threshold is crossed.
+Canonical v0.1 state lives in `docs/product/mvp-state.md`; surface-by-surface
+evidence lives in `docs/product/evidence-matrix.md`.
 
-- Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
-- Product-code fixture dogfood: `fixtures/repos/product-code-dogfood` proves local source/test/stale-doc context selection for invoice formatting and regional tax tasks, including executable `node src/index.test.ts` and `node src/regional-tax.test.ts` verification after deterministic code-only repairs.
-- WordPress/ACF fixture: `fixtures/repos/wordpress-acf-theme` is synthetic and Node-only. It proves graph/context/verify behavior for realistic theme-like source, ACF-like config, stale docs, and handoff artifacts.
-- Dogfood CLI identity: KRN-assisted dogfood must use a pinned KRN command path and captured `krn doctor cli` identity. Global `krn` fallback invalidates the run.
-- Real user-repo dogfood: docs-only and config-adoption `krn-llm-wiki` evidence exists. A 2026-06-15 isolated `krn-llm-wiki` product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle` as local real target product-code proof. Use `scripts/krn-real-repo-preflight.sh <repo-path>` first.
-- Hooks: generated hooks and manual `krn hook codex SessionStart` can write `hook.received`, but real Codex hook loading/trust remains unproven until a non-bypass Codex run emits `hook.received`.
+In short: `krn run` is the primary operator path, the v0.1 local proof threshold
+is crossed, one isolated real target product-code/checker mutation passed
+`krn run --task-spec ... --execute-verify --bundle`, `productionProof` remains
+`false`, and real Codex hook loading/trust remains unproven.
 
-## P0/P1 Transition
+Fixture evidence still includes Tiny downstream fixture dogfood, Product-code fixture dogfood, and a synthetic WordPress/ACF fixture. Global `krn` fallback invalidates the run. Docs-only and config-adoption `krn-llm-wiki` evidence exists; one isolated product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle`. Details live in the evidence matrix.
 
-- P0 exit criteria are tracked in `docs/product/p0-exit-criteria.md`.
-- Controlled P1 entry rules are tracked in `docs/product/p1-entry-contract.md`.
-- Current stage scorecard and decision are tracked in `docs/product/stage-scorecard.md` and `docs/product/p0-p1-decision.md`.
-- P1 starts with local, gated, artifact-first lanes: real-repo workflow, deterministic reviewer records, operator summaries, subagent/reviewer contracts, and knowledge condensation.
-- Dashboard-lite, MCP, and vector/retrieval remain contract or experiment lanes only under ADR-0014, ADR-0015, and ADR-0016.
-- No production dashboard, production MCP server, required vector DB, autonomous subagent swarm, protected-data workflow, or hook enforcement claim exists.
+P0/P1 boundaries live in `docs/product/p0-exit-criteria.md`,
+`docs/product/p0-p1-decision.md`, `docs/product/p1-entry-contract.md`, and
+`docs/product/stage-scorecard.md`. Dashboard-lite, MCP, retrieval/vector, and
+subagent lanes remain ADR/contract/experiment lanes only under ADR-0014, ADR-0015, and ADR-0016. No production dashboard, production MCP server, required vector DB, autonomous swarm, protected-data workflow, publishing pipeline, or hook enforcement claim exists.
 
 ## Primary Operator Path
 

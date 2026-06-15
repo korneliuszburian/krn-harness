@@ -12,6 +12,10 @@ KRN v0.1 local proof threshold is crossed. This is not production readiness, a
 production runner, hook trust proof, a dashboard server, an MCP server, a vector
 database, an autonomous agent framework, or a publishing pipeline.
 
+This document is the canonical concise v0.1 operating truth. The detailed
+surface ledger lives in `docs/product/evidence-matrix.md`; release handoff
+wording lives in `docs/releases/v0.1-local-tool-candidate.md`.
+
 ## Primary Workflow
 
 - `krn run` is the primary operator workflow.
