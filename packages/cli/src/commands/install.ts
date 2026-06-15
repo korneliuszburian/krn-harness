@@ -119,12 +119,19 @@ export async function installCommand(args: string[], runtime: CliRuntime): Promi
     return 1;
   }
 
-  const result = await runInstallPlan(runtime.cwd, {
-    dryRun: parsed.dryRun,
-    sourceRootPath: buildCliIdentity(runtime).sourceRootPath,
-    configProfile: parsed.configProfile,
-    generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
-  });
+  let result: InstallResult;
+  try {
+    result = await runInstallPlan(runtime.cwd, {
+      dryRun: parsed.dryRun,
+      sourceRootPath: buildCliIdentity(runtime).sourceRootPath,
+      configProfile: parsed.configProfile,
+      generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    runtime.stderr(`KRN install: ${message}\n`);
+    return 1;
+  }
 
   if (!parsed.dryRun) {
     await writeCurrentJson(runtime.cwd, "install-result.json", result);

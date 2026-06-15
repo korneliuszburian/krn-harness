@@ -36,7 +36,7 @@ this roadmap state.
 | TASK-010 skill invocation docs | Done | Explicit `$skill` invocation docs; docs-only, no new skills |
 | TASK-011 context poisoning defense | Deferred | ADR-0023 unless numbering changes |
 | TASK-012 `krn diff` | Deferred | ADR/spec first because it is a new top-level command |
-| TASK-013 downstream AGENTS quality gate | Deferred | Install lifecycle tests before template changes |
+| TASK-013 downstream AGENTS quality gate | Done | Generated AGENTS adapter quality gate in install path |
 
 ## TASK-001 Acceptance
 
@@ -108,6 +108,20 @@ this roadmap state.
   product manual.
 - No new build-time skill, runtime/downstream skill, CLI command, plugin
   distribution, MCP tool, hook trust claim, or production proof is added.
+
+## TASK-013 Acceptance
+
+- Generated downstream `AGENTS.md` includes `## Roles`,
+  `## Non-negotiables`, `## KRN Workflow`, KRN command references, and a runtime
+  skill reference.
+- `generateAgentsAdapter()` fails fast when the generated AGENTS template misses
+  required onboarding content.
+- `krn install` reports a clear quality-gate error and exits non-zero when the
+  generated AGENTS template is incomplete, before writing install artifacts.
+- Existing downstream project-owned files remain preserved; the gate validates
+  the KRN-generated template, not user-owned existing instructions.
+- No new CLI command, runtime skill, hook trust claim, MCP, dashboard, vector DB,
+  subagent framework, publishing workflow, or production proof is added.
 
 ## Proof Commands
 

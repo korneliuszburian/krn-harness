@@ -49,3 +49,9 @@ Dry-run prints the same schema but writes nothing.
 
 Generated uninstallable files include the `KRN-HARNESS-MANAGED:v1` marker.
 Existing files without that marker are preserved.
+
+Before planning file writes, `krn install` validates the generated downstream
+`AGENTS.md` template. The quality gate requires `## Roles`,
+`## Non-negotiables`, `## KRN Workflow`, KRN command references, and a runtime
+skill reference. If the generated template is incomplete, install exits non-zero
+with a clear quality-gate error and writes no install-result artifact.

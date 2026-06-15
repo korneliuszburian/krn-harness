@@ -2,6 +2,18 @@
 
 This repository uses KRN Harness.
 
+## Roles
+
+- User: product owner/operator.
+- Codex: downstream implementer using KRN local artifacts.
+- KRN Harness: local workflow and evidence layer.
+
+## Non-negotiables
+
+- Use a provided pinned KRN command path for all KRN commands; do not substitute global `krn`.
+- Do not edit if KRN reports STOP.
+- Do not claim real Codex hook validation unless a real non-bypass Codex run emits `hook.received`.
+
 ## KRN Workflow
 
 - When a task or benchmark provides a pinned KRN command path, use that exact path for all KRN commands and do not substitute global `krn`.

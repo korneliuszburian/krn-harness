@@ -122,8 +122,11 @@ markdown: .krn/graph/repo-graph.md
 
     expect(agents).toContain("KRN Harness");
     expect(agents).toContain("KRN-HARNESS-MANAGED:v1");
+    expect(agents).toContain("## Roles");
+    expect(agents).toContain("## Non-negotiables");
     expect(agents).toContain("krn start");
     expect(agents).toContain("STOP");
+    expect(agents).toContain(".agents/skills/krn-harness/SKILL.md");
     expect(agents.length).toBeLessThan(2200);
     expect(agents).not.toContain("Architecture Spec");
     for (const event of supportedP0CodexHookEvents) {

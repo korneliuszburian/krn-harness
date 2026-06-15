@@ -47,6 +47,19 @@ The loop is local-only evidence. It does not claim CI, sandbox, hosted, or produ
 
 Generated `AGENTS.md` and runtime skill content must stay thin. They route Codex through KRN CLI commands and must not embed full architecture, raw research, or a policy engine.
 
+Generated `AGENTS.md` must pass the adapter quality gate before `krn install`
+creates downstream files. The gate requires:
+
+- `## Roles`
+- `## Non-negotiables`
+- `## KRN Workflow`
+- KRN workflow commands such as `krn status`, `krn start`, `krn graph`,
+  `krn context`, `krn verify`, and `krn handoff`
+- a runtime skill reference to `.agents/skills/krn-harness/SKILL.md`
+
+If the generated template fails this gate, `krn install` exits non-zero before
+writing install artifacts.
+
 Generated hooks must cover the seven P0 Codex lifecycle events and call `./.krn/bin/krn hook codex <event>` through the pinned wrapper installed by `krn install`.
 
 ## Doctor Source vs Downstream

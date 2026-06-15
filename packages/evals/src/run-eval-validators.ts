@@ -4,6 +4,7 @@ import {
   generateAgentsAdapter,
   generateHooksTemplate,
   generateRuntimeSkillTemplate,
+  validateAgentsAdapter,
 } from "../../codex-adapter/src/index.js";
 import type { ContextPackage } from "../../context/src/index.js";
 import { pathExists } from "../../core/src/index.js";
@@ -260,6 +261,11 @@ export async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<Ev
     !agents.includes("STOP")
   ) {
     failures.push("generated AGENTS adapter is missing the KRN workflow");
+  }
+
+  const agentsQuality = validateAgentsAdapter(agents);
+  if (agentsQuality.status === "fail") {
+    failures.push(`generated AGENTS adapter quality failed: ${agentsQuality.missing.join(", ")}`);
   }
 
   if (agents.includes("Architecture Spec") || agents.length > 2200) {

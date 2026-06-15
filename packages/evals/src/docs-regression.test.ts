@@ -249,6 +249,8 @@ describe("P0 docs anti-regression", () => {
     expect(releaseCheckSchema).toContain("recorded-not-executed-by-release-check");
     expect(releaseCheckSchema).toContain("does not run lint, typecheck, tests, verify, Codex");
     expect(installSchema).toContain("krn-install-result-v1");
+    expect(installSchema).toContain("validates the generated downstream");
+    expect(installSchema).toContain("clear quality-gate error");
     expect(uninstallSchema).toContain("krn-uninstall-result-v1");
     expect(uninstallSchema).toContain("KRN-HARNESS-MANAGED:v1");
     expect(configDoctorSchema).toContain("krn-config-doctor-v1");
@@ -346,6 +348,29 @@ describe("P0 docs anti-regression", () => {
     expect(readme).toContain("docs/product/stage-scorecard.md");
     expect(readme).toContain("ADR-0014, ADR-0015, and ADR-0016");
     expect(readme).toContain("No production dashboard");
+  });
+
+  it("keeps downstream AGENTS install quality gate explicit", async () => {
+    const downstreamSpec = await readDoc("docs/specs/downstream-acceptance.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+    const agentsTemplate = await readDoc("packages/codex-adapter/src/templates/AGENTS.md.tmpl");
+
+    for (const required of [
+      "## Roles",
+      "## Non-negotiables",
+      "## KRN Workflow",
+      ".agents/skills/krn-harness/SKILL.md",
+    ]) {
+      expect(downstreamSpec).toContain(required);
+      expect(agentsTemplate).toContain(required);
+    }
+
+    expect(downstreamSpec).toContain("adapter quality gate before `krn install`");
+    expect(downstreamSpec).toContain("creates downstream files");
+    expect(downstreamSpec).toContain("exits non-zero before");
+    expect(goalRoadmap).toContain("TASK-013 downstream AGENTS quality gate");
+    expect(goalRoadmap).toContain("Generated AGENTS adapter quality gate");
+    expect(goalRoadmap).toContain("No new CLI command, runtime skill, hook trust claim");
   });
 
   it("keeps verify profile docs explicit about policy and non-execution", async () => {

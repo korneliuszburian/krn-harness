@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatAgentsQualityError, validateAgentsAdapter } from "./agents-quality.js";
 import { generateAgentsAdapter } from "./generate-agents.js";
 import { generateHooksTemplate } from "./generate-hooks.js";
 import { generateRuntimeSkillTemplate } from "./generate-runtime-skill.js";
@@ -35,8 +36,15 @@ describe("Codex adapter generation", () => {
 
     expect(output.trim().length).toBeGreaterThan(0);
     expectKRNCommandFlow(output);
+    expect(validateAgentsAdapter(output)).toEqual({
+      status: "pass",
+      missing: [],
+    });
+    expect(output).toContain("## Roles");
+    expect(output).toContain("## Non-negotiables");
     expect(output).toContain(".krn/current/task-contract.md");
     expect(output).toContain(".krn/current/context-package.md");
+    expect(output).toContain(".agents/skills/krn-harness/SKILL.md");
     expect(output).toContain('krn start "<full user intent>"');
     expect(output).toContain("pinned KRN command path");
     expect(output).toContain("do not substitute global `krn`");
@@ -49,6 +57,16 @@ describe("Codex adapter generation", () => {
     expect(output).not.toContain("dashboard");
     expect(output).not.toContain("MCP server");
     expect(output).not.toContain("policy engine");
+  });
+
+  it("fails downstream AGENTS quality when required onboarding sections are absent", () => {
+    const result = validateAgentsAdapter("# AGENTS.md\n\nUse krn start.\n");
+
+    expect(result.status).toBe("fail");
+    expect(result.missing).toEqual(
+      expect.arrayContaining(["## Roles", "## Non-negotiables", "runtime skill reference"]),
+    );
+    expect(formatAgentsQualityError(result)).toContain("generated AGENTS.md failed quality gate");
   });
 
   it("generates a hooks template with all expected lifecycle events", () => {
