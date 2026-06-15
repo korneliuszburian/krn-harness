@@ -44,20 +44,10 @@ describe("P0 docs anti-regression", () => {
     expect(downstreamSpec).toContain(
       "does not claim CI, sandbox, hosted, or production enforcement",
     );
-    for (const command of [
-      "krn install",
-      "krn status",
-      "krn start",
-      "krn graph",
-      "krn context",
-      "krn verify",
-      "krn verify --execute",
-      "krn handoff",
-      "krn doctor",
-      "krn eval",
-    ]) {
+    for (const command of ["krn install", "krn status", "krn run", "krn doctor", "krn eval"]) {
       expect(demo).toContain(command);
     }
+    expect(demo).toContain("only when diagnosing individual plumbing artifacts");
     expect(demo).toContain("does not launch Codex");
     expect(demo).toContain("Hooks are guardrails and trace points, not a sandbox");
   });
@@ -270,9 +260,11 @@ describe("P0 docs anti-regression", () => {
     expect(p1Entry).toContain("No production MCP server");
     expect(p1Entry).toContain("No mandatory vector DB");
     expect(scorecard).toContain("Stages attempted: 23");
+    expect(scorecard).toContain("v0.1 local proof threshold: crossed");
     expect(scorecard).toContain("Hard boundary violations: none found");
     expect(decision).toContain("P0 is complete for the local deterministic harness loop");
     expect(decision).toContain("P1 is entered under contract-first constraints");
+    expect(decision).toContain("v0.1 local proof threshold");
     expect(decision).toContain("This is not production readiness");
     expect(reviewers).toContain("They are not autonomous agents");
     expect(reviewers).toContain(".krn/current/review-summary.json");
@@ -280,7 +272,7 @@ describe("P0 docs anti-regression", () => {
     expect(evidenceMatrix).toContain("Deterministic reviewers");
     expect(evidenceMatrix).toContain("Condensed run workflow");
     expect(evidenceMatrix).toContain(
-      "run-result -> operator-report -> release-check as internal gate",
+      "krn run -> run-result -> run-bundle -> report/release-check as supporting evidence",
     );
     expect(evidenceMatrix).toContain("product-code-tax-dogfood");
     expect(evidenceMatrix).toContain("Operator summary");
@@ -295,9 +287,10 @@ describe("P0 docs anti-regression", () => {
     expect(doctrine).toContain("Security By Architecture, Not Prompt");
     expect(doctrine).toContain("https://arxiv.org/abs/2405.15793");
     expect(doctrine).toContain("https://genai.owasp.org/llm-top-10/");
-    expect(backlog).toContain("Priority 1: Condensed Run Dogfood");
-    expect(backlog).toContain("Priority 8: Reviewer Expansion");
-    expect(backlog).toContain("Do Not Build Yet");
+    expect(backlog).toContain("Priority 1: Adopt Target Config Through Reviewed Target PR");
+    expect(backlog).toContain("Priority 5: Later Hook Trust Investigation");
+    expect(backlog).toContain("Not Before v0.2");
+    expect(backlog).not.toContain("Priority 6:");
     expect(subagents).toContain("not as an autonomous execution framework");
     expect(subagents).toContain(
       "must not edit files, spawn agents, approve memory, or call models by default",
@@ -381,16 +374,14 @@ describe("P0 docs anti-regression", () => {
 
   it("keeps release prep local and unpublished", async () => {
     const checklist = await readDoc("docs/release/checklist.md");
+    const releaseNote = await readDoc("docs/releases/v0.1-local-tool-candidate.md");
 
     expect(checklist).toContain("pnpm verify:local");
     expect(checklist).toContain("pnpm --silent krn run --task");
     expect(checklist).toContain('pnpm --silent krn run --task "CI local smoke" --dry-run --json');
     expect(checklist).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
     expect(checklist).toContain("scripts/krn-real-repo-dogfood.sh");
-    expect(checklist).toContain("pnpm --silent krn install --dry-run");
-    expect(checklist).toContain("pnpm --silent krn config doctor");
-    expect(checklist).toContain("pnpm --silent krn uninstall --dry-run");
-    expect(checklist).toContain("pnpm --silent krn report --write");
+    expect(checklist).toContain("older `start`, `graph`,");
     expect(checklist).toContain("pnpm --silent krn report --bundle");
     expect(checklist).toContain("pnpm --silent krn release-check --write");
     expect(checklist).not.toContain("pnpm --silent krn release-check --bundle");
@@ -404,6 +395,10 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("Minimal CI Gate");
     expect(checklist).toContain("local no-model validation");
     expect(checklist).toContain("Codex CLI CI dependency");
+    expect(releaseNote).toContain("v0.1 Local Tool Candidate");
+    expect(releaseNote).toContain("Primary operator workflow: `krn run`");
+    expect(releaseNote).toContain("productionProof` remained `false`");
+    expect(releaseNote).toContain("Repeat `krn run` on a second non-protected real repository");
   });
 
   it("keeps P0 non-goals and memory approval boundaries explicit", async () => {

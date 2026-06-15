@@ -25,7 +25,7 @@ KRN is not a prompt pack, hosted dashboard, generic multi-agent framework,
 production MCP server, vector database, package publisher, hook trust proof, or
 production proof system.
 
-## Current P0/P1 Surface
+## v0.1 Surface
 
 - pnpm TypeScript workspace.
 - Deterministic `krn` CLI for local current-state artifacts.
@@ -36,13 +36,17 @@ production proof system.
 - Task contract, context package, graph-lite, trace, verify, handoff, doctor, memory, and eval contracts.
 - Verify execute policy documented in ADR-0017: record-only by default, explicit `--execute`, exact command allowlists, no shell mode, scrubbed env, and redacted compact output.
 - Hook guardrails with deterministic `allow`, `warn`, and `block` decisions, compact trace evidence, and operator guidance.
-- Dogfood evidence for tiny downstream fixture runs and a synthetic WordPress/ACF-style fixture.
+- Dogfood evidence for tiny downstream fixture runs, product-code fixtures, a
+  synthetic WordPress/ACF-style fixture, and one isolated real target
+  product-code/checker mutation.
 - Operator report command for local Markdown, JSON, and static HTML evidence projection.
 - Artifact lifecycle commands for listing and safely archiving historical `.krn` caveats.
 - Release-check command as a supporting/internal handoff gate plus minimal local-validation CI workflow; no publish automation.
 - Repo-scoped build-time skills in `.agents/skills/*`.
 
-## Current Evidence Status
+## v0.1 Evidence Status
+
+KRN v0.1 local proof threshold is crossed.
 
 - Tiny downstream fixture dogfood: KRN agents-only, explicit skill, and implicit skill modes reached executable verify and handoff in the latest local comparison.
 - Product-code fixture dogfood: `fixtures/repos/product-code-dogfood` proves local source/test/stale-doc context selection for invoice formatting and regional tax tasks, including executable `node src/index.test.ts` and `node src/regional-tax.test.ts` verification after deterministic code-only repairs.
@@ -60,7 +64,7 @@ production proof system.
 - Dashboard-lite, MCP, and vector/retrieval remain contract or experiment lanes only under ADR-0014, ADR-0015, and ADR-0016.
 - No production dashboard, production MCP server, required vector DB, autonomous subagent swarm, protected-data workflow, or hook enforcement claim exists.
 
-## 10-Minute Operator Path
+## Primary Operator Path
 
 ```bash
 pnpm install
@@ -152,8 +156,8 @@ operator path is `krn run`.
 
 - Hook trust remains unproven unless scoped non-bypass hook provenance exists.
 - Production proof remains false.
-- Product-code proof is fixture-level unless an approved target worktree task is
-  executed and validated.
+- Real target product-code proof exists as local isolated-worktree evidence.
+  Target commit/push remains separate.
 - Run and report bundles do not copy raw trace dumps by default.
 - KRN does not publish packages, push target repos, run paid Codex, or call
   network services in local release gates.

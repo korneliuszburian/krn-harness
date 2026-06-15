@@ -22,7 +22,8 @@ A real repo is eligible only when all of these are true:
 - Codex runs with workspace-write sandboxing;
 - KRN is invoked through an exact pinned command path, never global `krn`;
 - `krn doctor cli` proves `krn-harness-cli-identity-v1`;
-- `krn install`, `krn status`, `krn start --task-spec`, `krn graph`, `krn context`, `krn verify`, and `krn handoff` are available.
+- `krn run --task-spec`, `krn verify`, and supporting plumbing commands are
+  available.
 
 ## Preflight
 
@@ -198,13 +199,11 @@ Never run `composer install`, `npm install`, migrations, deploys, uploads, destr
 - Do not use global `krn`.
 - Do not use `danger-full-access`.
 - Do not use hook trust bypass as proof.
-- Run `krn start --task-spec <json>`.
-- Run `krn graph` before `krn context`.
-- Stop if context reports STOP.
-- Run `krn verify --execute` only when a safe verify profile is configured.
-- If no safe verify profile exists, run record-only `krn verify` and record why confidence is lower.
+- Run `<pinned-krn> run --task-spec <json> --execute-verify --bundle` when a
+  safe verify profile is configured.
+- If no safe verify profile exists, run `<pinned-krn> run --task-spec <json>
+  --bundle` and record why confidence is lower.
 - Run project-native tests only when explicitly safe.
-- Run `krn handoff`.
 - Review diff before any commit.
 
 ## After Run Checklist
@@ -275,7 +274,7 @@ KRN explicit:
 ```text
 Use the pinned KRN command: <pinned-krn>.
 First run `<pinned-krn> doctor cli` and record the identity output.
-Then run `<pinned-krn> start --task-spec <task-spec.json>`, `<pinned-krn> graph`, `<pinned-krn> context`, safe verify, and `<pinned-krn> handoff`.
+Then run `<pinned-krn> run --task-spec <task-spec.json> --execute-verify --bundle`.
 Task: <full task intent>
 Constraints: workspace-write only, no global krn, no secrets, no protected data, no uploads, no dumps, no production config, no network except model call.
 Final response must list pinned KRN path, identity, touched files, forbidden files avoided, verify evidence, handoff evidence, context STOP status, and hook status.
@@ -286,7 +285,7 @@ KRN explicit with no safe verify:
 ```text
 Use the pinned KRN command: <pinned-krn>.
 No safe executable verify profile is configured. Use record-only `<pinned-krn> verify` and say confidence is lower.
-Run `<pinned-krn> start --task-spec <task-spec.json>`, `<pinned-krn> graph`, `<pinned-krn> context`, record-only verify, and `<pinned-krn> handoff`.
+Run `<pinned-krn> run --task-spec <task-spec.json> --bundle`.
 Do not invent or run project commands.
 ```
 

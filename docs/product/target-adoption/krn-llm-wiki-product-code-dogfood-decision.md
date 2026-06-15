@@ -5,11 +5,12 @@
 Do not mutate `krn-llm-wiki` product code until the operator explicitly approves
 a product-code dogfood run.
 
-Current KRN proof for `krn-llm-wiki` is config/install adoption plus executable
-readonly validation in isolated worktrees. It is not product-code mutation proof,
-hook trust proof, or production proof.
+Current KRN proof for `krn-llm-wiki` includes config/install adoption,
+executable readonly validation, and one isolated product-code/checker mutation
+through `krn run --task-spec ... --execute-verify --bundle`. It is local
+isolated-worktree proof only, not hook trust proof or production proof.
 
-## Why Current Proof Is Config Adoption Only
+## What Current Proof Proves
 
 Existing isolated `krn-llm-wiki` evidence proves:
 
@@ -18,11 +19,12 @@ Existing isolated `krn-llm-wiki` evidence proves:
 - `krn verify --execute` can run `python3 tools/check_all_readonly.py`.
 - `krn review --write`, `krn summary --write`, and `krn report --bundle` can
   summarize local target artifacts.
+- `krn run --task-spec ... --execute-verify --bundle` can carry a small
+  product-code/checker mutation through executable target validation and run
+  bundle generation.
 
 It does not prove:
 
-- editing wiki/product code safely;
-- updating tests for a real target feature;
 - applying a reviewed proposal to canonical content;
 - real Codex hook loading/trust;
 - production readiness.
@@ -36,10 +38,9 @@ A valid product-code proof needs all of the following:
 - pinned local KRN identity evidence from `krn doctor cli`;
 - a task spec that names expected touched files, forbidden files, validation,
   rollback, and no-push boundary;
-- `krn start --task-spec`, `krn graph`, `krn context`, `krn verify --execute`,
-  `krn review --write`, `krn summary --write`, and `krn report --bundle`;
+- `krn run --task-spec ... --execute-verify --bundle`;
 - target validation passing after the change;
-- a real-repo execution-result artifact with `productionProof: false` and
+- a run-result and run-bundle artifact with `productionProof: false` and
   `hookTrustStatus: "unproven"` unless separate non-bypass hook evidence exists;
 - no target commit or push unless separately approved after review.
 
@@ -85,8 +86,9 @@ safe scaffold may write readiness or blocked reports without executing Codex.
 4. Install or reuse the reviewed readonly `krn.config.json`.
 5. Copy in the approved task spec.
 6. Run the pinned KRN command from KRN Harness source, not global `krn`.
-7. Execute only allowlisted target validation.
-8. Capture `.krn/current/*`, report bundle, and execution summary.
+7. Run `krn run --task-spec ... --execute-verify --bundle`.
+8. Capture `.krn/current/run-result.*`, `.krn/current/run-bundle/*`, and
+   verification artifacts.
 9. Leave the target uncommitted and unpushed for operator review.
 
 ## Rollback
@@ -117,6 +119,6 @@ This decision keeps v0.1 honest:
 
 - config adoption proof exists;
 - fixture-level product-code proof exists in `fixtures/repos/product-code-dogfood`;
-- external target product-code proof remains pending approval;
+- real target product-code proof exists as local isolated-worktree evidence;
 - target push remains forbidden without explicit approval;
 - `productionProof` remains `false`.

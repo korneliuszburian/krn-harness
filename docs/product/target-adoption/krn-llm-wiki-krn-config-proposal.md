@@ -59,8 +59,7 @@ agent-governance rules and explicit read-only validation:
 3. Run pinned local KRN identity proof:
    `pnpm --silent krn doctor cli` from the KRN Harness source.
 4. Run target loop with the pinned KRN command from the isolated target:
-   `install`, `start`, `graph`, `context`, `verify --execute`, `review --write`,
-   `summary --write`, and `report --write`.
+   `run --task-spec <task.json> --execute-verify --bundle`.
 5. Keep any target mutation uncommitted until the operator reviews changed files
    and validation artifacts.
 
@@ -140,5 +139,28 @@ Result:
 The first attempt with the previous 180000ms generated profile timed out while
 the target readonly suite was still emitting passing checks. The beta starter
 profile was updated to 360000ms before the passing rerun. This supports the
-install/config lifecycle and readonly verify profile for `krn-llm-wiki`; it
-still does not prove real target product-code mutation or Codex hook trust.
+install/config lifecycle and readonly verify profile for `krn-llm-wiki`; the
+later 2026-06-15 `krn run` proof covers a small real target
+product-code/checker mutation. Neither run proves Codex hook trust.
+
+## 2026-06-15 Product-Code/Checker `krn run` Proof
+
+An isolated detached worktree at
+`/tmp/krn-run-real-product-code-llm-wiki-20260615-1` used a task spec under
+`.krn/dogfood/task-specs/status-active-pages-count.json`.
+
+Result:
+
+- `krn run --task-spec ... --execute-verify --bundle`: verified;
+- executed verify command: `python3 tools/check_llm_wiki_status.py`;
+- touched target files: `tools/llm_wiki_status.py`,
+  `tools/check_llm_wiki_status.py`;
+- run bundle manifest: `.krn/current/run-bundle/manifest.json`;
+- committed target repo: false;
+- pushed target repo: false;
+- production proof: false;
+- hook trust: unproven.
+
+Detailed handoff:
+
+`docs/handoffs/2026-06-15-real-target-krn-run-product-code-proof.md`

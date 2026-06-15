@@ -16,22 +16,18 @@ cd "$tmpdir/downstream-basic"
 
 Use the locally built `krn` command from this repository, or run the equivalent package script from the source checkout with the downstream directory as the working directory.
 
-## Smoke Loop
+## Primary Smoke Loop
 
 ```bash
 krn install
 krn status
-krn start "Harden downstream basic fixture context"
-krn graph
-krn context
-krn hook codex SessionStart
-printf '{"tool":"Read","filePath":"src/index.ts"}' | krn hook codex PreToolUse
-krn verify
-krn verify --execute
-krn handoff
+krn run --task "Harden downstream basic fixture context" --execute-verify --bundle
 krn doctor
 krn eval
 ```
+
+Use `krn start`, `graph`, `context`, `verify`, `handoff`, and `hook` commands
+only when diagnosing individual plumbing artifacts.
 
 ## Expected Artifacts
 
@@ -73,10 +69,7 @@ cp -R fixtures/repos/product-code-dogfood "$tmpdir/product-code-dogfood"
 cd "$tmpdir/product-code-dogfood"
 mkdir -p fixtures/dogfood/tasks
 cp "$source_checkout/fixtures/dogfood/tasks/product-code-test-dogfood.json" fixtures/dogfood/tasks/
-krn start --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json
-krn graph
-krn context
-krn verify --execute
+krn run --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json --execute-verify --bundle
 ```
 
 The first execute verify should fail until `src/index.ts` is repaired. After the code-only repair, `krn verify --execute` should pass by running `node src/index.test.ts`; `docs/stale-pricing.md` should remain `do-not-use`.

@@ -4,7 +4,8 @@
 
 P0 is complete for the local deterministic harness loop.
 
-P1 is entered under contract-first constraints.
+P1 is entered under contract-first constraints. The v0.1 local proof threshold
+is crossed for the local tool candidate.
 
 ## P0 Complete Means
 
@@ -33,7 +34,8 @@ This is not production readiness.
 
 P1 starts only through gated local artifacts and contracts:
 
-- real-repo workflow: preflight plus skipped/blocked/readiness scaffold;
+- real-repo workflow: preflight plus skipped/blocked/readiness scaffold and one
+  isolated real target product-code/checker proof through `krn run`;
 - reviewers: deterministic `krn review --write` artifact records;
 - operator summary: deterministic `krn summary --write` artifact;
 - verify execute policy: ADR-0017 documents explicit `--execute`, exact allowlists, no shell mode, scrubbed env, redaction, and the narrow coverage exception;
@@ -45,7 +47,8 @@ P1 starts only through gated local artifacts and contracts:
 
 ## Still Unproven
 
-- Real user-repo dogfood execution.
+- Durable committed target verify profile beyond isolated-worktree real target
+  product-code proof.
 - Real Codex hook loading/trust.
 - Noisy large repo behavior.
 - Production WordPress/ACF behavior.
@@ -63,7 +66,7 @@ KRN may proceed with controlled P1 slices that read local artifacts and preserve
 KRN must not claim:
 
 - production readiness;
-- real-repo validation;
+- production real-repo validation;
 - hook enforcement;
 - arbitrary verify command execution;
 - dashboard product readiness;
@@ -74,9 +77,8 @@ KRN must not claim:
 ## Next Controlled Use Protocol
 
 1. Run `pnpm verify:local`.
-2. Run `pnpm --silent krn review --write`.
-3. Run `pnpm --silent krn summary --write`.
-4. Run `scripts/krn-real-repo-dogfood.sh` without env to confirm skipped reporting.
-5. Run `scripts/krn-real-repo-dogfood.sh` on a safe temp git fixture with explicit env to confirm readiness reporting.
-6. Only after operator approval, select a non-protected real repo and run preflight.
-7. Treat any real-repo execution as a manual protocol until an ADR accepts a Codex execution wrapper.
+2. Run `pnpm --silent krn run --task-spec <task.json> --execute-verify --bundle`
+   on an approved isolated target worktree.
+3. Keep target commit/push separate and explicitly approved.
+4. Treat hooks, production proof, publishing, MCP, dashboard, vector retrieval,
+   and autonomous subagents as separate future goals.

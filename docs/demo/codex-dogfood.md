@@ -99,10 +99,7 @@ cp "$source_checkout/fixtures/dogfood/tasks/product-code-test-dogfood.json" fixt
 git init
 git add .
 git commit -m "fixture baseline"
-"$KRN" start --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json
-"$KRN" graph
-"$KRN" context
-"$KRN" verify --execute
+"$KRN" run --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json --execute-verify --bundle
 ```
 
 Expected evidence:

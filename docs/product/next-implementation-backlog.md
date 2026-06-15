@@ -2,300 +2,77 @@
 
 ## Purpose
 
-This is the next P1 backlog after executable `krn run`.
+This is the v0.1 post-cut backlog. KRN v0.1 local proof threshold is crossed:
+`krn run` is the primary operator path, real target product-code proof exists as
+local isolated-worktree evidence, `productionProof` remains false, and
+`hookTrust` remains unproven.
 
-It keeps product value ordered by evidence:
+Do not add product surfaces before these items. Target commit/push remains
+separate from KRN source proof.
 
-```txt
-condensed run dogfood -> real repo proof -> hardening -> static report -> memory lifecycle -> retrieval eval -> MCP contract -> reviewer expansion
-```
+## Priority 1: Adopt Target Config Through Reviewed Target PR
 
-## Priority 1: Condensed Run Dogfood
-
-Goal: use `krn run` as the only normal operator path on the next approved
-non-protected workflow.
-
-Current evidence: `krn run` orchestrates the existing local artifact loop and
-writes `krn-run-result-v1`; `report` and `release-check` are supporting gates,
-not the user-facing path. A 2026-06-15 isolated `krn-llm-wiki`
-product-code/checker mutation passed `krn run --task-spec ... --execute-verify
---bundle` as local real target product-code proof.
-
-Likely files:
-
-- `docs/demo/real-repo-dogfood.md`
-- `fixtures/dogfood/tasks/*`
-- `.krn/current/run-result.json`
-- `.krn/current/run-bundle/manifest.json`
+Goal: commit/adopt a safe `krn.config.json` in the first target repository
+through a reviewed target PR, not by pushing the isolated worktree.
 
 Acceptance:
 
-- `krn run --task-spec ... --execute-verify --bundle` is the documented path.
-- No new top-level bundle command is added.
-- `productionProof` remains `false`.
-- Hook trust remains unproven unless separate non-bypass evidence exists.
+- Target owner approves the config.
+- Verify command is local, deterministic, and allowed by KRN policy.
+- Target PR excludes `.krn` artifacts and protected data.
+- KRN source remains unchanged unless a target finding requires a focused fix.
 
-Tests:
+## Priority 2: Repeat `krn run` On A Second Real Repo
 
-- CLI run workflow tests.
-- Manual artifact inspection on approved target worktree.
-
-Risk:
-
-- Treating a condensed workflow as Codex execution.
-- Hiding report/release-check warnings behind a single status.
-
-Stop conditions:
-
-- Requires target mutation without approval.
-- Requires hook trust or production proof claims.
-
-## Priority 2: Real-Repo Manual Dogfood Execution
-
-Goal: run KRN on an approved non-protected repository with a pinned local `krn`.
-
-Current evidence: approved manual KRN-assisted Codex execution has run on an
-isolated `krn-llm-wiki` worktree. The execution-result artifact uses
-`krn-real-repo-execution-result-v1`, records `executionKind: manual-codex`,
-changed only `README.md`, used a pinned KRN pre-loop, passed the target repo
-read-only validation suite through `krn verify --execute`, and leaves
-`productionProof: false`. The run also confirmed the verify-profile-only context
-hardening: the measured context stayed at 12 total / 2 reference-only / low risk
-while preserving `AGENTS.md`, `README.md`, `krn.config.json`,
-`tools/check_all_readonly.py`, and do-not-use constraints.
-
-Likely files:
-
-- `docs/demo/real-repo-dogfood.md`
-- `scripts/krn-real-repo-dogfood.sh`
-- `.krn/dogfood/**/summary.json`
-- `docs/specs/real-repo-execution-result.schema.md`
-- `scripts/krn-real-repo-execution-report.sh`
+Goal: repeat `krn run --task-spec ... --execute-verify --bundle` on a second
+non-protected real repository.
 
 Acceptance:
 
-- Preflight passes.
-- Operator approval is explicit.
-- No protected data is used.
-- Summary records `readiness`, `blocked`, `skipped`, or executed result honestly.
-- Missing-env skipped reports include exact env instructions and an explicit not-validation claim.
-- Execution-result reports distinguish manual Codex evidence from production proof.
+- Clean isolated worktree.
+- Preflight passes or warnings are explicitly accepted.
+- Run status is `verified` or the exact blocker is documented.
+- No target push and no production or hook-trust claim.
 
-Tests:
+## Priority 3: Harden Context Selection From Real Target Findings
 
-- Existing script tests.
-- Manual artifact inspection.
-
-Risk:
-
-- Overclaiming readiness as validation.
-- Treating skipped missing-env reports as real-repo proof.
-- Treating preflight-only reports as execution proof.
-- Treating local execution evidence as production proof.
-- Remaining without committed real target verify profiles or trusted hook evidence.
-- Treating a docs-only `krn-llm-wiki` run as proof for broader source-editing targets.
-
-Stop conditions:
-
-- Dirty or protected repo.
-- Missing approval.
-- Global `krn` fallback.
-
-## Priority 3: Hardening After Real-Repo Result
-
-Goal: turn real-repo findings into focused fixes.
-
-Likely files:
-
-- `packages/graph/src/*`
-- `packages/context/src/*`
-- `packages/cli/src/operator-summary.ts`
-- `packages/cli/src/commands/review.ts`
+Goal: turn observed real-target context/report noise into focused fixes.
 
 Acceptance:
 
-- Every fix maps to a dogfood finding.
+- Every fix maps to a recorded real-target finding.
 - Tests cover the finding.
-- No broad detector rewrite.
+- No broad graph rewrite, AST/dataflow engine, or new retrieval layer.
 
-Tests:
+## Priority 4: Add Minimal v0.1 Release Note/Tag Process
 
-- Focused unit tests.
-- `pnpm test`.
-
-Risk:
-
-- Treating one repo as universal evidence.
-
-Stop conditions:
-
-- No source artifact for the finding.
-- Fix requires protected data.
-
-## Priority 4: Dashboard-Lite Generated Static HTML
-
-Goal: generate a local static HTML view from `operator-summary.json`.
-
-Likely files:
-
-- `packages/cli/src/commands/report.ts`
-- `docs/adr/ADR-0014-dashboard-lite-read-only-report-viewer.md`
+Goal: define the smallest local tag/release-note process for v0.1 handoff.
 
 Acceptance:
 
-- Input is `operator-summary.json`.
-- Output is a static local HTML file.
-- No server, frontend framework, database, or hosted dashboard.
+- Release note records shipped surfaces, proof evidence, validation commands,
+  non-goals, and risks.
+- Tag process is local/repo-only until publishing is explicitly designed.
+- No package publishing automation is added.
 
-Tests:
+## Priority 5: Later Hook Trust Investigation
 
-- HTML generation fixture.
-- No network assertion.
-
-Risk:
-
-- UI becomes source of truth.
-
-Stop conditions:
-
-- Summary schema is not stable enough.
-- Any server or dashboard dependency is required.
-
-## Priority 5: Memory Proposal Lifecycle Commands
-
-Goal: make governed memory actions ergonomic without auto-approval.
-
-Likely files:
-
-- `packages/cli/src/commands/memory.ts`
-- `packages/memory/src/*`
-- `docs/specs/memory.schema.md`
+Goal: investigate hook trust only if Codex project hook loading becomes relevant
+to an approved target workflow.
 
 Acceptance:
 
-- Propose, approve, deprecate, and list remain explicit.
-- Pending memory never becomes active automatically.
+- Separate goal and explicit approval.
+- Disposable non-protected target.
+- No bypass-based trust claim.
+- No production proof claim.
 
-Tests:
+## Not Before v0.2
 
-- CLI memory command tests.
-- Memory store tests.
-
-Risk:
-
-- Memory poisoning through convenience.
-
-Stop conditions:
-
-- Any automatic approval path.
-- Any hidden rewrite of active truth.
-
-## Priority 6: Retrieval Synthetic Eval Harness
-
-Goal: evaluate context/retrieval quality before vector dependencies.
-
-Likely files:
-
-- `packages/evals/src/*`
-- `fixtures/repos/*`
-- `docs/adr/ADR-0016-retrieval-vector-experiment-harness.md`
-
-Acceptance:
-
-- Synthetic relevance fixtures exist.
-- Metrics separate retrieval relevance from answer quality.
-- No embeddings or vector DB dependency.
-
-Tests:
-
-- Fixture eval tests.
-- Docs regression.
-
-Risk:
-
-- Adding vector infrastructure before measuring need.
-
-Stop conditions:
-
-- Requires external model calls.
-- Requires vector DB.
-
-## Priority 7: MCP Read-Only Fake Adapter / Schema Tests
-
-Goal: define MCP resources over current artifacts without building a server.
-
-Likely files:
-
-- `docs/adr/ADR-0015-mcp-read-only-contract-spike.md`
-- `docs/specs/mcp-resources.md`
-- `packages/evals/src/*`
-
-Acceptance:
-
-- Resource names and payloads are documented.
-- Tests use fake adapter data.
-- No MCP server or tools.
-
-Tests:
-
-- Schema fixture tests.
-- Docs regression.
-
-Risk:
-
-- Accidental action surface.
-
-Stop conditions:
-
-- Any write/action tool.
-- Any server runtime.
-
-## Priority 8: Reviewer Expansion
-
-Goal: add reviewers only after current reviewers show operator value.
-
-Likely files:
-
-- `packages/cli/src/commands/review.ts`
-- `docs/product/reviewers.md`
-- `docs/specs/reviewer-result.schema.md`
-
-Acceptance:
-
-- New reviewer reads artifacts only.
-- Output maps to `krn-reviewer-result-v1`.
-- Tests include pass/warn/fail/blocked where relevant.
-
-Tests:
-
-- CLI review tests.
-
-Risk:
-
-- Reviewer layer becomes subagent framework.
-
-Stop conditions:
-
-- Needs model call.
-- Needs shell execution.
-- Needs source mutation.
-
-## Blocked Until
-
-- Dashboard-lite is blocked until `operator-summary.json` has real dogfood evidence.
-- MCP server is blocked until read-only resources have schema tests.
-- Vector DB is blocked until retrieval eval has failures worth solving.
-- Subagents are blocked until deterministic reviewers are useful.
-- CI remains limited to local no-model validation, `krn run` smoke evidence, and
-  release-check until package publication is explicitly designed.
-
-## Do Not Build Yet
-
-- Production dashboard.
-- MCP server.
-- Vector DB.
-- Embeddings dependency.
+- MCP server or action tools.
+- Vector DB or embeddings dependency.
+- Dashboard server or hosted UI.
 - Autonomous subagent framework.
-- Real Codex execution wrapper.
-- Protected-data workflow.
-- Package publishing.
+- Additional report/release bundle variants.
+- More proof schemas without a real target finding.
+- Package publishing pipeline.

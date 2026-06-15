@@ -7,6 +7,14 @@ the implementations are corrected. It is local-only evidence.
 
 ## Smoke
 
+The normal v0.1 operator path is:
+
+```txt
+krn run --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json --execute-verify --bundle
+```
+
+Use the multi-command sequence only to inspect individual plumbing artifacts:
+
 ```txt
 krn start --task-spec fixtures/dogfood/tasks/product-code-test-dogfood.json
 krn graph

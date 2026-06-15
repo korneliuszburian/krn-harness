@@ -2,13 +2,18 @@
 
 ## Scope
 
-This scorecard tracks the `GOAL.md` P0 completion and P1 entry sprint. It is evidence for local product readiness, not production readiness.
+This scorecard tracks the `GOAL.md` P0 completion, P1 entry, and v0.1 local
+tool cut. It is evidence for local product readiness, not production readiness.
 
 ## Summary
 
 Stages attempted: 23.
 
 Hard boundary violations: none found in the current source-controlled slice.
+
+v0.1 local proof threshold: crossed through the 2026-06-15 isolated
+`krn-llm-wiki` product-code/checker mutation using
+`krn run --task-spec ... --execute-verify --bundle`.
 
 | Stage | Name | Status | Gate | Evidence integrity | Safety boundary | Operator usefulness | P1 progress | Test coverage | Condensation value | Regression risk | Artifacts | Tests | Decisions | Next |
 | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- |
@@ -35,6 +40,7 @@ Hard boundary violations: none found in the current source-controlled slice.
 | 20 | Code/API cleanup | partial | not primary slice | 3 | 5 | 3 | 2 | 3 | 2 | medium | no broad cleanup | tests | avoid wide rewrite | harden |
 | 21 | Local validation gate | pass | passed | 5 | 5 | 4 | 2 | 5 | 4 | low | `pnpm verify:local` | local gate output | paid calls excluded | continue |
 | 22 | P0 completion and P1 entry decision | pass | passed | 4 | 5 | 5 | 5 | 3 | 5 | low | `docs/product/p0-p1-decision.md` | docs regression | P0 complete, P1 entered under constraints | continue |
+| 23 | v0.1 local proof cut | pass | passed | 5 | 5 | 5 | 5 | 4 | 5 | low | `krn run` proof handoff, run bundle, release note | `pnpm verify:local`, final smoke | primary path frozen as `krn run` | cut |
 
 ## Minimums
 

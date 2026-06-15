@@ -11,33 +11,20 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm verify:local
-pnpm --silent krn --help
-pnpm --silent krn run --task "Run release checklist smoke with graph, context, verify, review, summary, report, and diff-check proof." --execute-verify --bundle
-pnpm --silent krn status
-pnpm --silent krn install --dry-run
-pnpm --silent krn install
-pnpm --silent krn config doctor
-pnpm --silent krn config init --dry-run --profile readonly-python
-pnpm --silent krn start "Run release checklist smoke with graph, context, hooks, verify, handoff, doctor, eval, and diff-check proof."
-pnpm --silent krn graph
-pnpm --silent krn context
-pnpm --silent krn hook codex SessionStart
-pnpm --silent krn hook codex PreToolUse
-pnpm --silent krn verify
-pnpm --silent krn handoff
-pnpm --silent krn doctor
+pnpm --silent krn run --task "CI local smoke" --dry-run --json
+pnpm --silent krn run --task "Run release checklist smoke with local verify and bundle proof." --execute-verify --bundle
 pnpm --silent krn eval
-pnpm --silent krn review --write
-pnpm --silent krn summary --write
-pnpm --silent krn report --write
 pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
-pnpm --silent krn uninstall --dry-run
 git diff --check
 git status --short
 ```
 
 `pnpm verify:local` is the no-model local gate. It runs lint, typecheck, tests, and the fixture dogfood preflight. It must not depend on paid Codex calls, hook trust, CI, network, or real user repositories.
+
+The primary operator smoke is `krn run`. The older `start`, `graph`,
+`context`, `verify`, `handoff`, `review`, and `summary` sequence is advanced
+plumbing for diagnosis, not the normal release path.
 
 ## Downstream Fixture Smoke
 

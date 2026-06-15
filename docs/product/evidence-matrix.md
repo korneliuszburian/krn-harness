@@ -9,7 +9,7 @@ It is local evidence only. It is not production proof.
 | Surface / Lane | Implementation Status | Evidence Artifact | Tests | Validation | Risk | Next Proof |
 | --- | --- | --- | --- | --- | --- | --- |
 | CLI identity | executable | `krn doctor cli` | CLI tests | `pnpm test`, dogfood preflight | global `krn` collision | keep pinned shim evidence in dogfood |
-| Condensed run workflow | executable primary operator path | `.krn/current/run-result.json`, `.krn/current/run-result.md`, `.krn/current/run-bundle/manifest.json` | CLI tests, docs regression | `pnpm test`, `krn run --task`, `krn run --task-spec`, `krn run --execute-verify`, `krn run --bundle` | can be mistaken for Codex execution; report warnings can be overread as production proof | use on next approved target workflow before adding new top-level surfaces |
+| Condensed run workflow | executable primary operator path; v0.1 local proof threshold crossed | `.krn/current/run-result.json`, `.krn/current/run-result.md`, `.krn/current/run-bundle/manifest.json` | CLI tests, docs regression, real target proof handoff | `pnpm test`, `krn run --task`, `krn run --task-spec`, `krn run --execute-verify`, `krn run --bundle`, isolated target `krn run --task-spec ... --execute-verify --bundle` | can be mistaken for Codex execution; report warnings can be overread as production proof | freeze v0.1 before adding new surfaces |
 | Task contract | executable | `.krn/current/task-contract.json` | CLI tests | `pnpm test` | weak task intent can still pass schema | richer task-spec fixtures |
 | Graph-lite | executable | `.krn/graph/repo-graph.json` | graph and CLI tests | `pnpm test` | shallow detectors only | real repo graph noise review |
 | Context package | executable; verify-profile doc-match noise narrowed from real-repo finding and rechecked during approved `krn-llm-wiki` Codex run | `.krn/current/context-package.json` | context and CLI tests | `pnpm test`, isolated `krn-llm-wiki` before/after context comparison, approved manual Codex run context check | broad tasks can still over-include shallow graph docs | repeat on broader non-doc target |
@@ -38,13 +38,14 @@ It is local evidence only. It is not production proof.
 
 ## Current Decision
 
-P1 product value is now:
+v0.1 product value is now:
 
 ```txt
-run-result -> operator-report -> release-check as internal gate -> dashboard/MCP later
+krn run -> run-result -> run-bundle -> report/release-check as supporting evidence
 ```
 
-Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data workflows, and package publishing remain intentionally unbuilt.
+Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data
+workflows, and package publishing remain intentionally unbuilt.
 
 ## Open Proof Gaps
 
