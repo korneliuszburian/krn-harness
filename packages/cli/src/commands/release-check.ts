@@ -129,6 +129,20 @@ async function reportArtifactsCheck(cwd: string): Promise<ReleaseCheckRecord> {
   };
 }
 
+async function reportBundleCheck(cwd: string): Promise<ReleaseCheckRecord> {
+  const relativePath = ".krn/current/report-bundle/manifest.json";
+  const exists = await pathExists(path.join(cwd, relativePath));
+  return {
+    id: "operator-report-bundle",
+    status: exists ? "pass" : "warn",
+    summary: exists
+      ? "Current report bundle manifest is present."
+      : "Current report bundle is missing.",
+    evidence: exists ? [relativePath] : [],
+    nextAction: exists ? undefined : "Run `krn report --bundle` before beta handoff.",
+  };
+}
+
 async function forbiddenLayersCheck(cwd: string): Promise<ReleaseCheckRecord> {
   const forbidden = [
     "packages/mcp",
@@ -254,6 +268,7 @@ async function buildReleaseCheck(cwd: string, generatedAt: string): Promise<Rele
       "Restore verify execution policy before release.",
     ),
     reportArtifactsCheck(cwd),
+    reportBundleCheck(cwd),
     forbiddenLayersCheck(cwd),
   ]);
   const blockers = checks

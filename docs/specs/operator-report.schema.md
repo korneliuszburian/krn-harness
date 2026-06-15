@@ -20,6 +20,10 @@ It is local evidence only. It is not production proof, telemetry, a dashboard se
 - `.krn/current/operator-report.json`
 - `.krn/current/operator-report.html`
 
+`krn report --bundle` also writes `.krn/current/report-bundle/` with report files,
+selected current artifacts, optional execution evidence, and `manifest.json`
+using `krn-report-bundle-manifest-v1`.
+
 The command writes `report.ran`. It does not run verify commands, call Codex, call network, inspect `.env` contents, or inspect protected file contents.
 
 ## Top-Level Fields
@@ -67,6 +71,19 @@ It must not use:
 - server runtime;
 - database;
 - hosted dashboard state.
+
+## Bundle Manifest
+
+The bundle manifest records:
+
+- `schema`: `krn-report-bundle-manifest-v1`.
+- `reportVerdict`: report verdict at bundle time.
+- `productionProof`: always `false`.
+- `files`: bundle path, source path, present flag, and required flag.
+- `limits`: local-only and protected-path copy limits.
+
+Missing optional artifacts are recorded with `present: false` instead of failing
+the bundle.
 
 ## Limits
 

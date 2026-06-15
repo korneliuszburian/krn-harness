@@ -72,6 +72,7 @@ pnpm --silent krn summary
 pnpm --silent krn review
 pnpm --silent krn report --write
 pnpm --silent krn report --json
+pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
 pnpm --silent krn artifacts list
 pnpm --silent krn artifacts archive --dry-run

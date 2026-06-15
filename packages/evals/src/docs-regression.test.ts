@@ -219,8 +219,10 @@ describe("P0 docs anti-regression", () => {
     expect(operator).toContain("No frontend framework, server, database");
     expect(operator).toContain("`krn summary`");
     expect(operator).toContain("`krn report --write`");
+    expect(operator).toContain("`krn report --bundle`");
     expect(operator).toContain(".krn/current/operator-summary.json");
     expect(operator).toContain(".krn/current/operator-report.html");
+    expect(operator).toContain(".krn/current/report-bundle/manifest.json");
     expect(operator).toContain("Missing artifacts are allowed");
     expect(operator).toContain("Do not duplicate full trace content");
     expect(operatorSummarySchema).toContain("krn-operator-summary-v1");
@@ -232,6 +234,7 @@ describe("P0 docs anti-regression", () => {
     expect(operatorSummarySchema).toContain("No hook.received event exists");
     expect(operatorSummarySchema).toContain("trusted non-manual hook-load marker");
     expect(operatorReportSchema).toContain("krn-operator-report-v1");
+    expect(operatorReportSchema).toContain("krn-report-bundle-manifest-v1");
     expect(operatorReportSchema).toContain("Historical source `.krn` dogfood blockers");
     expect(operatorReportSchema).toContain("external CSS");
     expect(operatorReportSchema).toContain("productionProof.value` must remain `false");
@@ -361,6 +364,7 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("pnpm --silent krn config doctor");
     expect(checklist).toContain("pnpm --silent krn uninstall --dry-run");
     expect(checklist).toContain("pnpm --silent krn report --write");
+    expect(checklist).toContain("pnpm --silent krn report --bundle");
     expect(checklist).toContain("pnpm --silent krn release-check --write");
     expect(checklist).toContain("write a readiness report");
     expect(checklist).toContain("must not depend on paid Codex calls");

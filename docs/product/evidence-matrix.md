@@ -24,7 +24,7 @@ It is local evidence only. It is not production proof.
 | Real-repo workflow | preflight/scaffold executable; first-class manual execution-result artifact captured; approved manual Codex README-only run completed on isolated `krn-llm-wiki` worktree; isolated non-doc `krn.config.json` adoption run passed executable readonly verify | `.krn/dogfood/**/summary.json`, target `.krn/current/*` | script and CLI tests | `pnpm test`, `pnpm verify:local`, approved manual `krn-llm-wiki` Codex runs, isolated `krn verify --execute` | skipped/readiness/preflight can be overclaimed; hook trust remains unproven; temporary target config is not committed target proof; evidence is local only | non-bypass hook trust probe and decide whether to commit target verify profile |
 | Deterministic reviewers | executable | `.krn/current/review-summary.json` | CLI tests | `pnpm test` | usefulness beyond first records unproven | compare reviewer output to human review |
 | Operator summary | executable | `.krn/current/operator-summary.json` | CLI tests | `pnpm test` | summary prioritization unproven | run summary after real dogfood and review |
-| Operator report | executable static local report | `.krn/current/operator-report.md`, `.krn/current/operator-report.json`, `.krn/current/operator-report.html` | CLI tests | `pnpm test`, `krn report --write` | report can over-compress caveats | use on latest real-repo execution evidence |
+| Operator report | executable static local report plus bundle | `.krn/current/operator-report.md`, `.krn/current/operator-report.json`, `.krn/current/operator-report.html`, `.krn/current/report-bundle/manifest.json` | CLI tests | `pnpm test`, `krn report --write`, `krn report --bundle` | report can over-compress caveats | use bundle on latest beta handoff |
 | Artifact lifecycle | executable list/archive plan | `.krn/archive/<timestamp>/` | CLI tests | `pnpm test`, `krn artifacts list`, `krn artifacts archive --dry-run` | archiving could hide useful history if overused | operator-confirmed archive only |
 | Release check | executable local handoff gate | `.krn/current/release-check.json`, `.krn/current/release-check.md` | CLI tests, docs regression | `pnpm test`, `krn release-check --write` | can be mistaken for validation execution | pair with actual validation command output |
 | Dashboard-lite | ADR-only | ADR-0014 | docs regression | `pnpm test` | UI before stable data | consume `operator-summary.json` only |
@@ -39,7 +39,7 @@ It is local evidence only. It is not production proof.
 P1 product value is now:
 
 ```txt
-review-summary.json -> operator-summary.json -> operator-report.{md,json,html} -> release-check -> dashboard/MCP later
+review-summary.json -> operator-summary.json -> operator-report.{md,json,html,bundle} -> release-check -> dashboard/MCP later
 ```
 
 Dashboard-lite, MCP, vector retrieval, autonomous subagents, protected-data workflows, and package publishing remain intentionally unbuilt.

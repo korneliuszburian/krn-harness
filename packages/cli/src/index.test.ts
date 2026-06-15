@@ -559,6 +559,41 @@ describe("krn CLI", () => {
     expect(html).not.toMatch(/https?:\/\//);
   });
 
+  it("writes a local static report bundle with a manifest", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await runInCwd(cwd, ["start", "Bundle report artifacts for operator handoff"]);
+    await runInCwd(cwd, ["summary", "--write"]);
+    await runInCwd(cwd, ["config", "doctor"]);
+
+    const result = await runInCwd(cwd, ["report", "--bundle"]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("bundle: .krn/current/report-bundle/manifest.json");
+
+    const manifest = await readJson<{
+      schema: string;
+      productionProof: boolean;
+      files: Array<{ path: string; present: boolean; required: boolean }>;
+    }>(cwd, ".krn/current/report-bundle/manifest.json");
+    const bundleHtml = await readFile(
+      path.join(cwd, ".krn", "current", "report-bundle", "operator-report.html"),
+      "utf8",
+    );
+
+    expect(manifest.schema).toBe("krn-report-bundle-manifest-v1");
+    expect(manifest.productionProof).toBe(false);
+    expect(manifest.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "operator-report.md", present: true, required: true }),
+        expect.objectContaining({ path: "operator-report.html", present: true, required: true }),
+        expect.objectContaining({ path: "operator-summary.json", present: true, required: true }),
+        expect.objectContaining({ path: "config-doctor.json", present: true }),
+        expect.objectContaining({ path: "verify-result.json", present: false }),
+      ]),
+    );
+    expect(bundleHtml).toContain("Local file only");
+    expect(bundleHtml).not.toMatch(/https?:\/\//);
+  });
+
   it("keeps stale source dogfood blockers as report caveats", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
     const stalePath = ".krn/dogfood/real-repo-skipped/test-source-checkout/summary.json";
@@ -618,6 +653,7 @@ describe("krn CLI", () => {
       ".krn/current/operator-report.md",
       ".krn/current/operator-report.json",
       ".krn/current/operator-report.html",
+      ".krn/current/report-bundle/manifest.json",
     ];
 
     await writeFile(
@@ -653,6 +689,7 @@ describe("krn CLI", () => {
         expect.objectContaining({ id: "release-check-schema", status: "pass" }),
         expect.objectContaining({ id: "ci-workflow", status: "pass" }),
         expect.objectContaining({ id: "operator-report-artifacts", status: "pass" }),
+        expect.objectContaining({ id: "operator-report-bundle", status: "pass" }),
       ]),
     );
     await expectFile(cwd, ".krn/current/release-check.json");
@@ -673,7 +710,10 @@ describe("krn CLI", () => {
       ]),
     );
     expect(releaseCheck.warnings).toEqual(
-      expect.arrayContaining([expect.stringContaining("operator-report-artifacts")]),
+      expect.arrayContaining([
+        expect.stringContaining("operator-report-artifacts"),
+        expect.stringContaining("operator-report-bundle"),
+      ]),
     );
   });
 

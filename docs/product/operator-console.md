@@ -89,6 +89,9 @@ It writes a `summary.ran` trace event. It does not run verify commands, call Cod
 - `.krn/current/operator-report.json`
 - `.krn/current/operator-report.html`
 
+`krn report --bundle` writes `.krn/current/report-bundle/manifest.json` plus a
+local bundle of the report and selected current artifacts.
+
 It writes a `report.ran` trace event. The HTML is a local static file with inline CSS only.
 
 ## Limits
@@ -100,6 +103,7 @@ It writes a `report.ran` trace event. The HTML is a local static file with inlin
 - Do not execute verification commands.
 - Do not add a database or server.
 - Do not use external CSS, external JS, or network assets in static report HTML.
+- Do not copy protected-looking paths into report bundles.
 
 ## Deferred UI
 

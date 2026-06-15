@@ -19,6 +19,7 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
 - `krn review` produces deterministic reviewer records from local artifacts.
 - `krn summary` produces an operator summary from current local state.
 - `krn report --write` writes Markdown, JSON, and static local HTML.
+- `krn report --bundle` writes a local report bundle with a manifest.
 - `krn install --dry-run` and `krn install` produce a downstream install plan/result.
 - `krn uninstall --dry-run` and `krn uninstall --confirm` remove only marker-managed files.
 - `krn config doctor` and `krn config init` make target config adoption explicit.

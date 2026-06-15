@@ -29,6 +29,7 @@ pnpm --silent krn eval
 pnpm --silent krn review --write
 pnpm --silent krn summary --write
 pnpm --silent krn report --write
+pnpm --silent krn report --bundle
 pnpm --silent krn release-check --write
 pnpm --silent krn uninstall --dry-run
 git diff --check

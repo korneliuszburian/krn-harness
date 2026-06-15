@@ -62,6 +62,7 @@ The CLI exits non-zero only for `fail`.
 - Minimal verification workflow exists.
 - Verify execution policy source exists.
 - Current operator report artifacts exist.
+- Current operator report bundle manifest exists.
 - No forbidden MCP/vector/embedding/subagent product package layers exist.
 
 ## Limits
