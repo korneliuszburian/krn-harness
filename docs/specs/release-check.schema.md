@@ -52,6 +52,9 @@ The CLI exits non-zero only for `fail`.
 - Required package scripts: `lint`, `typecheck`, `test`, `verify:local`.
 - `krn report` command source exists.
 - `krn artifacts` command source exists.
+- `krn uninstall` command source exists.
+- `krn config` command source exists.
+- Install, uninstall, and config doctor schemas exist.
 - Operator report schema exists.
 - Release-check schema exists.
 - Evidence matrix exists.

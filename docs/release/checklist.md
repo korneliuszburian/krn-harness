@@ -13,7 +13,10 @@ pnpm test
 pnpm verify:local
 pnpm --silent krn --help
 pnpm --silent krn status
+pnpm --silent krn install --dry-run
 pnpm --silent krn install
+pnpm --silent krn config doctor
+pnpm --silent krn config init --dry-run --profile readonly-python
 pnpm --silent krn start "Run release checklist smoke with graph, context, hooks, verify, handoff, doctor, eval, and diff-check proof."
 pnpm --silent krn graph
 pnpm --silent krn context
@@ -27,6 +30,7 @@ pnpm --silent krn review --write
 pnpm --silent krn summary --write
 pnpm --silent krn report --write
 pnpm --silent krn release-check --write
+pnpm --silent krn uninstall --dry-run
 git diff --check
 git status --short
 ```
@@ -40,8 +44,12 @@ Run the local demo in `docs/demo/downstream-basic-demo.md` against a temp copy o
 Expected result:
 
 - install preserves existing files and creates missing runtime artifacts;
+- install dry-run writes no runtime artifacts;
+- config doctor reports safe/blocked verify policy before execution;
 - `krn verify` records the safe profile without execution;
 - `krn verify --execute` runs the allowlisted `node src/index.test.ts` fixture;
+- uninstall dry-run plans only marker-managed file removals and preserves
+  `.krn/current`;
 - doctor/eval/review/summary remain local deterministic checks.
 
 ## Real-Repo Preflight Smoke

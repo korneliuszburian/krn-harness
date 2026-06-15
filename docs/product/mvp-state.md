@@ -19,6 +19,9 @@ readiness, a hosted dashboard, an MCP server, or a generic multi-agent runtime.
 - `krn review` produces deterministic reviewer records from local artifacts.
 - `krn summary` produces an operator summary from current local state.
 - `krn report --write` writes Markdown, JSON, and static local HTML.
+- `krn install --dry-run` and `krn install` produce a downstream install plan/result.
+- `krn uninstall --dry-run` and `krn uninstall --confirm` remove only marker-managed files.
+- `krn config doctor` and `krn config init` make target config adoption explicit.
 - `krn artifacts list` separates current, historical, stale-blocking, fixture,
   foreign-target, and archived `.krn` artifacts.
 - `krn artifacts archive --dry-run` plans safe archival without moving files.
@@ -45,11 +48,12 @@ The repository now has a minimal verification workflow and a local
 `krn release-check` command. These gates do not publish packages and do not call
 paid Codex/model paths.
 
-Release readiness requires both:
+Release readiness requires:
 
 - command validation output from the current checkout;
 - generated `.krn/current/operator-report.*` and release-check artifacts for the
-  handoff.
+  handoff;
+- install/config/uninstall lifecycle contracts present in source.
 
 ## Known Limits
 

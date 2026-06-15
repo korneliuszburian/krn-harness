@@ -195,6 +195,9 @@ describe("P0 docs anti-regression", () => {
     const operatorSummarySchema = await readDoc("docs/specs/operator-summary.schema.md");
     const operatorReportSchema = await readDoc("docs/specs/operator-report.schema.md");
     const releaseCheckSchema = await readDoc("docs/specs/release-check.schema.md");
+    const installSchema = await readDoc("docs/specs/install-result.schema.md");
+    const uninstallSchema = await readDoc("docs/specs/uninstall-result.schema.md");
+    const configDoctorSchema = await readDoc("docs/specs/config-doctor.schema.md");
     const reviewerResultSchema = await readDoc("docs/specs/reviewer-result.schema.md");
     const evidenceMatrix = await readDoc("docs/product/evidence-matrix.md");
     const doctrine = await readDoc("docs/product/research-backed-architecture.md");
@@ -234,6 +237,11 @@ describe("P0 docs anti-regression", () => {
     expect(operatorReportSchema).toContain("productionProof.value` must remain `false");
     expect(releaseCheckSchema).toContain("krn-release-check-v1");
     expect(releaseCheckSchema).toContain("does not run lint, typecheck, tests, verify, Codex");
+    expect(installSchema).toContain("krn-install-result-v1");
+    expect(uninstallSchema).toContain("krn-uninstall-result-v1");
+    expect(uninstallSchema).toContain("KRN-HARNESS-MANAGED:v1");
+    expect(configDoctorSchema).toContain("krn-config-doctor-v1");
+    expect(configDoctorSchema).toContain("readonly-python");
     expect(reviewerResultSchema).toContain("krn-reviewer-result-v1");
     expect(reviewerResultSchema).toContain("krn-review-summary-v1");
     expect(reviewerResultSchema).toContain("`krn review --llm` is intentionally unsupported");
@@ -349,6 +357,9 @@ describe("P0 docs anti-regression", () => {
     expect(checklist).toContain("pnpm verify:local");
     expect(checklist).toContain("scripts/krn-real-repo-preflight.sh <repo-path>");
     expect(checklist).toContain("scripts/krn-real-repo-dogfood.sh");
+    expect(checklist).toContain("pnpm --silent krn install --dry-run");
+    expect(checklist).toContain("pnpm --silent krn config doctor");
+    expect(checklist).toContain("pnpm --silent krn uninstall --dry-run");
     expect(checklist).toContain("pnpm --silent krn report --write");
     expect(checklist).toContain("pnpm --silent krn release-check --write");
     expect(checklist).toContain("write a readiness report");

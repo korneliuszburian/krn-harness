@@ -16,8 +16,13 @@ export const supportedCliCommands = [
   "doctor",
   "eval",
   "install",
+  "uninstall",
+  "config",
   "summary",
   "review",
+  "report",
+  "release-check",
+  "artifacts",
   "memory",
   "hook",
 ] as const;

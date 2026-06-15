@@ -3,6 +3,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { artifactsCommand } from "./commands/artifacts.js";
+import { configCommand } from "./commands/config.js";
 import { contextCommand } from "./commands/context.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { evalCommand } from "./commands/eval.js";
@@ -17,6 +18,7 @@ import { reviewCommand } from "./commands/review.js";
 import { startCommand } from "./commands/start.js";
 import { statusCommand } from "./commands/status.js";
 import { summaryCommand } from "./commands/summary.js";
+import { uninstallCommand } from "./commands/uninstall.js";
 import { verifyCommand } from "./commands/verify.js";
 import { type CliRuntime, defaultRuntime } from "./runtime.js";
 
@@ -35,6 +37,9 @@ Usage:
   krn doctor cli
   krn eval
   krn install
+  krn install --dry-run
+  krn uninstall --dry-run
+  krn config <command>
   krn summary
   krn review
   krn report
@@ -88,7 +93,15 @@ export async function runCli(
   }
 
   if (command === "install") {
-    return installCommand(runtime);
+    return installCommand(rest, runtime);
+  }
+
+  if (command === "uninstall") {
+    return uninstallCommand(rest, runtime);
+  }
+
+  if (command === "config") {
+    return configCommand(rest, runtime);
   }
 
   if (command === "summary") {

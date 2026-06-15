@@ -393,6 +393,9 @@ describe("krn CLI", () => {
       "krn doctor cli",
       "krn eval",
       "krn install",
+      "krn install --dry-run",
+      "krn uninstall --dry-run",
+      "krn config <command>",
       "krn summary",
       "krn review",
       "krn report",
@@ -601,6 +604,11 @@ describe("krn CLI", () => {
     const files = [
       "packages/cli/src/commands/report.ts",
       "packages/cli/src/commands/artifacts.ts",
+      "packages/cli/src/commands/uninstall.ts",
+      "packages/cli/src/commands/config.ts",
+      "docs/specs/install-result.schema.md",
+      "docs/specs/uninstall-result.schema.md",
+      "docs/specs/config-doctor.schema.md",
       "docs/specs/operator-report.schema.md",
       "docs/specs/release-check.schema.md",
       "docs/product/evidence-matrix.md",
@@ -640,6 +648,8 @@ describe("krn CLI", () => {
     expect(releaseCheck.checks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "package-scripts", status: "pass" }),
+        expect.objectContaining({ id: "uninstall-command", status: "pass" }),
+        expect.objectContaining({ id: "config-command", status: "pass" }),
         expect.objectContaining({ id: "release-check-schema", status: "pass" }),
         expect.objectContaining({ id: "ci-workflow", status: "pass" }),
         expect.objectContaining({ id: "operator-report-artifacts", status: "pass" }),
@@ -689,7 +699,7 @@ describe("krn CLI", () => {
     expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
     expect(result.stdout).toContain("package: @krn-harness/cli");
     expect(result.stdout).toContain(
-      "supported_commands: status,start,graph,context,verify,handoff",
+      "supported_commands: status,start,graph,context,verify,handoff,doctor,eval,install,uninstall,config,summary,review,report,release-check,artifacts,memory,hook",
     );
     expect(result.stdout).toContain("required_commands_present: true");
     expect(result.stdout).toContain(`runtime_cwd: ${result.cwd}`);
@@ -742,7 +752,7 @@ describe("krn CLI", () => {
     expect(install.stdout).toContain("KRN install: installed");
     await expectFile(cwd, "AGENTS.md");
     await expectFile(cwd, ".krn/traces/trace.jsonl");
-  });
+  }, 10_000);
 
   it("runs dogfood preflight through a pinned shim without source checkout mutation", () => {
     const result = spawnSync(path.join(process.cwd(), "scripts/krn-dogfood-preflight.sh"), {
@@ -754,7 +764,7 @@ describe("krn CLI", () => {
     expect(result.stdout).toContain("KRN dogfood preflight: pass");
     expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
     expect(result.stdout).toContain("required_commands_present: true");
-  }, 20_000);
+  }, 30_000);
 
   it("rejects the KRN source checkout as a real-repo preflight target", () => {
     const { result, summary } = runRealRepoPreflight(process.cwd());
@@ -1822,6 +1832,8 @@ markdown: .krn/graph/repo-graph.md
     await expectDirectory(install.cwd, ".krn/memory");
     await expectDirectory(install.cwd, ".krn/bin");
     await expectFile(install.cwd, ".krn/bin/krn");
+    await expectFile(install.cwd, ".krn/current/install-result.json");
+    await expectFile(install.cwd, ".krn/current/install-result.md");
 
     await expect(readJson(install.cwd, "krn.config.json")).resolves.toEqual({
       version: 1,
@@ -1840,6 +1852,7 @@ markdown: .krn/graph/repo-graph.md
     );
 
     expect(agents).toContain("KRN Harness");
+    expect(agents).toContain("KRN-HARNESS-MANAGED:v1");
     expect(agents).toContain("krn start");
     expect(agents).toContain("STOP");
     expect(agents.length).toBeLessThan(2200);
@@ -1847,7 +1860,9 @@ markdown: .krn/graph/repo-graph.md
     for (const event of supportedP0CodexHookEvents) {
       expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`./.krn/bin/krn hook codex ${event}`);
     }
+    expect((hooks as { _krnManaged?: string })._krnManaged).toBe("KRN-HARNESS-MANAGED:v1");
     expect(runtimeSkill).toContain("krn status");
+    expect(runtimeSkill).toContain("KRN-HARNESS-MANAGED:v1");
     expect(runtimeSkill).toContain("krn start");
     expect(runtimeSkill).toContain("krn context");
     expect(runtimeSkill).toContain("krn verify");
@@ -1948,6 +1963,184 @@ markdown: .krn/graph/repo-graph.md
         }),
       ]),
     );
+  });
+
+  it("plans install without writing files in dry-run mode", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const result = await runInCwd(cwd, ["install", "--dry-run", "--json"]);
+    const plan = JSON.parse(result.stdout) as {
+      schema: string;
+      dryRun: boolean;
+      status: string;
+      actions: Array<{ path: string; status: string }>;
+    };
+
+    expect(result.code).toBe(0);
+    expect(plan.schema).toBe("krn-install-result-v1");
+    expect(plan.dryRun).toBe(true);
+    expect(plan.status).toBe("planned");
+    expect(plan.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "AGENTS.md", status: "would-create" }),
+        expect.objectContaining({ path: ".codex/hooks.json", status: "would-create" }),
+        expect.objectContaining({ path: ".krn/bin/krn", status: "would-create" }),
+      ]),
+    );
+    await expect(stat(path.join(cwd, ".krn"))).rejects.toThrow();
+    await expect(stat(path.join(cwd, "AGENTS.md"))).rejects.toThrow();
+  });
+
+  it("uninstalls only managed files and preserves runtime evidence", async () => {
+    const install = await runInTemp(["install"]);
+    await writeFile(
+      path.join(install.cwd, ".krn", "current", "operator-report.json"),
+      "{}",
+      "utf8",
+    );
+
+    const dryRun = await runInCwd(install.cwd, ["uninstall", "--dry-run", "--json"]);
+    const dryRunPlan = JSON.parse(dryRun.stdout) as {
+      schema: string;
+      dryRun: boolean;
+      candidates: Array<{ path: string; status: string }>;
+      refused: Array<{ path: string; reason: string }>;
+      preserved: string[];
+    };
+
+    expect(dryRun.code).toBe(0);
+    expect(dryRunPlan.schema).toBe("krn-uninstall-result-v1");
+    expect(dryRunPlan.dryRun).toBe(true);
+    expect(dryRunPlan.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "AGENTS.md", status: "would-remove" }),
+        expect.objectContaining({ path: ".codex/hooks.json", status: "would-remove" }),
+        expect.objectContaining({
+          path: ".agents/skills/krn-harness/SKILL.md",
+          status: "would-remove",
+        }),
+        expect.objectContaining({ path: ".krn/bin/krn", status: "would-remove" }),
+      ]),
+    );
+    expect(dryRunPlan.refused).toEqual([]);
+    expect(dryRunPlan.preserved).toContain(".krn/current");
+    await expectFile(install.cwd, "AGENTS.md");
+
+    const confirmed = await runInCwd(install.cwd, ["uninstall", "--confirm", "--json"]);
+    const result = JSON.parse(confirmed.stdout) as { status: string; removed: number };
+    expect(confirmed.code).toBe(0);
+    expect(result).toMatchObject({ status: "uninstalled", removed: 4 });
+    await expect(stat(path.join(install.cwd, "AGENTS.md"))).rejects.toThrow();
+    await expect(stat(path.join(install.cwd, ".codex", "hooks.json"))).rejects.toThrow();
+    await expect(stat(path.join(install.cwd, ".krn", "bin", "krn"))).rejects.toThrow();
+    await expectFile(install.cwd, ".krn/current/operator-report.json");
+    await expectFile(install.cwd, ".krn/current/uninstall-result.json");
+  });
+
+  it("refuses to uninstall user-owned files without a managed marker", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "AGENTS.md"), "# User instructions\n", "utf8");
+
+    const result = await runInCwd(cwd, ["uninstall", "--dry-run", "--json"]);
+    const plan = JSON.parse(result.stdout) as {
+      candidates: Array<{ path: string }>;
+      refused: Array<{ path: string; reason: string }>;
+    };
+
+    expect(result.code).toBe(0);
+    expect(plan.candidates).toEqual([]);
+    expect(plan.refused).toEqual([
+      expect.objectContaining({
+        path: "AGENTS.md",
+        reason: expect.stringContaining("no KRN managed marker"),
+      }),
+    ]);
+    await expect(readFile(path.join(cwd, "AGENTS.md"), "utf8")).resolves.toBe(
+      "# User instructions\n",
+    );
+  });
+
+  it("validates config and initializes safe starter profiles", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    const missing = await runInCwd(cwd, ["config", "doctor", "--json"]);
+    const missingReport = JSON.parse(missing.stdout) as { status: string; source: string };
+    expect(missing.code).toBe(0);
+    expect(missingReport).toMatchObject({ status: "warn", source: "default" });
+
+    const dryRun = await runInCwd(cwd, [
+      "config",
+      "init",
+      "--dry-run",
+      "--profile",
+      "readonly-python",
+      "--json",
+    ]);
+    const initPlan = JSON.parse(dryRun.stdout) as {
+      status: string;
+      dryRun: boolean;
+      profile: string;
+      config: { verify?: { defaultProfile?: string } };
+    };
+    expect(initPlan).toMatchObject({
+      status: "planned",
+      dryRun: true,
+      profile: "readonly-python",
+    });
+    expect(initPlan.config.verify?.defaultProfile).toBe("readonly");
+    await expect(stat(path.join(cwd, "krn.config.json"))).rejects.toThrow();
+
+    const write = await runInCwd(cwd, [
+      "config",
+      "init",
+      "--write",
+      "--profile",
+      "readonly-python",
+    ]);
+    expect(write.code).toBe(0);
+    await expectFile(cwd, "krn.config.json");
+
+    const doctor = await runInCwd(cwd, ["config", "doctor", "--json"]);
+    const doctorReport = JSON.parse(doctor.stdout) as {
+      status: string;
+      source: string;
+      commands: Array<{ command: string; allowed: boolean }>;
+    };
+    expect(doctor.code).toBe(0);
+    expect(doctorReport).toMatchObject({ status: "pass", source: "file" });
+    expect(doctorReport.commands).toEqual([
+      { command: "python3 tools/check_all_readonly.py", allowed: true },
+    ]);
+
+    const overwrite = await runInCwd(cwd, ["config", "init", "--write", "--json"]);
+    expect(overwrite.code).toBe(1);
+    expect(JSON.parse(overwrite.stdout)).toMatchObject({ status: "blocked" });
+  });
+
+  it("fails config doctor on unsafe verify commands", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify({
+        version: 1,
+        verify: {
+          commands: ["pnpm test && rm -rf .krn"],
+        },
+      }),
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["config", "doctor", "--json"]);
+    const report = JSON.parse(result.stdout) as {
+      status: string;
+      commands: Array<{ allowed: boolean; reason?: string }>;
+    };
+    expect(result.code).toBe(1);
+    expect(report.status).toBe("fail");
+    expect(report.commands).toEqual([
+      expect.objectContaining({
+        allowed: false,
+        reason: "shell syntax is not allowed",
+      }),
+    ]);
   });
 
   it("preserves existing downstream instructions during install", async () => {

@@ -15,7 +15,7 @@ contract -> context -> graph -> hooks -> trace -> verify -> governed memory
 - pnpm TypeScript workspace.
 - Deterministic `krn` CLI for local current-state artifacts.
 - `krn.config.json` schema and `.krn/` runtime layout.
-- Safe downstream install for `AGENTS.md`, hooks, runtime skill, and runtime directories.
+- Safe downstream install/uninstall lifecycle for `AGENTS.md`, hooks, runtime skill, pinned CLI wrapper, and runtime directories.
 - Task contract, context package, graph-lite, trace, verify, handoff, doctor, memory, and eval contracts.
 - Verify execute policy documented in ADR-0017: record-only by default, explicit `--execute`, exact command allowlists, no shell mode, scrubbed env, and redacted compact output.
 - Hook guardrails with deterministic `allow`, `warn`, and `block` decisions, compact trace evidence, and operator guidance.
@@ -54,7 +54,10 @@ scripts/krn-real-repo-preflight.sh <repo-path>
 scripts/krn-real-repo-dogfood.sh
 pnpm --silent krn --help
 pnpm --silent krn status
+pnpm --silent krn install --dry-run
 pnpm --silent krn install
+pnpm --silent krn config doctor
+pnpm --silent krn config init --dry-run --profile readonly-python
 pnpm --silent krn start "Update example task with explicit outcome, constraints, and validation proof."
 pnpm --silent krn start --task-spec <json>
 pnpm --silent krn graph
@@ -72,6 +75,7 @@ pnpm --silent krn report --json
 pnpm --silent krn release-check --write
 pnpm --silent krn artifacts list
 pnpm --silent krn artifacts archive --dry-run
+pnpm --silent krn uninstall --dry-run
 pnpm --silent krn memory list
 pnpm --silent krn hook codex SessionStart
 ```
