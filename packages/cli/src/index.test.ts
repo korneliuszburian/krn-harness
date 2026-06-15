@@ -3841,10 +3841,6 @@ markdown: .krn/graph/repo-graph.md
       status: string;
       records: Array<{ id: string; status: string; summary: string; evidencePath?: string }>;
     }>(proposed.cwd, ".krn/memory/pending.json");
-    const approvedStoreAfterPropose = await readJson<{
-      status: string;
-      records: Array<{ id: string }>;
-    }>(proposed.cwd, ".krn/memory/approved.json");
     const memoryId = pendingStore.records[0]?.id ?? "";
 
     expect(pendingStore).toMatchObject({
@@ -3858,9 +3854,10 @@ markdown: .krn/graph/repo-graph.md
         },
       ],
     });
-    expect(approvedStoreAfterPropose).toMatchObject({
-      status: "approved",
-      records: [],
+    await expect(
+      readFile(path.join(proposed.cwd, ".krn/memory/approved.json"), "utf8"),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
     });
 
     const approved = await runInCwd(proposed.cwd, ["memory", "approve", memoryId]);
