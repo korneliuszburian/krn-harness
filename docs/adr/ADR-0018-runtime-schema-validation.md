@@ -58,8 +58,9 @@ expansion still needs docs/spec/ADR rationale when it changes operator-facing
 contracts.
 
 Future GOAL-8H ADR numbering shifts: ADR-0019 is now reserved for the queryable
-trace read model, so the context-poisoning ADR planned in the GOAL-8H backlog
-should use ADR-0020 unless another accepted ADR claims that number first.
+trace read model and ADR-0020 is now reserved for the run interrupt/resume
+contract, so the context-poisoning ADR planned in the GOAL-8H backlog should
+use ADR-0021 unless another accepted ADR claims that number first.
 
 ## Alternatives Considered
 

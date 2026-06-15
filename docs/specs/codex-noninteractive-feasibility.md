@@ -13,6 +13,13 @@ Checked on 2026-06-11 in this checkout:
 - `codex --help` listed `review` as "Run a code review non-interactively".
 - `codex --help` exposed `--cd`, `--sandbox`, `--ask-for-approval`, `--profile`, `--model`, `--search`, and hook trust flags.
 
+Checked again on 2026-06-15:
+
+- `codex --help` listed `resume` for previous interactive sessions.
+- `codex exec --help` listed `resume` for previous non-interactive sessions.
+- This local evidence does not authorize KRN to wrap Codex resume or add KRN
+  resume behavior without replacing or accepting ADR-0012.
+
 ## P0 Decision
 
 KRN Harness P0 may document the available Codex CLI surface, but it must not claim a working non-interactive eval runner.

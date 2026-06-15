@@ -387,6 +387,30 @@ describe("P0 docs anti-regression", () => {
     expect(goalRoadmap).toContain("No SQLite dependency, database file, or `krn traces query`");
   });
 
+  it("keeps run interrupt/resume local, deferred, and behind CLI approval", async () => {
+    const interruptSpec = await readDoc("docs/specs/run-interrupt-resume.md");
+    const interruptAdr = await readDoc("docs/adr/ADR-0020-run-interrupt-resume-contract.md");
+    const goalRoadmap = await readDoc("docs/product/goal-8h-roadmap.md");
+    const codexFeasibility = await readDoc("docs/specs/codex-noninteractive-feasibility.md");
+
+    expect(interruptSpec).toContain("krn-run-interrupt-v1");
+    expect(interruptSpec).toContain(".krn/current/interrupt.json");
+    expect(interruptSpec).toContain("No top-level `krn resume` command is currently approved");
+    expect(interruptSpec).toContain("must not use hook `warn` or `block`");
+    expect(interruptSpec).toContain("must not bypass");
+    expect(interruptSpec).toContain("No Codex session resume wrapper");
+    expect(interruptSpec).toContain("No hook-trust claim");
+    expect(interruptAdr).toContain("Keep `krn run` as the primary workflow");
+    expect(interruptAdr).toContain("Do not add a top-level `krn resume`");
+    expect(interruptAdr).toContain("ADR-0012 does not accept a Codex execution wrapper");
+    expect(goalRoadmap).toContain("TASK-003 interrupt/resume");
+    expect(goalRoadmap).toContain("ADR/spec accepted; implementation deferred");
+    expect(goalRoadmap).toContain("No top-level `krn resume`, `krn run --resume`");
+    expect(codexFeasibility).toContain("`codex exec --help` listed `resume`");
+    expect(helpText).not.toContain("krn resume");
+    expect(helpText).not.toContain("--resume");
+  });
+
   it("does not describe current P0 docs as skeleton-only output", async () => {
     const readme = await readDoc("README.md");
     const architecture = await readDoc("docs/architecture/architecture-spec-v0.1.md");
