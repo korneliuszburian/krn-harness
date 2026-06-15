@@ -49,12 +49,15 @@ production proof system.
 Canonical v0.1 state lives in `docs/product/mvp-state.md`; surface-by-surface
 evidence lives in `docs/product/evidence-matrix.md`.
 
-In short: `krn run` is the primary operator path, the v0.1 local proof threshold
-is crossed, one isolated real target product-code/checker mutation passed
-`krn run --task-spec ... --execute-verify --bundle`, `productionProof` remains
-`false`, and real Codex hook loading/trust remains unproven.
+In short:
 
-Fixture evidence still includes Tiny downstream fixture dogfood, Product-code fixture dogfood, and a synthetic WordPress/ACF fixture. Global `krn` fallback invalidates the run. Docs-only and config-adoption `krn-llm-wiki` evidence exists; one isolated product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle`. Details live in the evidence matrix.
+- `krn run` is the primary operator path.
+- The v0.1 local proof threshold is crossed.
+- Fixture evidence includes Tiny downstream fixture dogfood, Product-code fixture dogfood, and a synthetic WordPress/ACF fixture.
+- Global `krn` fallback invalidates the run.
+- Docs-only and config-adoption `krn-llm-wiki` evidence exists.
+- One isolated real target product-code/checker mutation passed `krn run --task-spec ... --execute-verify --bundle`.
+- `productionProof` remains `false`, and real Codex hook loading/trust remains unproven.
 
 P0/P1 boundaries live in `docs/product/p0-exit-criteria.md`,
 `docs/product/p0-p1-decision.md`, `docs/product/p1-entry-contract.md`, and
@@ -163,16 +166,16 @@ operator path is `krn run`.
 
 Do not touch protected data: `.env`, dumps, uploads/media, client documents,
 credentials, private corpora, or protected corpora. For real target adoption,
-run:
+use a clean isolated worktree and keep `krn run` as the primary workflow:
 
 ```bash
 scripts/krn-real-repo-preflight.sh <repo-path>
-scripts/krn-real-repo-dogfood.sh
+pnpm --silent krn run --task-spec <task.json> --execute-verify --bundle
 ```
 
-The real-repo dogfood scaffold is report-only unless explicit operator approval
-environment variables are present. Do not push target repos without explicit
-approval.
+The legacy real-repo dogfood/report scripts are historical readiness/report
+tools. They are not the product-code adoption workflow. Do not push target repos
+without explicit approval.
 
 ## Command Reference
 

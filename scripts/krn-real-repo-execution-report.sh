@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Deprecated historical reporter. The primary real-target product-code adoption
+# path is `krn run --task-spec <task.json> --execute-verify --bundle`, which
+# writes run-result and run-bundle artifacts. Keep this script only for reading
+# or reproducing legacy `.krn/dogfood/real-repo-execution/*` summaries.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 ROOT="$ROOT" node --input-type=module <<'NODE'

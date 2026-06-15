@@ -12,11 +12,11 @@ import {
   writeCurrentMarkdown,
 } from "../current-state.js";
 import { buildCliIdentity } from "../identity.js";
+import { buildOperatorReport } from "../operator-report.js";
 import {
-  buildOperatorReport,
   renderOperatorReportHtml,
   renderOperatorReportMarkdown,
-} from "../operator-report.js";
+} from "../operator-report-render.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 

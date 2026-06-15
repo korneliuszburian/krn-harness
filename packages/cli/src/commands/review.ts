@@ -1,7 +1,3 @@
-import type { Dirent } from "node:fs";
-import { readdir, stat } from "node:fs/promises";
-import path from "node:path";
-import { classifyExecutionResult } from "../../../core/src/index.js";
 import { readRepoJson, readRepoText, repoPathExists } from "../current-artifacts.js";
 import {
   readCurrentContextPackage,
@@ -10,12 +6,15 @@ import {
   writeCurrentJson,
   writeCurrentMarkdown,
 } from "../current-state.js";
+import { parseReviewArgs } from "../review-args.js";
+import { collectDogfoodSummaries, dogfoodReview } from "../review-dogfood.js";
+import { renderReviewMarkdown } from "../review-render.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
-type ReviewStatus = "pass" | "warn" | "fail" | "blocked";
-type ReviewConfidence = "low" | "medium" | "high";
-type ReviewerName =
+export type ReviewStatus = "pass" | "warn" | "fail" | "blocked";
+export type ReviewConfidence = "low" | "medium" | "high";
+export type ReviewerName =
   | "safety"
   | "evidence"
   | "context"
@@ -52,12 +51,6 @@ export interface ReviewResult {
   nextActions: string[];
 }
 
-interface ReviewCommandOptions {
-  format: "markdown" | "json";
-  write: boolean;
-  error?: string | undefined;
-}
-
 const reviewerNames: Record<ReviewerName, string> = {
   safety: "Safety reviewer",
   evidence: "Evidence reviewer",
@@ -68,7 +61,7 @@ const reviewerNames: Record<ReviewerName, string> = {
   release: "Release readiness reviewer",
 };
 
-function record(
+export function record(
   input: Omit<
     ReviewRecord,
     | "schema"
@@ -101,40 +94,6 @@ function aggregateStatus(records: ReviewRecord[]): ReviewStatus {
 
 function unique(values: string[]): string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
-function parseReviewArgs(args: string[]): ReviewCommandOptions {
-  const options: ReviewCommandOptions = {
-    format: "markdown",
-    write: false,
-  };
-
-  for (const arg of args) {
-    if (arg === "--json") {
-      options.format = "json";
-      continue;
-    }
-
-    if (arg === "--write") {
-      options.write = true;
-      continue;
-    }
-
-    if (arg === "--llm") {
-      return {
-        ...options,
-        error:
-          "KRN review: `--llm` is not implemented; deterministic reviewers only in this slice.",
-      };
-    }
-
-    return {
-      ...options,
-      error: "KRN review: expected `krn review [--json] [--write]`",
-    };
-  }
-
-  return options;
 }
 
 function protectedLookingPath(filePath: string): boolean {
@@ -356,178 +315,6 @@ async function handoffReview(cwd: string): Promise<ReviewRecord> {
   });
 }
 
-interface DogfoodSummary {
-  path: string;
-  mtimeMs: number;
-  schema?: string | undefined;
-  status?: string | undefined;
-  outcomeKind?: string | undefined;
-  executionKind?: string | undefined;
-  validationStatus?: string | undefined;
-  forbiddenTouchedFiles?: string[] | undefined;
-  committedTargetRepo?: boolean | undefined;
-  pushedTargetRepo?: boolean | undefined;
-  hookTrustStatus?: string | undefined;
-  productionProof?: boolean | undefined;
-  results?: { globalKrnFallbackUsed?: boolean | undefined }[] | undefined;
-  aggregates?: { mode?: string; taskPasses?: number; tasks?: number; invalidRuns?: number }[];
-}
-
-type DogfoodSummaryJson = Omit<DogfoodSummary, "path" | "mtimeMs">;
-
-async function collectDogfoodSummaries(cwd: string): Promise<DogfoodSummary[]> {
-  const root = path.join(cwd, ".krn", "dogfood");
-  const summaries: DogfoodSummary[] = [];
-
-  async function walk(dir: string, depth: number): Promise<void> {
-    if (depth > 4) return;
-
-    let entries: Dirent[];
-    try {
-      entries = await readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      const entryPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        await walk(entryPath, depth + 1);
-        continue;
-      }
-
-      if (entry.isFile() && entry.name === "summary.json") {
-        const relativePath = path.relative(cwd, entryPath).split(path.sep).join("/");
-        const summary = await readRepoJson<DogfoodSummaryJson>(cwd, relativePath);
-        const info = await stat(entryPath);
-        summaries.push({ path: relativePath, mtimeMs: info.mtimeMs, ...summary });
-      }
-    }
-  }
-
-  await walk(root, 0);
-  return summaries.sort(
-    (left, right) => left.mtimeMs - right.mtimeMs || left.path.localeCompare(right.path),
-  );
-}
-
-function summarizeDogfoodFindings(label: string, summaries: DogfoodSummary[]): string[] {
-  const latest = summaries.at(-1);
-  if (!latest) return [];
-
-  return [
-    `${label}: ${latest.path}`,
-    ...(summaries.length > 1
-      ? [`${label}: ${summaries.length - 1} older artifact(s) omitted; see evidence list.`]
-      : []),
-  ];
-}
-
-function isExecutionResult(summary: DogfoodSummary): boolean {
-  return (
-    summary.schema === "krn-real-repo-execution-result-v1" ||
-    summary.path.includes("/real-repo-execution/")
-  );
-}
-
-function isUnsafeExecutionResult(summary: DogfoodSummary): boolean {
-  return isExecutionResult(summary) && classifyExecutionResult(summary).severity === "fail";
-}
-
-function isBlockedDogfood(summary: DogfoodSummary): boolean {
-  return summary.status === "blocked" || summary.executionKind === "blocked";
-}
-
-function isSkippedDogfood(summary: DogfoodSummary): boolean {
-  return summary.status === "skipped" || summary.executionKind === "skipped";
-}
-
-function isExecutionWarning(summary: DogfoodSummary): boolean {
-  const classification = classifyExecutionResult(summary);
-  return (
-    isExecutionResult(summary) &&
-    !isUnsafeExecutionResult(summary) &&
-    !isBlockedDogfood(summary) &&
-    !isSkippedDogfood(summary) &&
-    (classification.severity === "warn" ||
-      classification.nextAction !== undefined ||
-      summary.executionKind === "manual-no-codex")
-  );
-}
-
-async function dogfoodReview(cwd: string): Promise<ReviewRecord> {
-  const summaries = await collectDogfoodSummaries(cwd);
-
-  if (summaries.length === 0) {
-    return record({
-      reviewer: "dogfood",
-      status: "warn",
-      confidence: "medium",
-      summary: "No local dogfood summary artifacts found.",
-      evidence: [],
-      findings: ["missing artifact: .krn/dogfood/**/summary.json"],
-      nextActions: ["Run a dogfood benchmark or real-repo readiness scaffold when relevant."],
-    });
-  }
-
-  const failing = summaries.filter((summary) => summary.status === "fail");
-  const invalid = summaries.filter((summary) =>
-    summary.aggregates?.some((aggregate) => (aggregate.invalidRuns ?? 0) > 0),
-  );
-  const blocked = summaries.filter(isBlockedDogfood);
-  const skipped = summaries.filter(isSkippedDogfood);
-  const readiness = summaries.filter(
-    (summary) => summary.status === "readiness" || summary.outcomeKind === "readiness-only",
-  );
-  const preflightOnly = summaries.filter(
-    (summary) =>
-      summary.schema === "krn-real-repo-preflight-v1" ||
-      summary.path.includes("/real-repo-preflight/"),
-  );
-  const executionResults = summaries.filter(isExecutionResult);
-  const unsafeExecutionResults = executionResults.filter(isUnsafeExecutionResult);
-  const executionWarnings = executionResults.filter(isExecutionWarning);
-
-  return record({
-    reviewer: "dogfood",
-    status:
-      failing.length > 0 || invalid.length > 0 || unsafeExecutionResults.length > 0
-        ? "fail"
-        : blocked.length > 0 ||
-            skipped.length > 0 ||
-            readiness.length > 0 ||
-            preflightOnly.length > 0 ||
-            executionWarnings.length > 0
-          ? "warn"
-          : "pass",
-    confidence: "medium",
-    summary: `Found ${summaries.length} dogfood summary artifact(s): ${failing.length} failing, ${invalid.length} invalid, ${blocked.length} blocked, ${skipped.length} skipped, ${readiness.length} readiness-only, ${preflightOnly.length} preflight-only, ${executionResults.length} execution-result.`,
-    evidence: summaries.map((summary) => summary.path),
-    findings: [
-      ...summarizeDogfoodFindings("failing dogfood summary", failing),
-      ...summarizeDogfoodFindings("invalid dogfood runs in", invalid),
-      ...summarizeDogfoodFindings("unsafe execution result", unsafeExecutionResults),
-      ...summarizeDogfoodFindings("blocked dogfood summary", blocked),
-      ...summarizeDogfoodFindings("skipped dogfood summary", skipped),
-      ...summarizeDogfoodFindings("readiness-only dogfood summary", readiness),
-      ...summarizeDogfoodFindings("preflight-only dogfood summary", preflightOnly),
-      ...summarizeDogfoodFindings("execution-result warning", executionWarnings),
-    ],
-    nextActions:
-      failing.length > 0 || invalid.length > 0 || unsafeExecutionResults.length > 0
-        ? ["Inspect failing, invalid, or unsafe dogfood reports."]
-        : blocked.length > 0 ||
-            skipped.length > 0 ||
-            readiness.length > 0 ||
-            preflightOnly.length > 0 ||
-            executionWarnings.length > 0
-          ? [
-              "Review blocked/skipped/readiness/preflight/execution dogfood reports before claiming execution proof.",
-            ]
-          : [],
-  });
-}
-
 async function releaseReview(cwd: string): Promise<ReviewRecord> {
   const packageJson = await readRepoJson<{ scripts?: Record<string, string> }>(cwd, "package.json");
   const hasVerifyLocal = typeof packageJson?.scripts?.["verify:local"] === "string";
@@ -553,56 +340,6 @@ async function releaseReview(cwd: string): Promise<ReviewRecord> {
     findings: [],
     nextActions: [],
   });
-}
-
-function renderReviewMarkdown(result: ReviewResult): string {
-  return [
-    "# KRN Review",
-    "",
-    `Status: ${result.status}`,
-    `Generated at: ${result.generatedAt}`,
-    "",
-    "## Records",
-    "",
-    "| Reviewer | Status | Confidence | Summary |",
-    "| --- | --- | --- | --- |",
-    ...result.reviewers.map(
-      (item) =>
-        `| ${item.reviewer} | ${item.status} | ${item.confidence} | ${item.summary.replaceAll("|", "\\|")} |`,
-    ),
-    "",
-    "## Findings",
-    "",
-    ...result.reviewers.flatMap((item) => [
-      `### ${item.reviewer}`,
-      "",
-      ...(item.findings.length > 0 ? item.findings.map((finding) => `- ${finding}`) : ["- none"]),
-      "",
-      "Next actions:",
-      ...(item.nextActions.length > 0
-        ? item.nextActions.map((action) => `- ${action}`)
-        : ["- none"]),
-      "",
-    ]),
-    "## Blockers",
-    "",
-    ...(result.blockers.length > 0 ? result.blockers.map((item) => `- ${item}`) : ["- none"]),
-    "",
-    "## Warnings",
-    "",
-    ...(result.warnings.length > 0 ? result.warnings.map((item) => `- ${item}`) : ["- none"]),
-    "",
-    "## Next Actions",
-    "",
-    ...(result.nextActions.length > 0 ? result.nextActions.map((item) => `- ${item}`) : ["- none"]),
-    "",
-    "## Limits",
-    "",
-    "- Deterministic reviewers read local artifacts only.",
-    "- Reviewers do not edit files, call models, execute verify commands, commit, or push.",
-    "- Review records are operator guidance, not production proof.",
-    "",
-  ].join("\n");
 }
 
 export async function reviewCommand(args: string[], runtime: CliRuntime): Promise<number> {

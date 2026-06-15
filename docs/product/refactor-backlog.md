@@ -86,3 +86,33 @@ Risk:
 Stop condition:
 
 - stop the refactor if any hook fixture result changes without a new ADR/spec update and explicit operator review.
+
+## `packages/evals/src/run-eval.ts`
+
+Current responsibility:
+
+- loads fixtures, runs context/eval graders, checks graph/downstream/verify/hook/memory/trace coverage, and renders eval artifacts.
+
+Proposed modules:
+
+- `fixture-eval.ts` for fixture loop execution;
+- `surface-checks.ts` for graph/downstream/verify/hook/memory/trace checks;
+- `eval-render.ts` for Markdown/JSON artifact shaping.
+
+Tests needed before extraction:
+
+- characterization tests for fixture counts, pass/fail totals, section names, and P0 limit warnings.
+
+Risk:
+
+- eval output is a release gate, so wording/status drift can hide a real regression.
+
+Stop condition:
+
+- stop the refactor if `pnpm eval`, `pnpm test`, or docs regression output changes without an intentional spec update.
+
+## Characterization Test Files
+
+The large context, doctor, hook, and eval tests are intentional safety nets
+until their source files are split. Split them only with a matching source
+extraction and before/after fixture output comparison.

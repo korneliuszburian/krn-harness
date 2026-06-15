@@ -2,109 +2,42 @@
 
 ## Status
 
-P1 executable summary artifact plus local static report artifact. No frontend framework, server, database, or hosted service is implemented.
+Current implementation is artifact-first only:
 
-## Purpose
+- `krn summary` writes `.krn/current/operator-summary.{json,md}`.
+- `krn report` writes `.krn/current/operator-report.{json,md,html}` and optional report bundles.
 
-The operator console model is currently exposed through `krn summary` and `krn report`. Summary preserves strict current-state signals. Report projects current evidence into Markdown, JSON, and local static HTML so an operator can quickly decide what is safe to do next.
+This is the P1 executable summary artifact plus local static report artifact
+boundary.
 
-It must aggregate evidence already written by the CLI. It must not become a second source of truth.
+Concrete commands and outputs: `krn report --write`, `krn report --bundle`,
+`.krn/current/operator-summary.json`, `.krn/current/operator-report.html`, and
+`.krn/current/report-bundle/manifest.json`.
 
-## Sections
+No frontend framework, server, database, hosted service, or dashboard is implemented.
 
-- Runs
-- Memory
-- Context
-- Verify
-- Handoff
-- Graph
-- Dogfood
-- Repos
-- Decisions
-- Gaps
-- Settings
+## Contract
 
-## Summary Card Shape
+Summary/report may aggregate existing local artifacts only. They must not become
+a second source of truth, run Codex, execute verify commands, inspect protected
+file contents, or infer production readiness.
 
-```json
-{
-  "schemaVersion": 1,
-  "generatedAt": "2026-06-13T00:00:00.000Z",
-  "repo": "downstream-repo",
-  "taskId": "task-example",
-  "contextStop": false,
-  "verifyStatus": "pass",
-  "handoffStatus": "present",
-  "graphStatus": "present",
-  "dogfoodStatus": "skipped",
-  "pendingMemoryCount": 0,
-  "nextActions": [
-    "Review current handoff",
-    "Run dogfood comparison when paid Codex calls are approved"
-  ],
-  "gaps": [
-    "Hooks are not validated until real hook.received appears from Codex"
-  ]
-}
-```
+Allowed input families:
 
-## Inputs
+- `.krn/current/*` current run/task/context/verify/handoff/doctor/eval/review artifacts;
+- `.krn/graph/repo-graph.json`;
+- `.krn/memory/{pending,approved,deprecated}.json`;
+- `.krn/dogfood/**/summary.json`.
 
-`krn summary` and `krn report` may read only local artifacts:
-
-- `.krn/current/run.json`
-- `.krn/current/task-contract.json`
-- `.krn/current/context-package.json`
-- `.krn/current/verify-result.json`
-- `.krn/current/handoff.md`
-- `.krn/current/doctor-result.json`
-- `.krn/current/eval-result.json`
-- `.krn/current/review-summary.json`
-- `.krn/graph/repo-graph.json`
-- `.krn/memory/pending.json`
-- `.krn/memory/approved.json`
-- `.krn/memory/deprecated.json`
-- `.krn/dogfood/*/run-record.json`
-- `.krn/dogfood/*/grade.json`
-- `.krn/dogfood/**/summary.json`
-
-Missing artifacts are allowed. The summary should report missing status instead of failing.
-
-## CLI
-
-`krn summary` prints Markdown by default.
-
-`krn summary --json` prints the `krn-operator-summary-v1` object.
-
-`krn summary --write` writes:
-
-- `.krn/current/operator-summary.json`
-- `.krn/current/operator-summary.md`
-
-It writes a `summary.ran` trace event. It does not run verify commands, call Codex, call network, or inspect protected file contents.
-
-`krn report --write` writes:
-
-- `.krn/current/operator-report.md`
-- `.krn/current/operator-report.json`
-- `.krn/current/operator-report.html`
-
-`krn report --bundle` writes `.krn/current/report-bundle/manifest.json` plus a
-local bundle of the report and selected current artifacts.
-
-It writes a `report.ran` trace event. The HTML is a local static file with inline CSS only.
+Missing artifacts are allowed and should be reported as missing/warn/skipped
+rather than hidden.
 
 ## Limits
 
 - Do not duplicate full trace content.
-- Do not infer product readiness from self-report.
-- Do not claim hook validation without real `hook.received` from Codex.
-- Do not run Codex.
-- Do not execute verification commands.
-- Do not add a database or server.
-- Do not use external CSS, external JS, or network assets in static report HTML.
+- Do not claim hook validation without trusted real `hook.received` provenance.
+- Do not add a database, server, external CSS/JS, network asset, or hosted UI.
 - Do not copy protected-looking paths into report bundles.
 
-## Deferred UI
-
-A future dashboard-lite renderer may consume `operator-summary.json`, but the current product layer is artifact-first.
+Future dashboard-lite work may consume `operator-summary.json`, but it is not
+part of the current product layer.

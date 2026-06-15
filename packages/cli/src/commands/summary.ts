@@ -1,6 +1,7 @@
 import { writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
 import { buildCliIdentity } from "../identity.js";
-import { buildOperatorSummary, renderOperatorSummaryMarkdown } from "../operator-summary.js";
+import { buildOperatorSummary } from "../operator-summary.js";
+import { renderOperatorSummaryMarkdown } from "../operator-summary-render.js";
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
