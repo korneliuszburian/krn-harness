@@ -48,6 +48,11 @@ database, an autonomous agent framework, or a publishing pipeline.
   `krn run --task-spec ... --execute-verify --bundle` with run status
   `verified`, one executed target validation command, run bundle generation,
   `productionProof: false`, and hook trust unproven.
+- A 2026-06-15 reviewed target PR boundary exists for `krn-llm-wiki`:
+  PR #78 commits only `krn.config.json`, ran `krn config doctor --json`, and
+  passed `krn run --task-spec ... --execute-verify --bundle` with
+  `python3 tools/check_all_readonly.py` as the single target-owned executed
+  command.
 
 ## Release Posture
 
@@ -70,6 +75,8 @@ Release readiness requires:
 - Hook trust remains unproven.
 - Real target product-code proof is local isolated-worktree evidence only; it is
   not a target commit, target push, production proof, or hook trust proof.
+- Target PR #78 is unmerged review evidence only; it is not target-main
+  adoption until reviewed and merged by the target owner.
 - Historical `.krn` dogfood artifacts can still create caveats; report and
   artifacts commands make them visible instead of silently treating them as
   current proof.
@@ -79,6 +86,5 @@ Release readiness requires:
 
 ## Next Slice
 
-Commit/adopt target `krn.config.json` through a reviewed target PR, or repeat
-`krn run` on a second non-protected real repository. Do not add new product
-surfaces before one of those moves.
+Review target PR #78, or repeat `krn run` on a second non-protected real
+repository. Do not add new product surfaces before one of those moves.

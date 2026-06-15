@@ -5,10 +5,10 @@
 - Repo: `/home/krn/coding/krn/active/krn-llm-wiki`
 - Branch observed: `r2c-011-update-page-operator-readiness-report`
 - Current state observed: dirty (`AGENTS.md`, `.codex/`, `.krn/`)
-- Existing validation surface: Python tools, no `package.json`, no
-  `krn.config.json`
+- Existing validation surface: Python tools and no `package.json`
 
-This proposal is read-only. It does not mutate the target checkout.
+This proposal began as read-only. The 2026-06-15 reviewed adoption boundary
+below records the first target PR that commits only `krn.config.json`.
 
 ## Why This Target
 
@@ -79,6 +79,62 @@ agent-governance rules and explicit read-only validation:
 - Python validation output can be noisy; KRN should persist compact redacted
   stdout/stderr tails only.
 - This proposal is not evidence that real Codex hooks are trusted.
+- Target PR adoption is review evidence only until the target owner reviews and
+  merges it.
+
+## 2026-06-15 Reviewed Target PR Adoption Boundary
+
+An isolated worktree at `/tmp/krn-llm-wiki-krn-adoption-20260615` started from
+`origin/main` at `e230289ae3d744561555a6998a32b8ae2ecd0b24`. The active target
+checkout remained dirty (`AGENTS.md`, `.codex/`, `.krn/`) and was not mutated.
+
+Target branch:
+
+`krn-adopt-harness-config-20260615`
+
+Target commit:
+
+`0449611b4f18ed89c05374c4f96a5421fc549229 chore: adopt krn readonly config`
+
+Reviewed PR boundary:
+
+`https://github.com/korneliuszburian/krn-llm-wiki/pull/78`
+
+Committed target files:
+
+- `krn.config.json`
+
+Runtime-only, uncommitted evidence:
+
+- `.krn/dogfood/task-specs/adopt-krn-config-reviewed-pr.json`;
+- `.krn/current/config-doctor.json`;
+- `.krn/current/run-result.json`;
+- `.krn/current/run-bundle/manifest.json`.
+
+Validation:
+
+- direct target preflight `python3 tools/check_all_readonly.py`: pass, 212.22s;
+- pinned KRN identity command path:
+  `/home/krn/coding/krn/krn-harness/packages/cli/src/index.ts`;
+- `krn config doctor --json`: pass, profile `readonly`, command allowed;
+- `krn run --task-spec .krn/dogfood/task-specs/adopt-krn-config-reviewed-pr.json --execute-verify --bundle`:
+  verified;
+- executed verify command: `python3 tools/check_all_readonly.py`;
+- executed commands: 1/1, exit 0;
+- run bundle manifest: `krn-run-bundle-manifest-v1`,
+  `productionProof: false`, `hookTrustStatus: "unproven"`;
+- PR diff: `krn.config.json` only;
+- PR merge state: clean;
+- target status checks: none configured.
+
+Boundaries:
+
+- no direct push to target `main`;
+- PR remains unmerged;
+- `.krn/`, `.codex/`, AGENTS, raw/wiki content, protected data, and governance
+  artifacts are not committed by this branch;
+- this is not production proof;
+- this is not hook trust proof.
 
 ## 2026-06-14 Isolated Attempt Result
 

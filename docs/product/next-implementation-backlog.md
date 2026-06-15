@@ -10,16 +10,21 @@ local isolated-worktree evidence, `productionProof` remains false, and
 Do not add product surfaces before these items. Target commit/push remains
 separate from KRN source proof.
 
-## Priority 1: Adopt Target Config Through Reviewed Target PR
+## Priority 1: Review Target Config PR
 
-Goal: commit/adopt a safe `krn.config.json` in the first target repository
-through a reviewed target PR, not by pushing the isolated worktree.
+Status: PR #78 exists in `krn-llm-wiki` from
+`krn-adopt-harness-config-20260615` to `main`. It commits only
+`krn.config.json` and remains unmerged.
+
+Goal: review the safe `krn.config.json` target PR and decide whether to merge
+it into target `main`.
 
 Acceptance:
 
 - Target owner approves the config.
 - Verify command is local, deterministic, and allowed by KRN policy.
 - Target PR excludes `.krn` artifacts and protected data.
+- No direct push to target `main`.
 - KRN source remains unchanged unless a target finding requires a focused fix.
 
 ## Priority 2: Repeat `krn run` On A Second Real Repo

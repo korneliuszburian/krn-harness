@@ -279,6 +279,8 @@ describe("P0 docs anti-regression", () => {
     expect(evidenceMatrix).toContain("Operator report");
     expect(evidenceMatrix).toContain("Artifact lifecycle");
     expect(evidenceMatrix).toContain(".krn/current/run-bundle/manifest.json");
+    expect(evidenceMatrix).toContain("target PR #78");
+    expect(evidenceMatrix).toContain("PR #78 is unmerged review evidence");
     expect(evidenceMatrix).toContain("Dashboard-lite | ADR-only");
     expect(evidenceMatrix).toContain("MCP | ADR-only");
     expect(evidenceMatrix).toContain("Retrieval/vector | ADR-only");
@@ -287,7 +289,9 @@ describe("P0 docs anti-regression", () => {
     expect(doctrine).toContain("Security By Architecture, Not Prompt");
     expect(doctrine).toContain("https://arxiv.org/abs/2405.15793");
     expect(doctrine).toContain("https://genai.owasp.org/llm-top-10/");
-    expect(backlog).toContain("Priority 1: Adopt Target Config Through Reviewed Target PR");
+    expect(backlog).toContain("Priority 1: Review Target Config PR");
+    expect(backlog).toContain("PR #78 exists in `krn-llm-wiki`");
+    expect(backlog).toContain("No direct push to target `main`");
     expect(backlog).toContain("Priority 5: Later Hook Trust Investigation");
     expect(backlog).toContain("Not Before v0.2");
     expect(backlog).not.toContain("Priority 6:");
