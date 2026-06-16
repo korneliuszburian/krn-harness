@@ -18,7 +18,8 @@ eval, graph, and downstream-template hardening order.
 
 Status: PR #78 exists in `krn-llm-wiki` from
 `krn-adopt-harness-config-20260615` to `main`. It commits only
-`krn.config.json` and remains unmerged.
+`krn.config.json`, passed the 2026-06-16 repeat run, and is classified
+`READY_TO_MERGE` pending explicit target-owner approval. It remains unmerged.
 
 Goal: review the safe `krn.config.json` target PR and decide whether to merge
 it into target `main`.
@@ -30,6 +31,10 @@ Acceptance:
 - Target PR excludes `.krn` artifacts and protected data.
 - No direct push to target `main`.
 - KRN source remains unchanged unless a target finding requires a focused fix.
+
+Adoption note: the target currently does not ignore `.krn/`, so runtime evidence
+appears as untracked files in the isolated worktree. Treat that as a target-owner
+follow-up, not as a KRN source change.
 
 ## Priority 2: Repeat `krn run` On A Second Real Repo
 
@@ -75,6 +80,17 @@ Acceptance:
 - Disposable non-protected target.
 - No bypass-based trust claim.
 - No production proof claim.
+
+## External Audit Triage Candidates
+
+Tracked in `docs/product/external-audit-triage-2026-06-16.md`. The only
+near-term candidates after target repeat are:
+
+- Threat model docs without `krn hook verify`.
+- Run hash evidence without `krn run --compare`.
+- Golden deterministic eval corpus before any LLM judge.
+- Config inheritance only if repeat target evidence shows copy/paste pain.
+- Memory/eval ADR refresh in existing ADRs/specs, not duplicate docs.
 
 ## Not Before v0.2
 
