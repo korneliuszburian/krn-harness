@@ -14,29 +14,7 @@ GOAL-8H hardening work is tracked separately in
 `docs/product/goal-8h-roadmap.md`; use that roadmap for schema, trace, hook,
 eval, graph, and downstream-template hardening order.
 
-## Priority 1: Review Target Config PR
-
-Status: PR #78 exists in `krn-llm-wiki` from
-`krn-adopt-harness-config-20260615` to `main`. It commits only
-`krn.config.json`, passed the 2026-06-16 repeat run, and is classified
-`READY_TO_MERGE` pending explicit target-owner approval. It remains unmerged.
-
-Goal: review the safe `krn.config.json` target PR and decide whether to merge
-it into target `main`.
-
-Acceptance:
-
-- Target owner approves the config.
-- Verify command is local, deterministic, and allowed by KRN policy.
-- Target PR excludes `.krn` artifacts and protected data.
-- No direct push to target `main`.
-- KRN source remains unchanged unless a target finding requires a focused fix.
-
-Adoption note: the target currently does not ignore `.krn/`, so runtime evidence
-appears as untracked files in the isolated worktree. Treat that as a target-owner
-follow-up, not as a KRN source change.
-
-## Priority 2: Repeat `krn run` On A Second Real Repo
+## Priority 1: Second Real Repo Repeat
 
 Goal: repeat `krn run --task-spec ... --execute-verify --bundle` on a second
 non-protected real repository.
@@ -48,7 +26,18 @@ Acceptance:
 - Run status is `verified` or the exact blocker is documented.
 - No target push and no production or hook-trust claim.
 
-## Priority 3: Harden Context Selection From Real Target Findings
+## Completed: Target Config PR #78
+
+Status: PR #78 exists in `krn-llm-wiki` from
+`krn-adopt-harness-config-20260615` to `main`. It commits only
+`krn.config.json`, passed final 2026-06-16 validation, and was merged through PR
+#78. Target `main` now contains `krn.config.json`.
+
+Adoption note: the target currently does not ignore `.krn/`, so runtime evidence
+appears as untracked files in the isolated worktree. Treat that as a target-owner
+follow-up, not as a KRN source change.
+
+## Priority 2: Harden Context Selection From Real Target Findings
 
 Goal: turn observed real-target context/report noise into focused fixes.
 
@@ -58,7 +47,7 @@ Acceptance:
 - Tests cover the finding.
 - No broad graph rewrite, AST/dataflow engine, or new retrieval layer.
 
-## Priority 4: Add Minimal v0.1 Release Note/Tag Process
+## Priority 3: Add Minimal v0.1 Release Note/Tag Process
 
 Goal: define the smallest local tag/release-note process for v0.1 handoff.
 
@@ -69,7 +58,7 @@ Acceptance:
 - Tag process is local/repo-only until publishing is explicitly designed.
 - No package publishing automation is added.
 
-## Priority 5: Later Hook Trust Investigation
+## Priority 4: Later Hook Trust Investigation
 
 Goal: investigate hook trust only if Codex project hook loading becomes relevant
 to an approved target workflow.

@@ -52,11 +52,13 @@ wording lives in `docs/releases/v0.1-local-tool-candidate.md`.
   `krn run --task-spec ... --execute-verify --bundle` with run status
   `verified`, one executed target validation command, run bundle generation,
   `productionProof: false`, and hook trust unproven.
-- A 2026-06-15 reviewed target PR boundary exists for `krn-llm-wiki`:
-  PR #78 commits only `krn.config.json`, ran `krn config doctor --json`, and
-  passed `krn run --task-spec ... --execute-verify --bundle` with
-  `python3 tools/check_all_readonly.py` as the single target-owned executed
-  command.
+- A 2026-06-16 reviewed target-main config adoption exists for
+  `krn-llm-wiki`: PR #78 merged only `krn.config.json` after final
+  `python3 tools/check_all_readonly.py`, `krn config doctor --json`, and
+  `krn run --task-spec ... --execute-verify --bundle` validation. The KRN run
+  executed `python3 tools/check_all_readonly.py` as the single target-owned
+  command, generated a run bundle, kept `productionProof: false`, and kept hook
+  trust unproven.
 
 ## Release Posture
 
@@ -79,8 +81,8 @@ Release readiness requires:
 - Hook trust remains unproven.
 - Real target product-code proof is local isolated-worktree evidence only; it is
   not a target commit, target push, production proof, or hook trust proof.
-- Target PR #78 is unmerged review evidence only; it is not target-main
-  adoption until reviewed and merged by the target owner.
+- Target PR #78 is merged target-main config adoption evidence only; it is not
+  production proof or hook trust proof.
 - Historical `.krn` dogfood artifacts can still create caveats; report and
   artifacts commands make them visible instead of silently treating them as
   current proof.
@@ -90,5 +92,5 @@ Release readiness requires:
 
 ## Next Slice
 
-Review target PR #78, or repeat `krn run` on a second non-protected real
-repository. Do not add new product surfaces before one of those moves.
+Repeat `krn run` on a second non-protected real repository. Do not add new
+product surfaces before that move.
