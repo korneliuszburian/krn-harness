@@ -14,17 +14,55 @@ GOAL-8H hardening work is tracked separately in
 `docs/product/goal-8h-roadmap.md`; use that roadmap for schema, trace, hook,
 eval, graph, and downstream-template hardening order.
 
-## Priority 1: Second Real Repo Repeat
+## Completed: Second Real Repo Repeat
 
-Goal: repeat `krn run --task-spec ... --execute-verify --bundle` on a second
-non-protected real repository.
+Status: `marketing-intelligence-studio` was validated in an isolated clone at
+`811da65713a101cb374b33af12759d86caff59bf`.
+
+Evidence:
+
+- Direct full pytest was target-blocked, 361 passed and 3 failed in
+  `tests/test_feedback_gsc_metrics_intelligence.py`.
+- Target-owned `scripts/quality_gate.sh` passed with the default fast profile.
+- `krn config doctor --json` passed.
+- `krn run --task-spec .krn/local/second-target-repeat-task-spec.json --execute-verify --bundle`
+  reached `verified`.
+- Verify mode/status was `execute` / `pass`.
+- Executed command was `python3 tools/krn_check_quality_gate.py`.
+- Bundle manifest was generated.
+- No target commit, push, PR, production proof, or hook-trust claim was made.
+
+Result docs:
+
+- `docs/handoffs/2026-06-16-second-real-repo-repeat-plan.md`.
+- `docs/handoffs/2026-06-16-second-real-repo-repeat-result.md`.
+- `docs/handoffs/2026-06-16-overnight-adoption-gauntlet-result.md`.
+
+Adoption frictions are tracked in
+`docs/product/adoption-friction-register.md`.
+
+## Priority 1: Harden Adoption Frictions From Real Target Findings
+
+Goal: choose one recorded adoption friction and fix it with a focused test or
+docs update.
+
+Candidate findings:
+
+- Python targets need local `tools/*.py` wrappers under the current verify
+  allowlist.
+- Existing product-owned `.krn/` directories block adoption with fixed runtime
+  storage.
+- Protected-looking paths used as explicit do-not-use evidence can fail the
+  deterministic safety reviewer.
+- Target `.gitignore` should ignore `.krn/` runtime artifacts when the target
+  does not own that namespace.
 
 Acceptance:
 
-- Clean isolated worktree.
-- Preflight passes or warnings are explicitly accepted.
-- Run status is `verified` or the exact blocker is documented.
-- No target push and no production or hook-trust claim.
+- Every fix maps to `docs/product/adoption-friction-register.md`.
+- Tests or docs regression cover the exact finding.
+- No broad graph rewrite, AST/dataflow engine, runtime-dir feature, or new
+  retrieval layer unless separately approved.
 
 ## Completed: Target Config PR #78
 

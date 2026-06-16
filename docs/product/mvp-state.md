@@ -59,6 +59,13 @@ wording lives in `docs/releases/v0.1-local-tool-candidate.md`.
   executed `python3 tools/check_all_readonly.py` as the single target-owned
   command, generated a run bundle, kept `productionProof: false`, and kept hook
   trust unproven.
+- A 2026-06-16 second real repo repeat exists for
+  `marketing-intelligence-studio`: an isolated clone ran
+  `krn config doctor --json` and
+  `krn run --task-spec .krn/local/second-target-repeat-task-spec.json --execute-verify --bundle`
+  to `verified` using the target's fast quality gate through
+  `python3 tools/krn_check_quality_gate.py`. This remained local proof only:
+  no target commit, push, PR, production proof, or hook trust proof.
 
 ## Release Posture
 
@@ -83,6 +90,8 @@ Release readiness requires:
   not a target commit, target push, production proof, or hook trust proof.
 - Target PR #78 is merged target-main config adoption evidence only; it is not
   production proof or hook trust proof.
+- The second target repeat used local-only config/checker files because the
+  KRN v0.1 verify allowlist is narrow; a config-only target PR was skipped.
 - Historical `.krn` dogfood artifacts can still create caveats; report and
   artifacts commands make them visible instead of silently treating them as
   current proof.
@@ -92,5 +101,6 @@ Release readiness requires:
 
 ## Next Slice
 
-Repeat `krn run` on a second non-protected real repository. Do not add new
-product surfaces before that move.
+Choose the next focused hardening goal from
+`docs/product/adoption-friction-register.md`; do not add broad product surfaces
+without a recorded target finding and narrow acceptance test.
