@@ -46,7 +46,10 @@ remain local unless the target already treats them as tracked product artifacts.
 - `--task-spec` must be repo-relative.
 - Put the task prompt in the `prompt` field.
 - Include expected local proof files.
-- Include forbidden/protected paths in prose and structured fields carefully.
+- Put protected paths that must not be read in structured do-not-use fields when
+  possible; they are safety boundaries, not active context.
+- Do not put protected paths in expected touched files unless the task is
+  intentionally blocked for safety review.
 - Keep validation command, rollback, no-push, no-merge, productionProof false,
   and hookTrust unproven boundaries explicit.
 

@@ -109,18 +109,40 @@ function protectedLookingPath(filePath: string): boolean {
   );
 }
 
+function isDeclaredProtectedExclusion(item: {
+  bucket?: string | undefined;
+  source?: string | undefined;
+  selector?: string | undefined;
+}) {
+  return (
+    item.bucket === "do-not-use" &&
+    item.source === "task-contract" &&
+    item.selector === "required-do-not-use-path"
+  );
+}
+
 async function safetyReview(cwd: string): Promise<ReviewRecord> {
   const contextPackage = await readCurrentContextPackage(cwd);
   const dogfoodSummaries = await collectDogfoodSummaries(cwd);
-  const protectedContextPaths =
-    contextPackage?.items
-      .map((item) => item.path)
-      .filter((filePath) => protectedLookingPath(filePath)) ?? [];
+  const protectedContextItems =
+    contextPackage?.items.filter((item) => protectedLookingPath(item.path)) ?? [];
+  const declaredProtectedExclusions = protectedContextItems.filter(isDeclaredProtectedExclusion);
+  const activeProtectedContextPaths = protectedContextItems
+    .filter((item) => !isDeclaredProtectedExclusion(item))
+    .map((item) => item.path);
+  const declaredOnlyProtectedExclusionPaths = declaredProtectedExclusions
+    .filter(
+      (item) =>
+        !activeProtectedContextPaths.some(
+          (activePath) => activePath === item.path || activePath.startsWith(`${item.path}/`),
+        ),
+    )
+    .map((item) => item.path);
   const globalFallbackRuns = dogfoodSummaries.filter((summary) =>
     summary.results?.some((result) => result.globalKrnFallbackUsed === true),
   );
 
-  if (protectedContextPaths.length > 0 || globalFallbackRuns.length > 0) {
+  if (activeProtectedContextPaths.length > 0 || globalFallbackRuns.length > 0) {
     return record({
       reviewer: "safety",
       status: "fail",
@@ -131,7 +153,12 @@ async function safetyReview(cwd: string): Promise<ReviewRecord> {
         ...dogfoodSummaries.map((summary) => summary.path),
       ],
       findings: [
-        ...protectedContextPaths.map((filePath) => `protected-looking context path: ${filePath}`),
+        ...activeProtectedContextPaths.map(
+          (filePath) => `active protected path in context: ${filePath}`,
+        ),
+        ...declaredOnlyProtectedExclusionPaths.map(
+          (filePath) => `protected path excluded from active context: ${filePath}`,
+        ),
         ...globalFallbackRuns.map((summary) => `global KRN fallback in ${summary.path}`),
       ],
       nextActions: ["Remove protected paths from context or mark the run invalid."],
@@ -142,12 +169,17 @@ async function safetyReview(cwd: string): Promise<ReviewRecord> {
     reviewer: "safety",
     status: "pass",
     confidence: contextPackage ? "medium" : "low",
-    summary: "No protected-looking context paths or global KRN fallback evidence found.",
+    summary:
+      declaredOnlyProtectedExclusionPaths.length > 0
+        ? "Protected-looking paths are declared only as do-not-use exclusions."
+        : "No protected-looking context paths or global KRN fallback evidence found.",
     evidence: [
       ...(contextPackage ? [".krn/current/context-package.json"] : []),
       ...dogfoodSummaries.map((summary) => summary.path),
     ],
-    findings: [],
+    findings: declaredOnlyProtectedExclusionPaths.map(
+      (filePath) => `protected path excluded from active context: ${filePath}`,
+    ),
     nextActions: [],
   });
 }

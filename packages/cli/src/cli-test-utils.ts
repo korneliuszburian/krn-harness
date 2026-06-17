@@ -179,6 +179,9 @@ export interface ReviewResultFixture {
     status: string;
     findings: string[];
   }>;
+  blockers: string[];
+  warnings: string[];
+  nextActions: string[];
 }
 
 export interface OperatorSummaryFixture {

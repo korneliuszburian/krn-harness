@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   expectFile,
   type ReleaseCheckFixture,
+  type ReviewResultFixture,
   type RunBundleManifestFixture,
   type RunResultFixture,
   readJson,
@@ -162,6 +163,104 @@ describe("krn CLI run command", () => {
     expect(graph.nodes.map((node) => node.evidencePath).join("\n")).not.toContain(
       "raw/acf-json/broken.json",
     );
+  }, 15_000);
+
+  it("keeps protected task-spec exclusions as safety evidence without review blockers", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+    await writeFile(
+      path.join(cwd, "task.json"),
+      `${JSON.stringify(
+        {
+          prompt: "Update README.md while keeping protected paths excluded from active context.",
+          expectedTouchedFiles: ["README.md"],
+          requiredDoNotUsePaths: [
+            ".env",
+            ".env.*",
+            "protected_data/",
+            "private_data/",
+            "materials/",
+            "data/evidence/approved/",
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    const review = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-summary.json");
+
+    expect(result.code).toBe(0);
+    expect(run.status).toBe("ran");
+    expect(run.blockers).toEqual([]);
+
+    const safety = review.records.find((record) => record.reviewer === "safety");
+    expect(safety).toMatchObject({ status: "pass" });
+    expect(safety?.findings).toEqual([
+      "protected path excluded from active context: .env",
+      "protected path excluded from active context: .env.*",
+    ]);
+    expect(review.blockers).toEqual([]);
+    expect(JSON.stringify(review)).not.toContain("protected-looking context path: .env");
+    expect(JSON.stringify(review)).not.toContain("protected data touched");
+  }, 15_000);
+
+  it("keeps active protected expected-touched paths as review blockers", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+    await writeFile(
+      path.join(cwd, "task.json"),
+      `${JSON.stringify(
+        {
+          prompt: "Inspect .env while updating README.md.",
+          expectedTouchedFiles: [".env", "README.md"],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    const review = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-summary.json");
+
+    expect(result.code).toBe(1);
+    expect(run.status).toBe("failed");
+    expect(run.blockers).toContain(
+      "reviewers: Review summary is present with 7 reviewer record(s).",
+    );
+    expect(review.blockers).toContain("active protected path in context: .env");
+  }, 15_000);
+
+  it("lets active protected use win over declared exclusions", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "README.md"), "# Fixture\n", "utf8");
+    await writeFile(
+      path.join(cwd, "task.json"),
+      `${JSON.stringify(
+        {
+          prompt: "Inspect .env while proving it is also listed as do-not-use.",
+          expectedTouchedFiles: [".env", "README.md"],
+          requiredDoNotUsePaths: [".env"],
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
+    const review = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-summary.json");
+
+    expect(result.code).toBe(1);
+    expect(run.status).toBe("failed");
+    expect(review.blockers).toContain("active protected path in context: .env");
+    expect(review.blockers).not.toContain("protected path excluded from active context: .env");
   }, 15_000);
 
   it("surfaces schema-backed task spec errors in run results", async () => {

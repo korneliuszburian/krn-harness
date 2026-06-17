@@ -62,7 +62,18 @@ records `status: over-budget` rather than hiding those boundaries.
 
 Graph selector matching is shallow and deterministic. Generic terms such as `section` are treated as too broad for graph promotion. P0 does not normalize Polish morphology or perform semantic search.
 
-Task-contract metadata may add explicit `expectedTouchedFiles` into the `mustRead` bucket and `requiredDoNotUsePaths` into the `doNotUse` bucket. Task text may also add explicit repo-relative paths into `shouldRead`. Explicit slash paths require a file-like final segment with a known extension; this keeps natural-language phrases such as `validation/checks` from becoming repo paths. This preserves dogfood/task-spec constraints and verify command paths as context evidence without adding graph semantics.
+Task-contract metadata may add explicit `expectedTouchedFiles` into the
+`mustRead` bucket and `requiredDoNotUsePaths` into the `doNotUse` bucket.
+`requiredDoNotUsePaths` are safety boundaries, not permission to read protected
+data or active context. Deterministic review treats protected-looking
+task-contract do-not-use items as exclusions, while protected-looking active
+context remains a blocker. If the same protected-looking path appears as active
+expected-touched context and as do-not-use, active use wins. Task text may also
+add explicit repo-relative paths into `shouldRead`. Explicit slash paths require
+a file-like final segment with a known extension; this keeps natural-language
+phrases such as `validation/checks` from becoming repo paths. This preserves
+dogfood/task-spec constraints and verify command paths as context evidence
+without adding graph semantics.
 
 TASK-011 context poisoning defense is accepted in ADR-0023. Graph/context scan
 policy now applies task-contract `requiredDoNotUsePaths` and protected-looking
