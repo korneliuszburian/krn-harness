@@ -6,6 +6,7 @@
 - `kanon`: research to canon/spec/ADR.
 - `pilnuj`: P0 scope and architecture guardian.
 - `wycinek`: small verified implementation slice.
+- `review`: evidence audit after KRN work.
 - `handoff`: review-ready summary.
 
 ## Invocation
@@ -17,6 +18,7 @@ Each required build-time skill documents an explicit invocation section in its
 - `$kanon`
 - `$pilnuj`
 - `$wycinek`
+- `$review`
 - `$handoff`
 
 The repo-local skill index is `.agents/skills/README.md`. It lists when to use

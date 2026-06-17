@@ -26,7 +26,7 @@ The adapter emits a thin downstream `AGENTS.md`, a Codex `hooks.json`, and one r
 
 ## Build-Time Skills Model
 
-Build-time skills are repo-scoped `.agents/skills/*` workflows created through `$skill-creator`: `buduj`, `kanon`, `pilnuj`, `wycinek`, and `handoff`.
+Build-time skills are repo-scoped `.agents/skills/*` workflows created through `$skill-creator`: `buduj`, `kanon`, `pilnuj`, `wycinek`, `review`, and `handoff`.
 
 ## Runtime Skill Adapter Model
 

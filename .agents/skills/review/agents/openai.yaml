@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review"
+  short_description: "Audit KRN work against evidence."
+  default_prompt: "Use $review to check the current KRN Harness result against task intent, evidence, protected paths, scope, and proof boundaries."

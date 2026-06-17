@@ -2,13 +2,50 @@
 
 ## Purpose
 
-This is the v0.1 post-cut backlog. KRN v0.1 local proof threshold is crossed:
-`krn run` is the primary operator path, real target product-code proof exists as
-local isolated-worktree evidence, `productionProof` remains false, and
-`hookTrust` remains unproven.
+This is the v0.1 post-cut backlog after the Core Skills + Mental Model +
+Daily Workflow Pilot goal. KRN v0.1 local proof threshold is crossed, but the
+next product question is whether KRN changes Codex’s work loop before the final
+report, or only produces attractive artifacts after the fact.
 
 Do not add product surfaces before these items. Target commit/push remains
-separate from KRN source proof.
+separate from KRN source proof. `productionProof` remains false and `hookTrust`
+remains unproven.
+
+## Core Skills Priority 1: Make Review Evidence First-Class
+
+Goal: turn `$review` into the default closeout audit for KRN work without
+claiming hard security.
+
+Acceptance:
+
+- `$review` is used before completion on one real source slice.
+- The review output cites exact task, verify, git, and artifact paths.
+- It catches at least one real missing-evidence or overclaim risk, or records
+  that no extra value was observed.
+- No runtime artifact is staged or committed.
+
+## Core Skills Priority 2: Tighten Core Skill Descriptions
+
+Goal: fix `SKILL-GAP-002` by adding explicit negative scope to the required P0
+skill descriptions.
+
+Acceptance:
+
+- Update only `.agents/skills/{buduj,kanon,pilnuj,wycinek,handoff}/SKILL.md`.
+- Preserve instruction-only skill shape.
+- Validate with `$skill-creator` quick validation.
+
+## Core Skills Priority 3: Decide What To Do With `grill-with-docs`
+
+Goal: resolve `SKILL-GAP-003` without copying external workflow assumptions into
+KRN.
+
+Acceptance:
+
+- Either rewrite it as a KRN-specific planning grill or mark it as inspiration
+  only.
+- Remove references to missing support files if it remains active.
+- Do not touch the protected path unless the next goal explicitly permits it.
 
 GOAL-8H hardening work is tracked separately in
 `docs/product/goal-8h-roadmap.md`; use that roadmap for schema, trace, hook,
