@@ -4,7 +4,7 @@
 
 1. Install KRN Harness.
 2. Run `krn install` in the downstream repository.
-3. Review generated `AGENTS.md`, `.codex/hooks.json`, `.agents/skills/krn-harness/SKILL.md`, and the runtime skill reference under `.agents/skills/krn-harness/references/workflow.md`.
+3. Review generated `AGENTS.md`, `.codex/hooks.json`, `.codex/hooks.json.krn-managed`, `.agents/skills/krn-harness/SKILL.md`, and the runtime skill reference under `.agents/skills/krn-harness/references/workflow.md`.
 4. Keep or adapt generated hooks only if the repo owner trusts the local command.
 5. Run `krn status`.
 6. Start work with `krn start "<full user intent>"`.
@@ -19,7 +19,8 @@
 
 If KRN reports STOP, do not edit until the missing context or unsafe condition is resolved.
 
-`krn install` preserves existing downstream files. It reports skipped files instead of overwriting project-owned instructions.
+`krn install` preserves existing markerless downstream files. It may update
+files already marked or sidecar-owned by KRN.
 
 Each install run writes an `install.ran` JSONL trace event with deterministic created/skipped counts and action summaries so onboarding can be checked without reading generated file bodies.
 

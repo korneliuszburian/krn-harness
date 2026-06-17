@@ -1,0 +1,101 @@
+[
+  {
+    "id": "item_1",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' .agents/skills/krn-harness/SKILL.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_2",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/references/workflow.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_4",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn status'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_5",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn start \"Update docs/overview.md to add one concise sentence stating this fixture verifies with `node src/index.test.ts`; do not edit source code, tests, config, hooks, runtime skill files, .krn/bin/krn, or protected data; then run configured KRN verify --execute and produce handoff. Include outcome: docs updated and evidence in krn artifacts; required proof: verify result and handoff.\"\n'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": true
+  },
+  {
+    "id": "item_7",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn graph'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_8",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn context'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_9",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/context-package.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_10",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/task-contract.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_12",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,240p' docs/overview.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_15",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn verify --execute'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": true
+  },
+  {
+    "id": "item_16",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn handoff'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  }
+]

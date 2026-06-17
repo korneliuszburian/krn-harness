@@ -34,6 +34,13 @@ The runtime skill may point to `references/workflow.md` for decision rules,
 output contract, review checklist, STOP handling, and verification ambiguity.
 The reference is still guidance, not enforcement.
 
+## Install Metadata
+
+The installed `.agents/skills/krn-harness/SKILL.md` must keep YAML frontmatter
+as the first bytes so real Codex skill parsing can load it. The KRN managed
+marker may be installed as a YAML comment inside that frontmatter, but not
+before the opening `---`.
+
 ## Non-Goal
 
 Do not embed full architecture or raw research into the downstream skill. Do

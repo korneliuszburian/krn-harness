@@ -4,8 +4,10 @@
 
 `krn-uninstall-result-v1` records a safe uninstall plan or confirmed uninstall.
 
-Uninstall removes only managed files that contain the KRN managed marker. It
-does not delete `.krn/current`, graph, trace, run, or memory evidence by default.
+Uninstall removes only managed files that contain the KRN managed marker or, for
+`.codex/hooks.json`, have a valid `.codex/hooks.json.krn-managed` ownership
+sidecar. It does not delete `.krn/current`, graph, trace, run, or memory
+evidence by default.
 
 ## Writer
 
@@ -44,7 +46,9 @@ Dry-run prints the same schema but does not remove files or write artifacts.
 ## Safety Rules
 
 - Only fixed repo-relative install paths are considered.
-- Files without `KRN-HARNESS-MANAGED:v1` are refused and preserved.
+- Files without `KRN-HARNESS-MANAGED:v1` are refused and preserved, except
+  `.codex/hooks.json` may be owned by `.codex/hooks.json.krn-managed` so the
+  hooks JSON remains parseable by Codex.
 - `.krn/current`, `.krn/graph`, `.krn/traces`, `.krn/runs`, and `.krn/memory`
   are preserved.
 - There is no `--force` mode.

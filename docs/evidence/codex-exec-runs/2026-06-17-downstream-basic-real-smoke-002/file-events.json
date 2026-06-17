@@ -1,0 +1,147 @@
+[
+  {
+    "path": ".agents/skills/krn-harness/references/workflow.md",
+    "action": "read",
+    "event_type": "item.started"
+  },
+  {
+    "path": ".agents/skills/krn-harness/references/workflow.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".agents/skills/krn-harness/SKILL.md",
+    "action": "read",
+    "event_type": "item.started"
+  },
+  {
+    "path": ".agents/skills/krn-harness/SKILL.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/context-package.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/context-package.md",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/context-package.md",
+    "action": "read",
+    "event_type": "item.started"
+  },
+  {
+    "path": ".krn/current/handoff.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/handoff.md",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/task-contract.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/task-contract.md",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/task-contract.md",
+    "action": "read",
+    "event_type": "item.started"
+  },
+  {
+    "path": ".krn/current/verify-result.json",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/verify-result.md",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/graph/repo-graph.json",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/graph/repo-graph.md",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "docs",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "docs",
+    "action": "unknown",
+    "event_type": "item.started"
+  },
+  {
+    "path": "docs",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "docs/architecture/architecture-spec-v0.1.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "docs/overview.md",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "docs/overview.md",
+    "action": "unknown",
+    "event_type": "item.started"
+  },
+  {
+    "path": "docs/overview.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "docs/overview.md",
+    "action": "read",
+    "event_type": "item.started"
+  },
+  {
+    "path": "docs/specs/context-package.schema.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "src/index.test.ts",
+    "action": "unknown",
+    "event_type": "item.started"
+  },
+  {
+    "path": "src/index.test.ts",
+    "action": "unknown",
+    "event_type": "item.completed"
+  },
+  {
+    "path": "src/theme/",
+    "action": "read",
+    "event_type": "item.completed"
+  }
+]

@@ -9,6 +9,7 @@ KRN Harness P0 is accepted in a downstream repository when onboarding produces a
 - `krn.config.json`
 - `AGENTS.md`
 - `.codex/hooks.json`
+- `.codex/hooks.json.krn-managed`
 - `.agents/skills/krn-harness/SKILL.md`
 - `.agents/skills/krn-harness/agents/openai.yaml`
 - `.agents/skills/krn-harness/references/workflow.md`
@@ -18,7 +19,9 @@ KRN Harness P0 is accepted in a downstream repository when onboarding produces a
 - `.krn/runs/`
 - `.krn/memory/`
 
-Existing files are skipped, not overwritten. The install trace records compact action summaries as `{ path, kind, status }`.
+Existing markerless files are skipped, not overwritten. Existing KRN-managed
+files may be updated when generated content changes. The install trace records
+compact action summaries as `{ path, kind, status }`.
 
 ## Downstream Smoke Loop
 
@@ -53,6 +56,10 @@ The runtime skill folder may include a small `references/workflow.md` file for
 decision rules, output contract, and review checklist. `krn install` creates
 that reference and `agents/openai.yaml` when missing, preserving existing files.
 P0 does not install runtime skill scripts.
+
+Installed runtime `SKILL.md` must keep YAML frontmatter as the first bytes.
+Installed hooks JSON must remain valid Codex hooks JSON; KRN ownership lives in
+`.codex/hooks.json.krn-managed`.
 
 Generated `AGENTS.md` must pass the adapter quality gate before `krn install`
 creates downstream files. The gate requires:

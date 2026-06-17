@@ -8,8 +8,16 @@ import {
 import { pathExists, readJsonFile } from "../../core/src/index.js";
 
 export const KRN_MANAGED_MARKER = "KRN-HARNESS-MANAGED:v1";
+const KRN_HOOKS_PATH = ".codex/hooks.json";
+const KRN_HOOKS_MANAGED_SIDECAR_PATH = ".codex/hooks.json.krn-managed";
 
-export type InstallActionStatus = "created" | "skipped" | "would-create" | "would-skip";
+export type InstallActionStatus =
+  | "created"
+  | "skipped"
+  | "updated"
+  | "would-create"
+  | "would-skip"
+  | "would-update";
 
 export interface InstallAction {
   path: string;
@@ -174,13 +182,26 @@ export function renderConfig(
   return `${JSON.stringify(configObjectForProfile(profile ?? "minimal"), null, 2)}\n`;
 }
 
-function managedText(content: string, markerStyle: "markdown" | "shell" | "yaml"): string {
+function managedText(
+  content: string,
+  markerStyle: "frontmatter-markdown" | "markdown" | "shell" | "yaml",
+): string {
   if (markerStyle === "shell") {
     return content.includes(KRN_MANAGED_MARKER) ? content : `# ${KRN_MANAGED_MARKER}\n${content}`;
   }
 
   if (markerStyle === "yaml") {
     return content.includes(KRN_MANAGED_MARKER) ? content : `# ${KRN_MANAGED_MARKER}\n${content}`;
+  }
+
+  if (markerStyle === "frontmatter-markdown") {
+    if (content.includes(KRN_MANAGED_MARKER)) {
+      return content;
+    }
+
+    return content.startsWith("---\n")
+      ? `---\n# ${KRN_MANAGED_MARKER}\n${content.slice("---\n".length)}`
+      : `<!-- ${KRN_MANAGED_MARKER} -->\n${content}`;
   }
 
   return content.includes(KRN_MANAGED_MARKER)
@@ -190,14 +211,18 @@ function managedText(content: string, markerStyle: "markdown" | "shell" | "yaml"
 
 function managedHooksTemplate(): string {
   const parsed = JSON.parse(generateHooksTemplate()) as Record<string, unknown>;
-  return `${JSON.stringify({ _krnManaged: KRN_MANAGED_MARKER, ...parsed }, null, 2)}\n`;
+  return `${JSON.stringify(parsed, null, 2)}\n`;
+}
+
+function managedHooksSidecarTemplate(): string {
+  return `${KRN_MANAGED_MARKER}\ntarget=${KRN_HOOKS_PATH}\n`;
 }
 
 function installDirectories(): string[] {
   return [".krn/current", ".krn/graph", ".krn/traces", ".krn/runs", ".krn/memory", ".krn/bin"];
 }
 
-function installFiles(options: InstallOptions): FileTarget[] {
+function installFilesBeforeHooks(options: InstallOptions): FileTarget[] {
   return [
     {
       path: "krn.config.json",
@@ -212,10 +237,11 @@ function installFiles(options: InstallOptions): FileTarget[] {
       content: pinnedKrnWrapper(options.sourceRootPath),
       executable: true,
     },
-    {
-      path: ".codex/hooks.json",
-      content: managedHooksTemplate(),
-    },
+  ];
+}
+
+function installFilesAfterHooks(): FileTarget[] {
+  return [
     ...generateRuntimeSkillTemplateFiles().map((file) => ({
       path: file.path,
       content: managedText(file.content, file.markerStyle),
@@ -252,6 +278,30 @@ async function planFile(cwd: string, target: FileTarget, dryRun: boolean): Promi
   const absolutePath = path.join(cwd, target.path);
   const exists = await pathExists(absolutePath);
   if (exists) {
+    const current = await readFile(absolutePath, "utf8");
+    if (current.includes(KRN_MANAGED_MARKER) && current !== target.content) {
+      if (!dryRun) {
+        await writeFile(absolutePath, target.content, "utf8");
+        if (target.executable === true) {
+          await chmod(absolutePath, 0o755);
+        }
+      }
+
+      return {
+        path: target.path,
+        kind: "file",
+        status: dryRun ? "would-update" : "updated",
+        detail:
+          target.executable === true
+            ? dryRun
+              ? "managed executable file would be updated"
+              : "managed executable file updated"
+            : dryRun
+              ? "managed file would be updated"
+              : "managed file updated",
+      };
+    }
+
     return {
       path: target.path,
       kind: "file",
@@ -283,6 +333,120 @@ async function planFile(cwd: string, target: FileTarget, dryRun: boolean): Promi
   };
 }
 
+async function hasManagedHooksSidecar(cwd: string): Promise<boolean> {
+  try {
+    const content = await readFile(path.join(cwd, KRN_HOOKS_MANAGED_SIDECAR_PATH), "utf8");
+    return content.includes(KRN_MANAGED_MARKER) && content.includes(`target=${KRN_HOOKS_PATH}`);
+  } catch {
+    return false;
+  }
+}
+
+async function planHooksFiles(cwd: string, dryRun: boolean): Promise<InstallAction[]> {
+  assertSafeRelativePath(KRN_HOOKS_PATH);
+  assertSafeRelativePath(KRN_HOOKS_MANAGED_SIDECAR_PATH);
+
+  const hooksPath = path.join(cwd, KRN_HOOKS_PATH);
+  const sidecarPath = path.join(cwd, KRN_HOOKS_MANAGED_SIDECAR_PATH);
+  const hooksExists = await pathExists(hooksPath);
+  const sidecarExists = await pathExists(sidecarPath);
+  const hooksContent = managedHooksTemplate();
+  const sidecarContent = managedHooksSidecarTemplate();
+
+  if (!hooksExists) {
+    if (!dryRun) {
+      await mkdir(path.dirname(hooksPath), { recursive: true });
+      await writeFile(hooksPath, hooksContent, "utf8");
+      await writeFile(sidecarPath, sidecarContent, "utf8");
+    }
+
+    return [
+      {
+        path: KRN_HOOKS_PATH,
+        kind: "file",
+        status: dryRun ? "would-create" : "created",
+        detail: dryRun ? "file would be created" : "file created",
+      },
+      {
+        path: KRN_HOOKS_MANAGED_SIDECAR_PATH,
+        kind: "file",
+        status: dryRun ? "would-create" : "created",
+        detail: dryRun
+          ? "hooks ownership sidecar would be created"
+          : "hooks ownership sidecar created",
+      },
+    ];
+  }
+
+  const currentHooks = await readFile(hooksPath, "utf8");
+  const hooksManaged =
+    currentHooks.includes(KRN_MANAGED_MARKER) || (await hasManagedHooksSidecar(cwd));
+  if (!hooksManaged) {
+    return [
+      {
+        path: KRN_HOOKS_PATH,
+        kind: "file",
+        status: dryRun ? "would-skip" : "skipped",
+        detail: "existing file preserved",
+      },
+    ];
+  }
+
+  const hooksAction: InstallAction =
+    currentHooks === hooksContent
+      ? {
+          path: KRN_HOOKS_PATH,
+          kind: "file",
+          status: dryRun ? "would-skip" : "skipped",
+          detail: "managed file already current",
+        }
+      : {
+          path: KRN_HOOKS_PATH,
+          kind: "file",
+          status: dryRun ? "would-update" : "updated",
+          detail: dryRun ? "managed file would be updated" : "managed file updated",
+        };
+
+  if (!dryRun && currentHooks !== hooksContent) {
+    await writeFile(hooksPath, hooksContent, "utf8");
+  }
+
+  const currentSidecar = sidecarExists ? await readFile(sidecarPath, "utf8") : undefined;
+  const sidecarAction: InstallAction =
+    currentSidecar === sidecarContent
+      ? {
+          path: KRN_HOOKS_MANAGED_SIDECAR_PATH,
+          kind: "file",
+          status: dryRun ? "would-skip" : "skipped",
+          detail: "hooks ownership sidecar already current",
+        }
+      : {
+          path: KRN_HOOKS_MANAGED_SIDECAR_PATH,
+          kind: "file",
+          status: sidecarExists
+            ? dryRun
+              ? "would-update"
+              : "updated"
+            : dryRun
+              ? "would-create"
+              : "created",
+          detail: sidecarExists
+            ? dryRun
+              ? "hooks ownership sidecar would be updated"
+              : "hooks ownership sidecar updated"
+            : dryRun
+              ? "hooks ownership sidecar would be created"
+              : "hooks ownership sidecar created",
+        };
+
+  if (!dryRun && currentSidecar !== sidecarContent) {
+    await mkdir(path.dirname(sidecarPath), { recursive: true });
+    await writeFile(sidecarPath, sidecarContent, "utf8");
+  }
+
+  return [hooksAction, sidecarAction];
+}
+
 export async function runInstallPlan(cwd: string, options: InstallOptions): Promise<InstallResult> {
   if (await isHarnessSource(cwd)) {
     return {
@@ -301,12 +465,20 @@ export async function runInstallPlan(cwd: string, options: InstallOptions): Prom
   for (const relativePath of installDirectories()) {
     actions.push(await planDirectory(cwd, relativePath, options.dryRun));
   }
-  for (const target of installFiles(options)) {
+  for (const target of installFilesBeforeHooks(options)) {
+    actions.push(await planFile(cwd, target, options.dryRun));
+  }
+  actions.push(...(await planHooksFiles(cwd, options.dryRun)));
+  for (const target of installFilesAfterHooks()) {
     actions.push(await planFile(cwd, target, options.dryRun));
   }
 
   const created = actions.filter(
-    (action) => action.status === "created" || action.status === "would-create",
+    (action) =>
+      action.status === "created" ||
+      action.status === "would-create" ||
+      action.status === "updated" ||
+      action.status === "would-update",
   ).length;
   const skipped = actions.length - created;
 
@@ -324,7 +496,8 @@ export async function runInstallPlan(cwd: string, options: InstallOptions): Prom
 function uninstallTargets(): string[] {
   return [
     "AGENTS.md",
-    ".codex/hooks.json",
+    KRN_HOOKS_PATH,
+    KRN_HOOKS_MANAGED_SIDECAR_PATH,
     ".agents/skills/krn-harness/SKILL.md",
     ".agents/skills/krn-harness/agents/openai.yaml",
     ".agents/skills/krn-harness/references/workflow.md",
@@ -334,7 +507,11 @@ function uninstallTargets(): string[] {
 
 async function hasManagedMarker(cwd: string, relativePath: string): Promise<boolean> {
   try {
-    return (await readFile(path.join(cwd, relativePath), "utf8")).includes(KRN_MANAGED_MARKER);
+    const content = await readFile(path.join(cwd, relativePath), "utf8");
+    return (
+      content.includes(KRN_MANAGED_MARKER) ||
+      (relativePath === KRN_HOOKS_PATH && (await hasManagedHooksSidecar(cwd)))
+    );
   } catch {
     return false;
   }

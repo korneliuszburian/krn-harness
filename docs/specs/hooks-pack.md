@@ -85,7 +85,16 @@ P0 payload parsing is shallow and deterministic. It recognizes JSON stdin, commo
 
 ## Downstream Template
 
-`krn install` writes the generated hooks template to `.codex/hooks.json` only when that file does not already exist. Repo owners must review it before relying on it.
+`krn install` writes the generated hooks template to `.codex/hooks.json` only
+when that file does not already exist or is already KRN-managed. Existing
+markerless hooks are preserved.
+
+The installed `.codex/hooks.json` must stay parseable by Codex and therefore
+must not include KRN-only top-level metadata. KRN ownership for generated hooks
+is recorded in `.codex/hooks.json.krn-managed`. Reinstall may update hooks when
+that sidecar is present or when an older inline managed marker is found.
+
+Repo owners must review generated hooks before relying on them.
 
 ## Evidence
 

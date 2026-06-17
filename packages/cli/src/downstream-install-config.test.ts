@@ -91,7 +91,7 @@ markdown: .krn/graph/repo-graph.md
 
     expect(install.code).toBe(0);
     expect(install.stdout).toContain("KRN install: installed");
-    expect(install.stdout).toContain("created: 13");
+    expect(install.stdout).toContain("created: 14");
     expect(install.stdout).toContain("skipped: 0");
 
     await expectDirectory(install.cwd, ".krn/current");
@@ -114,7 +114,12 @@ markdown: .krn/graph/repo-graph.md
     const agents = await readFile(path.join(install.cwd, "AGENTS.md"), "utf8");
     const hooks = await readJson<{
       hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+      _krnManaged?: string;
     }>(install.cwd, ".codex/hooks.json");
+    const hooksSidecar = await readFile(
+      path.join(install.cwd, ".codex/hooks.json.krn-managed"),
+      "utf8",
+    );
     const runtimeSkill = await readFile(
       path.join(install.cwd, ".agents/skills/krn-harness/SKILL.md"),
       "utf8",
@@ -140,7 +145,11 @@ markdown: .krn/graph/repo-graph.md
     for (const event of supportedP0CodexHookEvents) {
       expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`./.krn/bin/krn hook codex ${event}`);
     }
-    expect((hooks as { _krnManaged?: string })._krnManaged).toBe("KRN-HARNESS-MANAGED:v1");
+    expect(hooks._krnManaged).toBeUndefined();
+    expect(hooksSidecar).toContain("KRN-HARNESS-MANAGED:v1");
+    expect(hooksSidecar).toContain("target=.codex/hooks.json");
+    expect(runtimeSkill.startsWith("---\n")).toBe(true);
+    expect(runtimeSkill.startsWith("<!-- KRN-HARNESS-MANAGED:v1 -->")).toBe(false);
     expect(runtimeSkill).toContain("krn status");
     expect(runtimeSkill).toContain("KRN-HARNESS-MANAGED:v1");
     expect(runtimeSkill).toContain("krn start");
@@ -163,7 +172,7 @@ markdown: .krn/graph/repo-graph.md
         name: "install.ran",
         data: {
           status: "installed",
-          created: 13,
+          created: 14,
           skipped: 0,
           reason: null,
           actions: [
@@ -177,6 +186,7 @@ markdown: .krn/graph/repo-graph.md
             { path: "AGENTS.md", kind: "file", status: "created" },
             { path: ".krn/bin/krn", kind: "file", status: "created" },
             { path: ".codex/hooks.json", kind: "file", status: "created" },
+            { path: ".codex/hooks.json.krn-managed", kind: "file", status: "created" },
             {
               path: ".agents/skills/krn-harness/SKILL.md",
               kind: "file",
@@ -200,7 +210,7 @@ markdown: .krn/graph/repo-graph.md
     const secondInstall = await runInCwd(install.cwd, ["install"]);
     expect(secondInstall).toMatchObject({ code: 0 });
     expect(secondInstall.stdout).toContain("created: 0");
-    expect(secondInstall.stdout).toContain("skipped: 13");
+    expect(secondInstall.stdout).toContain("skipped: 14");
     await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
       { name: "install.ran" },
       {
@@ -208,7 +218,7 @@ markdown: .krn/graph/repo-graph.md
         data: {
           status: "installed",
           created: 0,
-          skipped: 13,
+          skipped: 14,
           reason: null,
           actions: [
             { path: ".krn/current", kind: "directory", status: "skipped" },
@@ -221,6 +231,7 @@ markdown: .krn/graph/repo-graph.md
             { path: "AGENTS.md", kind: "file", status: "skipped" },
             { path: ".krn/bin/krn", kind: "file", status: "skipped" },
             { path: ".codex/hooks.json", kind: "file", status: "skipped" },
+            { path: ".codex/hooks.json.krn-managed", kind: "file", status: "skipped" },
             {
               path: ".agents/skills/krn-harness/SKILL.md",
               kind: "file",
@@ -291,6 +302,7 @@ markdown: .krn/graph/repo-graph.md
       expect.arrayContaining([
         expect.objectContaining({ path: "AGENTS.md", status: "would-create" }),
         expect.objectContaining({ path: ".codex/hooks.json", status: "would-create" }),
+        expect.objectContaining({ path: ".codex/hooks.json.krn-managed", status: "would-create" }),
         expect.objectContaining({ path: ".krn/bin/krn", status: "would-create" }),
       ]),
     );
@@ -323,6 +335,10 @@ markdown: .krn/graph/repo-graph.md
         expect.objectContaining({ path: "AGENTS.md", status: "would-remove" }),
         expect.objectContaining({ path: ".codex/hooks.json", status: "would-remove" }),
         expect.objectContaining({
+          path: ".codex/hooks.json.krn-managed",
+          status: "would-remove",
+        }),
+        expect.objectContaining({
           path: ".agents/skills/krn-harness/SKILL.md",
           status: "would-remove",
         }),
@@ -344,9 +360,12 @@ markdown: .krn/graph/repo-graph.md
     const confirmed = await runInCwd(install.cwd, ["uninstall", "--confirm", "--json"]);
     const result = JSON.parse(confirmed.stdout) as { status: string; removed: number };
     expect(confirmed.code).toBe(0);
-    expect(result).toMatchObject({ status: "uninstalled", removed: 6 });
+    expect(result).toMatchObject({ status: "uninstalled", removed: 7 });
     await expect(stat(path.join(install.cwd, "AGENTS.md"))).rejects.toThrow();
     await expect(stat(path.join(install.cwd, ".codex", "hooks.json"))).rejects.toThrow();
+    await expect(
+      stat(path.join(install.cwd, ".codex", "hooks.json.krn-managed")),
+    ).rejects.toThrow();
     await expect(
       stat(path.join(install.cwd, ".agents", "skills", "krn-harness", "agents", "openai.yaml")),
     ).rejects.toThrow();
@@ -489,12 +508,99 @@ markdown: .krn/graph/repo-graph.md
     await expect(readJson(cwd, ".codex/hooks.json")).resolves.toEqual({
       hooks: {},
     });
+    await expect(stat(path.join(cwd, ".codex", "hooks.json.krn-managed"))).rejects.toThrow();
     await expect(readJson(cwd, "krn.config.json")).resolves.toEqual({
       version: 1,
       runtime: {
         dir: ".custom-krn",
       },
     });
+  });
+
+  it("migrates old managed hooks and runtime skill markers on reinstall", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".codex"), { recursive: true });
+    await mkdir(path.join(cwd, ".agents", "skills", "krn-harness"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".codex/hooks.json"),
+      `${JSON.stringify(
+        {
+          _krnManaged: "KRN-HARNESS-MANAGED:v1",
+          hooks: {},
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".agents/skills/krn-harness/SKILL.md"),
+      `<!-- KRN-HARNESS-MANAGED:v1 -->
+---
+name: krn-harness
+description: old managed runtime skill
+---
+Old runtime skill body.
+`,
+      "utf8",
+    );
+
+    const install = await runInCwd(cwd, ["install"]);
+    const hooks = await readJson<{
+      hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+      _krnManaged?: string;
+    }>(cwd, ".codex/hooks.json");
+    const runtimeSkill = await readFile(
+      path.join(cwd, ".agents/skills/krn-harness/SKILL.md"),
+      "utf8",
+    );
+
+    expect(install.code).toBe(0);
+    expect(install.stdout).toContain("- updated .codex/hooks.json: managed file updated");
+    expect(install.stdout).toContain(
+      "- created .codex/hooks.json.krn-managed: hooks ownership sidecar created",
+    );
+    expect(install.stdout).toContain(
+      "- updated .agents/skills/krn-harness/SKILL.md: managed file updated",
+    );
+    expect(hooks._krnManaged).toBeUndefined();
+    for (const event of supportedP0CodexHookEvents) {
+      expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`./.krn/bin/krn hook codex ${event}`);
+    }
+    await expect(readFile(path.join(cwd, ".codex/hooks.json.krn-managed"), "utf8")).resolves.toBe(
+      "KRN-HARNESS-MANAGED:v1\ntarget=.codex/hooks.json\n",
+    );
+    expect(runtimeSkill.startsWith("---\n")).toBe(true);
+    expect(runtimeSkill.startsWith("<!-- KRN-HARNESS-MANAGED:v1 -->")).toBe(false);
+    expect(runtimeSkill).toContain("KRN-HARNESS-MANAGED:v1");
+    expect(runtimeSkill).toContain("references/workflow.md");
+  });
+
+  it("updates clean hooks JSON when the managed sidecar owns it", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".codex"), { recursive: true });
+    await writeFile(path.join(cwd, ".codex/hooks.json"), '{\n  "hooks": {}\n}\n', "utf8");
+    await writeFile(
+      path.join(cwd, ".codex/hooks.json.krn-managed"),
+      "KRN-HARNESS-MANAGED:v1\ntarget=.codex/hooks.json\n",
+      "utf8",
+    );
+
+    const install = await runInCwd(cwd, ["install"]);
+    const hooks = await readJson<{
+      hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+      _krnManaged?: string;
+    }>(cwd, ".codex/hooks.json");
+
+    expect(install.code).toBe(0);
+    expect(install.stdout).toContain("- updated .codex/hooks.json: managed file updated");
+    expect(install.stdout).toContain(
+      "- skipped .codex/hooks.json.krn-managed: hooks ownership sidecar already current",
+    );
+    expect(hooks._krnManaged).toBeUndefined();
+    for (const event of supportedP0CodexHookEvents) {
+      expect(hooks.hooks[event]?.[0]?.hooks[0]?.command).toBe(`./.krn/bin/krn hook codex ${event}`);
+    }
   });
 
   it("runs the downstream-basic acceptance loop on a temp fixture copy", async () => {

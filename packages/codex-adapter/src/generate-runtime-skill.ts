@@ -18,7 +18,7 @@ const runtimeSkillWorkflowReferenceTemplateUrl = new URL(
 export interface RuntimeSkillTemplateFile {
   path: string;
   content: string;
-  markerStyle: "markdown" | "yaml";
+  markerStyle: "frontmatter-markdown" | "markdown" | "yaml";
 }
 
 export function generateRuntimeSkillTemplate(): string {
@@ -30,7 +30,7 @@ export function generateRuntimeSkillTemplateFiles(): RuntimeSkillTemplateFile[] 
     {
       path: ".agents/skills/krn-harness/SKILL.md",
       content: generateRuntimeSkillTemplate(),
-      markerStyle: "markdown",
+      markerStyle: "frontmatter-markdown",
     },
     {
       path: ".agents/skills/krn-harness/agents/openai.yaml",
