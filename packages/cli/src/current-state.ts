@@ -1,11 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ContextPackage } from "../../context/src/index.js";
+import { getRuntimeLayout } from "../../core/src/index.js";
 import { parseTaskContract, type TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
 
 export function currentStateDir(cwd: string): string {
-  return path.join(cwd, ".krn", "current");
+  return path.join(cwd, getRuntimeLayout(cwd).currentDir);
 }
 
 export function currentStatePath(cwd: string, fileName: string): string {

@@ -1,9 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout } from "../../core/src/index.js";
 import {
   type BundleArtifactFile,
   copyCurrentArtifactFile,
-  currentArtifactPaths,
+  currentArtifactPathsFor,
 } from "./current-artifacts.js";
 import { currentStatePath, writeCurrentJson, writeCurrentMarkdown } from "./current-state.js";
 import { type RunResult, renderRunResultMarkdown } from "./run-result.js";
@@ -21,7 +22,8 @@ interface RunBundleManifest {
   limits: string[];
 }
 
-export function runArtifacts(bundle: boolean): Record<string, string> {
+export function runArtifacts(cwd: string, bundle: boolean): Record<string, string> {
+  const currentArtifactPaths = currentArtifactPathsFor(cwd);
   return {
     taskContract: currentArtifactPaths.taskContract,
     graph: currentArtifactPaths.graph,
@@ -55,6 +57,8 @@ export async function writeRunBundle(
   result: RunResult,
 ): Promise<RunBundleManifest> {
   const bundleDir = currentStatePath(runtime.cwd, "run-bundle");
+  const layout = getRuntimeLayout(runtime.cwd);
+  const currentArtifactPaths = currentArtifactPathsFor(runtime.cwd);
   await mkdir(bundleDir, { recursive: true });
 
   const copiedFiles = await Promise.all([
@@ -126,7 +130,7 @@ export async function writeRunBundle(
     ],
     limits: [
       "Local run evidence only.",
-      "Only allowlisted .krn/current artifacts are copied.",
+      `Only allowlisted ${layout.currentDir} artifacts are copied.`,
       "Raw trace dumps, protected-looking paths, external assets, and giant files are excluded.",
       "The bundle does not claim hook trust or production proof.",
     ],

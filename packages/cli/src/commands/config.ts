@@ -10,6 +10,11 @@ import {
 import { writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
 import { renderConfig } from "../install-lifecycle.js";
 import type { CliRuntime } from "../runtime.js";
+import {
+  applyRuntimeLayout,
+  guardWritableRuntimeDir,
+  resolveCliRuntimeLayout,
+} from "../runtime-layout.js";
 
 type ConfigStatus = "pass" | "warn" | "fail" | "blocked";
 
@@ -191,8 +196,16 @@ async function configDoctorCommand(args: string[], runtime: CliRuntime): Promise
   }
 
   const result = await buildConfigDoctor(runtime);
-  await writeCurrentJson(runtime.cwd, "config-doctor.json", result);
-  await writeCurrentMarkdown(runtime.cwd, "config-doctor.md", renderDoctorMarkdown(result));
+  const writeRuntime =
+    result.source === "invalid"
+      ? runtime
+      : applyRuntimeLayout(runtime, await resolveCliRuntimeLayout(runtime.cwd));
+  if (!(await guardWritableRuntimeDir(writeRuntime))) {
+    return 1;
+  }
+
+  await writeCurrentJson(writeRuntime.cwd, "config-doctor.json", result);
+  await writeCurrentMarkdown(writeRuntime.cwd, "config-doctor.md", renderDoctorMarkdown(result));
 
   if (format === "json") {
     runtime.stdout(`${JSON.stringify(result, null, 2)}\n`);

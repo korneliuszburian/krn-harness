@@ -10,7 +10,7 @@ No dashboard, MCP server, multi-agent orchestrator, vector DB, semantic embeddin
 
 ## Runtime Model
 
-Downstream repositories use `krn.config.json` for stable config and `.krn/` for local runtime state. `.krn/` is the fixed P0 runtime directory; `runtime.dir` is not configurable until a later ADR accepts a runtime path resolver. `.krn/current/` contains current task, context, verify, handoff, doctor, and eval artifacts. `.krn/runs/<task_id>/` contains run-scoped trace and metadata for the current task. `.krn/traces/trace.jsonl` remains the global trace for install, hooks, memory commands, and compatibility events.
+Downstream repositories use `krn.config.json` for stable config and `.krn/` for local runtime state by default. ADR-0024 allows `runtime.dir` to point at a safe repo-relative dot-directory such as `.krn-harness` when the target already owns `.krn/`. `<runtime-dir>/current/` contains current task, context, verify, handoff, doctor, and eval artifacts. `<runtime-dir>/runs/<task_id>/` contains run-scoped trace and metadata for the current task. `<runtime-dir>/traces/trace.jsonl` remains the global trace for install, hooks, memory commands, and compatibility events.
 
 ## File Layout
 

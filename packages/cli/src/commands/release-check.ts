@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { currentArtifactPaths, readRepoJson, repoPathExists } from "../current-artifacts.js";
+import { getRuntimeLayout, runtimePath } from "../../../core/src/index.js";
+import { currentArtifactPathsFor, readRepoJson, repoPathExists } from "../current-artifacts.js";
+import { writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
 import { writeReleaseBundle } from "../release-check-bundle.js";
 import type { CliRuntime } from "../runtime.js";
 
@@ -107,6 +107,7 @@ async function packageScriptsCheck(cwd: string): Promise<ReleaseCheckRecord> {
 }
 
 async function reportArtifactsCheck(cwd: string): Promise<ReleaseCheckRecord> {
+  const currentArtifactPaths = currentArtifactPathsFor(cwd);
   const required = [
     currentArtifactPaths.operatorReportMarkdown,
     currentArtifactPaths.operatorReportJson,
@@ -137,6 +138,7 @@ async function reportArtifactsCheck(cwd: string): Promise<ReleaseCheckRecord> {
 }
 
 async function reportBundleCheck(cwd: string): Promise<ReleaseCheckRecord> {
+  const currentArtifactPaths = currentArtifactPathsFor(cwd);
   const relativePath = currentArtifactPaths.reportBundleManifest;
   const exists = await repoPathExists(cwd, relativePath);
   return {
@@ -362,17 +364,8 @@ export async function releaseCheckCommand(args: string[], runtime: CliRuntime): 
   const markdown = renderReleaseCheckMarkdown(result);
 
   if (options.write) {
-    await mkdir(path.join(runtime.cwd, ".krn", "current"), { recursive: true });
-    await writeFile(
-      path.join(runtime.cwd, ".krn", "current", "release-check.json"),
-      `${JSON.stringify(result, null, 2)}\n`,
-      "utf8",
-    );
-    await writeFile(
-      path.join(runtime.cwd, ".krn", "current", "release-check.md"),
-      markdown,
-      "utf8",
-    );
+    await writeCurrentJson(runtime.cwd, "release-check.json", result);
+    await writeCurrentMarkdown(runtime.cwd, "release-check.md", markdown);
   }
 
   const bundleManifest = options.bundle ? await writeReleaseBundle(runtime, { result }) : undefined;
@@ -384,7 +377,7 @@ export async function releaseCheckCommand(args: string[], runtime: CliRuntime): 
 
   runtime.stdout(
     options.bundle
-      ? `${markdown}\nBundle: .krn/current/release-bundle/manifest.json\nFiles: ${bundleManifest?.files.length ?? 0}\n`
+      ? `${markdown}\nBundle: ${runtimePath(getRuntimeLayout(runtime.cwd).releaseBundleDir, "manifest.json")}\nFiles: ${bundleManifest?.files.length ?? 0}\n`
       : markdown,
   );
   return result.status === "fail" ? 1 : 0;

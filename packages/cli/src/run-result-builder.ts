@@ -1,6 +1,6 @@
 import type { ContextPackage } from "../../context/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
-import { currentArtifactPaths, readRepoJson } from "./current-artifacts.js";
+import { currentArtifactPathsFor, readRepoJson } from "./current-artifacts.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -106,18 +106,16 @@ export async function buildAndWriteRunResult(
     releaseCheckBlocks?: boolean | undefined;
   },
 ): Promise<RunResult> {
+  const artifactPaths = currentArtifactPathsFor(runtime.cwd);
   const [taskContract, contextPackage, verifyResult, operatorReport, releaseCheck] =
     await Promise.all([
       readCurrentTaskContract(runtime.cwd),
       readCurrentContextPackage(runtime.cwd),
       readCurrentVerifyResult(runtime.cwd),
       input.operatorReport ??
-        readRepoJson<OperatorReport>(runtime.cwd, currentArtifactPaths.operatorReportJson),
+        readRepoJson<OperatorReport>(runtime.cwd, artifactPaths.operatorReportJson),
       input.options.bundle
-        ? readRepoJson<ReleaseCheckResultFixture>(
-            runtime.cwd,
-            currentArtifactPaths.releaseCheckJson,
-          )
+        ? readRepoJson<ReleaseCheckResultFixture>(runtime.cwd, artifactPaths.releaseCheckJson)
         : undefined,
     ]);
   const explicitBlockers = input.blockers ?? [];
@@ -176,7 +174,7 @@ export async function buildAndWriteRunResult(
     blockers,
     warnings,
     nextActions,
-    artifacts: runArtifacts(input.options.bundle),
+    artifacts: runArtifacts(runtime.cwd, input.options.bundle),
   };
   const result: RunResult = {
     ...resultWithoutStatus,

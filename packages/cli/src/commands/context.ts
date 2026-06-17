@@ -1,4 +1,5 @@
 import { buildContextPackage, renderContextPackageMarkdown } from "../../../context/src/index.js";
+import { getRuntimeLayout, runtimePath } from "../../../core/src/index.js";
 import { buildGraph, protectedGraphPathPolicy } from "../../../graph/src/index.js";
 import { loadMemoryStore } from "../../../memory/src/index.js";
 import {
@@ -11,6 +12,7 @@ import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 export async function contextCommand(runtime: CliRuntime): Promise<number> {
+  const layout = getRuntimeLayout(runtime.cwd);
   const contract = await readCurrentTaskContract(runtime.cwd);
   const scanOptions = graphScanOptionsForTaskContract(contract);
   const graph = await buildGraph(runtime.cwd, undefined, scanOptions);
@@ -36,7 +38,7 @@ export async function contextCommand(runtime: CliRuntime): Promise<number> {
   });
 
   runtime.stdout(`KRN context: package written
-context: .krn/current/context-package.md
+context: ${runtimePath(layout.currentDir, "context-package.md")}
 stop: ${pkg.stop ? "true" : "false"}
 `);
 

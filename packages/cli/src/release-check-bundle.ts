@@ -1,10 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout } from "../../core/src/index.js";
 import type { ReleaseCheckResult, ReleaseCheckStatus } from "./commands/release-check.js";
 import {
   type BundleArtifactFile,
   copyCurrentArtifactFile,
-  currentArtifactPaths,
+  currentArtifactPathsFor,
   readRepoJson,
 } from "./current-artifacts.js";
 import type { CliRuntime } from "./runtime.js";
@@ -187,7 +188,7 @@ function renderNoProtectedDataNote(): string {
   return [
     "# No Protected Data Note",
     "",
-    "This bundle is assembled from an explicit allowlist under `.krn/current` plus generated summaries.",
+    "This bundle is assembled from an explicit allowlist under the active runtime current directory plus generated summaries.",
     "",
     "It does not intentionally include `.env`, `.env.*`, dumps, uploads/media, client documents, credentials, private corpora, protected corpora, raw trace dumps, or external target artifacts.",
     "",
@@ -200,7 +201,9 @@ export async function writeReleaseBundle(
   runtime: CliRuntime,
   input: { result: ReleaseCheckResult },
 ): Promise<ReleaseBundleManifest> {
-  const bundleDir = path.join(runtime.cwd, ".krn", "current", "release-bundle");
+  const layout = getRuntimeLayout(runtime.cwd);
+  const currentArtifactPaths = currentArtifactPathsFor(runtime.cwd);
+  const bundleDir = path.join(runtime.cwd, layout.releaseBundleDir);
   await mkdir(bundleDir, { recursive: true });
 
   const report = await readRepoJson<MinimalOperatorReport>(
@@ -363,7 +366,7 @@ export async function writeReleaseBundle(
     limits: [
       "Local release evidence only.",
       "The bundle does not execute validation commands.",
-      "Only allowlisted .krn/current artifacts are copied.",
+      `Only allowlisted ${layout.currentDir} artifacts are copied.`,
       "Raw trace dumps, protected-looking paths, external assets, and giant files are excluded.",
       "The bundle does not claim hook trust or production proof.",
     ],

@@ -1,6 +1,6 @@
+import { getRuntimeLayout, runtimePath } from "../../../core/src/index.js";
 import {
   buildEvalBaselineArtifact,
-  evalBaselineRelativePath,
   readEvalBaseline,
   renderEvalResultMarkdown,
   runEval,
@@ -12,6 +12,7 @@ import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
 export async function evalCommand(runtime: CliRuntime): Promise<number> {
+  const layout = getRuntimeLayout(runtime.cwd);
   const result = await runEval({
     cwd: runtime.cwd,
     tracePath: runtime.tracePath ?? defaultTracePath(runtime.cwd),
@@ -20,6 +21,7 @@ export async function evalCommand(runtime: CliRuntime): Promise<number> {
   await writeCurrentJson(runtime.cwd, "eval-result.json", result);
   await writeCurrentMarkdown(runtime.cwd, "eval-result.md", renderEvalResultMarkdown(result));
   const baseline = buildEvalBaselineArtifact({
+    cwd: runtime.cwd,
     result,
     previous: await readEvalBaseline(runtime.cwd),
     generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
@@ -42,14 +44,14 @@ export async function evalCommand(runtime: CliRuntime): Promise<number> {
       memoryStatus: result.memory.status,
       runTraceMode: result.runTraceMode,
       baselineStatus: baseline.comparison.status,
-      baselinePath: evalBaselineRelativePath,
+      baselinePath: runtimePath(layout.evalsDir, "baseline.json"),
     },
   });
 
   runtime.stdout(`KRN eval: ${result.status}
 fixtures: ${result.fixtures.length}
-result: .krn/current/eval-result.md
-baseline: ${evalBaselineRelativePath}
+result: ${runtimePath(layout.currentDir, "eval-result.md")}
+baseline: ${runtimePath(layout.evalsDir, "baseline.json")}
 `);
 
   return 0;

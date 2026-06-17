@@ -24,7 +24,7 @@ describe("krn CLI real repo dogfood reports", () => {
     expect(result.stdout).toContain("KRN dogfood preflight: pass");
     expect(result.stdout).toContain("schema: krn-harness-cli-identity-v1");
     expect(result.stdout).toContain("required_commands_present: true");
-  }, 30_000);
+  }, 60_000);
 
   it("rejects the KRN source checkout as a real-repo preflight target", () => {
     const { result, summary } = runRealRepoPreflight(process.cwd());

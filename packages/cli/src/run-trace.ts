@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout, runtimePath } from "../../core/src/index.js";
 import {
   createTraceEvent,
   defaultTracePath,
@@ -51,7 +52,7 @@ export interface EmitCliTraceInput {
 }
 
 export function runDirPath(cwd: string, taskId: string): string {
-  return path.join(cwd, ".krn", "runs", taskId);
+  return path.join(cwd, getRuntimeLayout(cwd).runsDir, taskId);
 }
 
 export function runTracePath(cwd: string, taskId: string): string {
@@ -67,37 +68,38 @@ export function runSummaryPath(cwd: string, taskId: string): string {
 }
 
 function currentRunPath(cwd: string): string {
-  return path.join(cwd, ".krn", "current", "run.json");
+  return path.join(cwd, getRuntimeLayout(cwd).currentDir, "run.json");
 }
 
-function runArtifactPaths(taskId: string): Record<string, string> {
+function runArtifactPaths(cwd: string, taskId: string): Record<string, string> {
+  const layout = getRuntimeLayout(cwd);
   return {
-    contextPackageJson: ".krn/current/context-package.json",
-    contextPackageMarkdown: ".krn/current/context-package.md",
-    doctorResultJson: ".krn/current/doctor-result.json",
-    doctorResultMarkdown: ".krn/current/doctor-result.md",
-    evalResultJson: ".krn/current/eval-result.json",
-    evalResultMarkdown: ".krn/current/eval-result.md",
-    globalTrace: ".krn/traces/trace.jsonl",
-    graphJson: ".krn/graph/repo-graph.json",
-    graphMarkdown: ".krn/graph/repo-graph.md",
-    handoffMarkdown: ".krn/current/handoff.md",
-    runMetadata: `.krn/runs/${taskId}/run.json`,
-    runSummary: `.krn/runs/${taskId}/summary.md`,
-    runTrace: `.krn/runs/${taskId}/trace.jsonl`,
-    operatorSummaryJson: ".krn/current/operator-summary.json",
-    operatorSummaryMarkdown: ".krn/current/operator-summary.md",
-    operatorReportHtml: ".krn/current/operator-report.html",
-    operatorReportJson: ".krn/current/operator-report.json",
-    operatorReportMarkdown: ".krn/current/operator-report.md",
-    reviewSummaryJson: ".krn/current/review-summary.json",
-    reviewSummaryMarkdown: ".krn/current/review-summary.md",
-    reviewResultJson: ".krn/current/review-result.json",
-    reviewResultMarkdown: ".krn/current/review-result.md",
-    taskContractJson: ".krn/current/task-contract.json",
-    taskContractMarkdown: ".krn/current/task-contract.md",
-    verifyResultJson: ".krn/current/verify-result.json",
-    verifyResultMarkdown: ".krn/current/verify-result.md",
+    contextPackageJson: runtimePath(layout.currentDir, "context-package.json"),
+    contextPackageMarkdown: runtimePath(layout.currentDir, "context-package.md"),
+    doctorResultJson: runtimePath(layout.currentDir, "doctor-result.json"),
+    doctorResultMarkdown: runtimePath(layout.currentDir, "doctor-result.md"),
+    evalResultJson: runtimePath(layout.currentDir, "eval-result.json"),
+    evalResultMarkdown: runtimePath(layout.currentDir, "eval-result.md"),
+    globalTrace: runtimePath(layout.tracesDir, "trace.jsonl"),
+    graphJson: runtimePath(layout.graphDir, "repo-graph.json"),
+    graphMarkdown: runtimePath(layout.graphDir, "repo-graph.md"),
+    handoffMarkdown: runtimePath(layout.currentDir, "handoff.md"),
+    runMetadata: runtimePath(layout.runsDir, taskId, "run.json"),
+    runSummary: runtimePath(layout.runsDir, taskId, "summary.md"),
+    runTrace: runtimePath(layout.runsDir, taskId, "trace.jsonl"),
+    operatorSummaryJson: runtimePath(layout.currentDir, "operator-summary.json"),
+    operatorSummaryMarkdown: runtimePath(layout.currentDir, "operator-summary.md"),
+    operatorReportHtml: runtimePath(layout.currentDir, "operator-report.html"),
+    operatorReportJson: runtimePath(layout.currentDir, "operator-report.json"),
+    operatorReportMarkdown: runtimePath(layout.currentDir, "operator-report.md"),
+    reviewSummaryJson: runtimePath(layout.currentDir, "review-summary.json"),
+    reviewSummaryMarkdown: runtimePath(layout.currentDir, "review-summary.md"),
+    reviewResultJson: runtimePath(layout.currentDir, "review-result.json"),
+    reviewResultMarkdown: runtimePath(layout.currentDir, "review-result.md"),
+    taskContractJson: runtimePath(layout.currentDir, "task-contract.json"),
+    taskContractMarkdown: runtimePath(layout.currentDir, "task-contract.md"),
+    verifyResultJson: runtimePath(layout.currentDir, "verify-result.json"),
+    verifyResultMarkdown: runtimePath(layout.currentDir, "verify-result.md"),
   };
 }
 
@@ -124,30 +126,31 @@ This is local evidence only. It is not telemetry, monitoring, CI, or production 
 `;
 }
 
-function currentRunPointer(taskId: string): CurrentRunPointer {
+function currentRunPointer(cwd: string, taskId: string): CurrentRunPointer {
+  const layout = getRuntimeLayout(cwd);
   return {
     schemaVersion: 1,
     taskId,
-    runDir: `.krn/runs/${taskId}`,
-    tracePath: `.krn/runs/${taskId}/trace.jsonl`,
-    runMetadataPath: `.krn/runs/${taskId}/run.json`,
-    taskContractPath: ".krn/current/task-contract.json",
-    contextPackagePath: ".krn/current/context-package.json",
-    graphArtifactPath: ".krn/graph/repo-graph.json",
-    verifyResultPath: ".krn/current/verify-result.json",
-    handoffPath: ".krn/current/handoff.md",
-    doctorResultPath: ".krn/current/doctor-result.json",
-    evalResultPath: ".krn/current/eval-result.json",
-    operatorSummaryPath: ".krn/current/operator-summary.json",
-    reviewSummaryPath: ".krn/current/review-summary.json",
+    runDir: runtimePath(layout.runsDir, taskId),
+    tracePath: runtimePath(layout.runsDir, taskId, "trace.jsonl"),
+    runMetadataPath: runtimePath(layout.runsDir, taskId, "run.json"),
+    taskContractPath: runtimePath(layout.currentDir, "task-contract.json"),
+    contextPackagePath: runtimePath(layout.currentDir, "context-package.json"),
+    graphArtifactPath: runtimePath(layout.graphDir, "repo-graph.json"),
+    verifyResultPath: runtimePath(layout.currentDir, "verify-result.json"),
+    handoffPath: runtimePath(layout.currentDir, "handoff.md"),
+    doctorResultPath: runtimePath(layout.currentDir, "doctor-result.json"),
+    evalResultPath: runtimePath(layout.currentDir, "eval-result.json"),
+    operatorSummaryPath: runtimePath(layout.currentDir, "operator-summary.json"),
+    reviewSummaryPath: runtimePath(layout.currentDir, "review-summary.json"),
   };
 }
 
 async function writeCurrentRunPointer(cwd: string, taskId: string): Promise<void> {
-  await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+  await mkdir(path.join(cwd, getRuntimeLayout(cwd).currentDir), { recursive: true });
   await writeFile(
     currentRunPath(cwd),
-    `${JSON.stringify(currentRunPointer(taskId), null, 2)}\n`,
+    `${JSON.stringify(currentRunPointer(cwd, taskId), null, 2)}\n`,
     "utf8",
   );
 }
@@ -179,7 +182,7 @@ async function updateRunMetadata(cwd: string, event: TraceEvent): Promise<void> 
         name: event.name,
       },
     ],
-    artifactPaths: runArtifactPaths(event.taskId),
+    artifactPaths: runArtifactPaths(cwd, event.taskId),
     current: true,
   };
 

@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { defaultRuntimeDir } from "../../core/src/index.js";
 import type { CliRuntime } from "./runtime.js";
 
 export const cliIdentitySchema = "krn-harness-cli-identity-v1";
@@ -46,7 +47,7 @@ export interface CliIdentity {
   binWrapperPath: string;
   sourceRootPath: string;
   runtimeCwd: string;
-  runtimeDir: ".krn";
+  runtimeDir: string;
   writesRuntimeToCwd: true;
   supportedCommands: string[];
   requiredCommandsPresent: boolean;
@@ -73,7 +74,7 @@ export function buildCliIdentity(runtime: CliRuntime): CliIdentity {
     binWrapperPath: process.env.KRN_HARNESS_BIN_WRAPPER ?? "unknown",
     sourceRootPath,
     runtimeCwd: runtime.cwd,
-    runtimeDir: ".krn",
+    runtimeDir: runtime.runtimeDir ?? defaultRuntimeDir,
     writesRuntimeToCwd: true,
     supportedCommands: [...supportedCliCommands],
     requiredCommandsPresent,

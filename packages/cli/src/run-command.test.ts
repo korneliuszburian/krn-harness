@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -47,6 +48,109 @@ describe("krn CLI run command", () => {
     expect(run.steps.verify.status).toBe("ran");
     expect(run.steps.report.status).toBe("ran");
     expect(run.artifacts.runResultJson).toBe(".krn/current/run-result.json");
+  }, 15_000);
+
+  it("writes run, bundle, report, and release artifacts under configured runtime dir", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeReleaseCheckFixtureFiles(cwd);
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify({ version: 1, runtime: { dir: ".krn-harness" } }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task", "Custom runtime smoke", "--bundle"]);
+    const run = await readJson<RunResultFixture>(cwd, ".krn-harness/current/run-result.json");
+
+    expect(result.code).toBe(0);
+    expect(run.status).toBe("ran");
+    expect(run.artifacts).toMatchObject({
+      runResultJson: ".krn-harness/current/run-result.json",
+      contextPackage: ".krn-harness/current/context-package.json",
+      verifyResult: ".krn-harness/current/verify-result.json",
+      runBundleManifest: ".krn-harness/current/run-bundle/manifest.json",
+    });
+    await expectFile(cwd, ".krn-harness/current/context-package.json");
+    await expectFile(cwd, ".krn-harness/current/verify-result.json");
+    await expectFile(cwd, ".krn-harness/current/operator-report.json");
+    await expectFile(cwd, ".krn-harness/current/release-check.json");
+    await expectFile(cwd, ".krn-harness/current/run-bundle/manifest.json");
+    await expect(stat(path.join(cwd, ".krn", "current", "run-result.json"))).rejects.toThrow();
+
+    const report = await runInCwd(cwd, ["report", "--write"]);
+    const releaseCheck = await runInCwd(cwd, ["release-check", "--write"]);
+
+    expect(report.code).toBe(0);
+    expect(report.stdout).toContain("markdown: .krn-harness/current/operator-report.md");
+    expect(releaseCheck.code).toBe(0);
+    await expectFile(cwd, ".krn-harness/current/operator-report.json");
+    await expectFile(cwd, ".krn-harness/current/release-check.json");
+  }, 15_000);
+
+  it("blocks tracked default runtime namespace collisions", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn"), { recursive: true });
+    await writeFile(path.join(cwd, ".krn", "product-owned.txt"), "owned\n", "utf8");
+    spawnSync("git", ["init", "-q"], { cwd, encoding: "utf8" });
+    spawnSync("git", ["add", ".krn/product-owned.txt"], { cwd, encoding: "utf8" });
+    spawnSync(
+      "git",
+      [
+        "-c",
+        "user.email=krn@example.invalid",
+        "-c",
+        "user.name=KRN Test",
+        "commit",
+        "-q",
+        "-m",
+        "track product runtime namespace",
+      ],
+      { cwd, encoding: "utf8" },
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task", "Tracked runtime collision"]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(
+      "runtime directory .krn is tracked by this repository; configure runtime.dir such as .krn-harness",
+    );
+  }, 15_000);
+
+  it("bypasses tracked default runtime collisions with configured runtime dir", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn"), { recursive: true });
+    await writeFile(path.join(cwd, ".krn", "product-owned.txt"), "owned\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      `${JSON.stringify({ version: 1, runtime: { dir: ".krn-harness" } }, null, 2)}\n`,
+      "utf8",
+    );
+    spawnSync("git", ["init", "-q"], { cwd, encoding: "utf8" });
+    spawnSync("git", ["add", ".krn/product-owned.txt", "krn.config.json"], {
+      cwd,
+      encoding: "utf8",
+    });
+    spawnSync(
+      "git",
+      [
+        "-c",
+        "user.email=krn@example.invalid",
+        "-c",
+        "user.name=KRN Test",
+        "commit",
+        "-q",
+        "-m",
+        "track product runtime namespace",
+      ],
+      { cwd, encoding: "utf8" },
+    );
+
+    const result = await runInCwd(cwd, ["run", "--task", "Tracked runtime bypass"]);
+
+    expect(result.code).toBe(0);
+    await expectFile(cwd, ".krn/product-owned.txt");
+    await expectFile(cwd, ".krn-harness/current/run-result.json");
+    await expect(stat(path.join(cwd, ".krn", "current", "run-result.json"))).rejects.toThrow();
   }, 15_000);
 
   it("keeps dry-run verify record-only even when execute is requested", async () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { defaultRuntimeDir } from "../../core/src/index.js";
 
 const verifyModeSchema = z.enum(["record-only", "execute"]);
 
@@ -18,6 +19,38 @@ export const VerifyProfileConfigSchema = z.object({
   maxOutputBytes: z.number().int().positive().optional(),
 });
 
+const rejectedRuntimeDirs = new Set(["src", "docs", "tools", "packages"]);
+
+function runtimeDirIssue(value: string): string | undefined {
+  if (value === defaultRuntimeDir) return undefined;
+  if (value === "" || value === "." || value === "/")
+    return "must be a repo-relative dot-directory";
+  if (!value.startsWith(".")) return "must start with .";
+  if (value.includes("..")) return "must not contain ..";
+  if (value.startsWith("/")) return "must not be absolute";
+  if (value.endsWith("/")) return "must not end with /";
+  if (value.split("/").some((part) => rejectedRuntimeDirs.has(part))) {
+    return "must not target source or documentation directories";
+  }
+
+  return undefined;
+}
+
+export function validateRuntimeDir(value: string): string[] {
+  const issue = runtimeDirIssue(value);
+  return issue ? [`runtime.dir ${issue}`] : [];
+}
+
+const RuntimeDirSchema = z.string().superRefine((value, context) => {
+  const issue = runtimeDirIssue(value);
+  if (issue) {
+    context.addIssue({
+      code: "custom",
+      message: issue,
+    });
+  }
+});
+
 export const KRNConfigSchema = z
   .object({
     version: z.literal(1),
@@ -28,12 +61,7 @@ export const KRNConfigSchema = z
       .optional(),
     runtime: z
       .object({
-        dir: z
-          .literal(".krn")
-          .optional()
-          .refine((value) => value === undefined || value === ".krn", {
-            message: "must be .krn in P0",
-          }),
+        dir: RuntimeDirSchema.optional(),
       })
       .optional(),
     verify: z
@@ -69,7 +97,7 @@ export type VerifyProfileConfig = z.infer<typeof VerifyProfileConfigSchema>;
 export const defaultConfig: KRNConfig = {
   version: 1,
   runtime: {
-    dir: ".krn",
+    dir: defaultRuntimeDir,
   },
 };
 
@@ -92,16 +120,16 @@ function normalizeIssueMessage(issue: z.ZodError["issues"][number]): string {
     return "version must be 1";
   }
 
-  if (path === "runtime.dir") {
-    return "runtime.dir must be .krn in P0";
-  }
-
   if (issue.code === "invalid_type") {
     const expected = "expected" in issue ? String(issue.expected) : "valid value";
     if (expected === "object") return `${path} must be an object`;
     if (expected === "array") return `${path} must be an array`;
     if (expected === "string") return `${path} must be a string`;
     if (expected === "number") return `${path} must be a number`;
+  }
+
+  if (path === "runtime.dir") {
+    return `runtime.dir ${issue.message}`;
   }
 
   if (issue.code === "invalid_union" && "errors" in issue && Array.isArray(issue.errors)) {

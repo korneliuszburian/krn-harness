@@ -4,6 +4,7 @@ export interface CliRuntime {
   stderr(text: string): void;
   now?: () => Date;
   tracePath?: string;
+  runtimeDir?: string;
   stdin?: () => Promise<string>;
 }
 

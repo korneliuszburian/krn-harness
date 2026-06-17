@@ -1,6 +1,13 @@
 import { copyFile, mkdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import { pathExists, readJsonFile } from "../../core/src/index.js";
+import {
+  buildRuntimeLayout,
+  getRuntimeLayout,
+  pathExists,
+  type RuntimeLayout,
+  readJsonFile,
+  runtimePath,
+} from "../../core/src/index.js";
 import { artifactPathHasSecretMarker } from "./artifact-scope.js";
 
 export interface BundleArtifactFile {
@@ -21,34 +28,42 @@ interface CopyArtifactFileInput {
   maxBytes?: number | undefined;
 }
 
-export const currentArtifactPaths = {
-  taskContract: ".krn/current/task-contract.json",
-  graph: ".krn/graph/repo-graph.json",
-  contextPackage: ".krn/current/context-package.json",
-  verifyResult: ".krn/current/verify-result.json",
-  handoff: ".krn/current/handoff.md",
-  evalResult: ".krn/current/eval-result.json",
-  evalBaseline: ".krn/current/eval-baseline.json",
-  reviewSummary: ".krn/current/review-summary.json",
-  reviewResult: ".krn/current/review-result.json",
-  operatorSummary: ".krn/current/operator-summary.json",
-  operatorReportMarkdown: ".krn/current/operator-report.md",
-  operatorReportJson: ".krn/current/operator-report.json",
-  operatorReportHtml: ".krn/current/operator-report.html",
-  reportBundleManifest: ".krn/current/report-bundle/manifest.json",
-  configDoctor: ".krn/current/config-doctor.json",
-  installResult: ".krn/current/install-result.json",
-  uninstallResult: ".krn/current/uninstall-result.json",
-  releaseCheckJson: ".krn/current/release-check.json",
-  releaseCheckMarkdown: ".krn/current/release-check.md",
-  runResultJson: ".krn/current/run-result.json",
-  runResultMarkdown: ".krn/current/run-result.md",
-  runBundleManifest: ".krn/current/run-bundle/manifest.json",
-  trace: ".krn/traces/trace.jsonl",
-  memoryPending: ".krn/memory/pending.json",
-  memoryApproved: ".krn/memory/approved.json",
-  memoryDeprecated: ".krn/memory/deprecated.json",
-} as const;
+export function artifactPathsForLayout(layout: RuntimeLayout) {
+  return {
+    taskContract: runtimePath(layout.currentDir, "task-contract.json"),
+    graph: runtimePath(layout.graphDir, "repo-graph.json"),
+    contextPackage: runtimePath(layout.currentDir, "context-package.json"),
+    verifyResult: runtimePath(layout.currentDir, "verify-result.json"),
+    handoff: runtimePath(layout.currentDir, "handoff.md"),
+    evalResult: runtimePath(layout.currentDir, "eval-result.json"),
+    evalBaseline: runtimePath(layout.currentDir, "eval-baseline.json"),
+    reviewSummary: runtimePath(layout.currentDir, "review-summary.json"),
+    reviewResult: runtimePath(layout.currentDir, "review-result.json"),
+    operatorSummary: runtimePath(layout.currentDir, "operator-summary.json"),
+    operatorReportMarkdown: runtimePath(layout.currentDir, "operator-report.md"),
+    operatorReportJson: runtimePath(layout.currentDir, "operator-report.json"),
+    operatorReportHtml: runtimePath(layout.currentDir, "operator-report.html"),
+    reportBundleManifest: runtimePath(layout.reportBundleDir, "manifest.json"),
+    configDoctor: runtimePath(layout.currentDir, "config-doctor.json"),
+    installResult: runtimePath(layout.currentDir, "install-result.json"),
+    uninstallResult: runtimePath(layout.currentDir, "uninstall-result.json"),
+    releaseCheckJson: runtimePath(layout.currentDir, "release-check.json"),
+    releaseCheckMarkdown: runtimePath(layout.currentDir, "release-check.md"),
+    runResultJson: runtimePath(layout.currentDir, "run-result.json"),
+    runResultMarkdown: runtimePath(layout.currentDir, "run-result.md"),
+    runBundleManifest: runtimePath(layout.runBundleDir, "manifest.json"),
+    trace: runtimePath(layout.tracesDir, "trace.jsonl"),
+    memoryPending: runtimePath(layout.memoryDir, "pending.json"),
+    memoryApproved: runtimePath(layout.memoryDir, "approved.json"),
+    memoryDeprecated: runtimePath(layout.memoryDir, "deprecated.json"),
+  } as const;
+}
+
+export const currentArtifactPaths = artifactPathsForLayout(buildRuntimeLayout());
+
+export function currentArtifactPathsFor(cwd: string) {
+  return artifactPathsForLayout(getRuntimeLayout(cwd));
+}
 
 export function normalizeArtifactPath(relativePath: string): string {
   return relativePath.replaceAll("\\", "/");
@@ -125,9 +140,10 @@ async function copyArtifactFile(input: CopyArtifactFileInput): Promise<BundleArt
 export function copyCurrentArtifactFile(
   input: Omit<CopyArtifactFileInput, "allowedSourcePrefixes" | "maxBytes">,
 ): Promise<BundleArtifactFile> {
+  const layout = getRuntimeLayout(input.cwd);
   return copyArtifactFile({
     ...input,
-    allowedSourcePrefixes: [".krn/current/"],
+    allowedSourcePrefixes: [`${layout.currentDir}/`],
     maxBytes: 1_000_000,
   });
 }
@@ -135,8 +151,9 @@ export function copyCurrentArtifactFile(
 export function copyRuntimeArtifactFile(
   input: Omit<CopyArtifactFileInput, "allowedSourcePrefixes">,
 ): Promise<BundleArtifactFile> {
+  const layout = getRuntimeLayout(input.cwd);
   return copyArtifactFile({
     ...input,
-    allowedSourcePrefixes: [".krn/"],
+    allowedSourcePrefixes: [`${layout.root}/`],
   });
 }

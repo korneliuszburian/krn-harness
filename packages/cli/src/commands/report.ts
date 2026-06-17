@@ -1,9 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout, runtimePath } from "../../../core/src/index.js";
 import {
   type BundleArtifactFile,
   copyRuntimeArtifactFile,
-  currentArtifactPaths,
+  currentArtifactPathsFor,
 } from "../current-artifacts.js";
 import {
   currentStatePath,
@@ -83,6 +84,8 @@ async function writeReportBundle(
   },
 ): Promise<ReportBundleManifest> {
   const bundleDir = currentStatePath(runtime.cwd, "report-bundle");
+  const layout = getRuntimeLayout(runtime.cwd);
+  const currentArtifactPaths = currentArtifactPathsFor(runtime.cwd);
   await mkdir(bundleDir, { recursive: true });
 
   await writeFile(path.join(bundleDir, "operator-report.md"), input.markdown, "utf8");
@@ -92,19 +95,19 @@ async function writeReportBundle(
   const files: ReportBundleFile[] = [
     {
       path: "operator-report.md",
-      source: ".krn/current/operator-report.md",
+      source: runtimePath(layout.currentDir, "operator-report.md"),
       present: true,
       required: true,
     },
     {
       path: "operator-report.html",
-      source: ".krn/current/operator-report.html",
+      source: runtimePath(layout.currentDir, "operator-report.html"),
       present: true,
       required: true,
     },
     {
       path: "operator-report.json",
-      source: ".krn/current/operator-report.json",
+      source: runtimePath(layout.currentDir, "operator-report.json"),
       present: true,
       required: true,
     },
@@ -152,7 +155,7 @@ async function writeReportBundle(
     limits: [
       "Local static export only.",
       "Missing optional artifacts are recorded as present=false.",
-      "Protected-looking paths and paths outside .krn are not copied.",
+      `Protected-looking paths and paths outside ${layout.root} are not copied.`,
     ],
   };
 
@@ -217,11 +220,12 @@ export async function reportCommand(args: string[], runtime: CliRuntime): Promis
   }
 
   if (options.write) {
+    const layout = getRuntimeLayout(runtime.cwd);
     runtime.stdout(`KRN report: ${report.verdict}
-markdown: .krn/current/operator-report.md
-json: .krn/current/operator-report.json
-html: .krn/current/operator-report.html
-${options.bundle ? "bundle: .krn/current/report-bundle/manifest.json\n" : ""}`);
+markdown: ${runtimePath(layout.currentDir, "operator-report.md")}
+json: ${runtimePath(layout.currentDir, "operator-report.json")}
+html: ${runtimePath(layout.currentDir, "operator-report.html")}
+${options.bundle ? `bundle: ${runtimePath(layout.reportBundleDir, "manifest.json")}\n` : ""}`);
     return 0;
   }
 

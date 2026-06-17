@@ -1,9 +1,10 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout } from "../../core/src/index.js";
 import { isTraceEventName, parseTraceEvent, type TraceEvent } from "./schema.js";
 
 export function defaultTracePath(cwd = process.cwd()): string {
-  return path.join(cwd, ".krn", "traces", "trace.jsonl");
+  return path.join(cwd, getRuntimeLayout(cwd).tracesDir, "trace.jsonl");
 }
 
 export async function writeTraceEvent(event: TraceEvent, tracePath: string): Promise<void> {

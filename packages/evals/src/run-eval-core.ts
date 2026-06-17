@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildContextPackage, type ContextPackage } from "../../context/src/index.js";
+import { getRuntimeLayout, runtimePath } from "../../core/src/index.js";
 import { buildGraph } from "../../graph/src/index.js";
 import { buildTaskContract } from "../../task-contract/src/index.js";
 import { defaultTracePath, readTraceLines } from "../../trace/src/index.js";
@@ -39,9 +40,11 @@ async function readTraceEventNames(tracePath: string): Promise<string[]> {
 }
 
 async function readTrace(cwd: string, explicitTracePath?: string): Promise<TraceReadResult> {
+  const layout = getRuntimeLayout(cwd);
+
   try {
     const currentRun = JSON.parse(
-      await readFile(path.join(cwd, ".krn", "current", "run.json"), "utf8"),
+      await readFile(path.join(cwd, runtimePath(layout.currentDir, "run.json")), "utf8"),
     ) as { tracePath?: string };
 
     if (typeof currentRun.tracePath === "string") {

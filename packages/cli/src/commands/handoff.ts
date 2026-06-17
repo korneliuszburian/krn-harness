@@ -2,7 +2,12 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import { pathExists, readJsonFile } from "../../../core/src/index.js";
+import {
+  getRuntimeLayout,
+  pathExists,
+  readJsonFile,
+  runtimePath,
+} from "../../../core/src/index.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -76,8 +81,9 @@ async function changedFiles(cwd: string): Promise<string[]> {
 }
 
 async function graphSummary(cwd: string): Promise<GraphSummary> {
+  const layout = getRuntimeLayout(cwd);
   const graph = await readJsonFile<{ nodeCount?: unknown; edgeCount?: unknown }>(
-    path.join(cwd, ".krn", "graph", "repo-graph.json"),
+    path.join(cwd, layout.graphDir, "repo-graph.json"),
   );
 
   if (!graph || typeof graph.nodeCount !== "number" || typeof graph.edgeCount !== "number") {
@@ -92,8 +98,9 @@ async function graphSummary(cwd: string): Promise<GraphSummary> {
 }
 
 async function currentRunSummary(cwd: string): Promise<CurrentRunSummary> {
+  const layout = getRuntimeLayout(cwd);
   const run = await readJsonFile<{ tracePath?: unknown }>(
-    path.join(cwd, ".krn", "current", "run.json"),
+    path.join(cwd, layout.currentDir, "run.json"),
   );
 
   if (!run || typeof run.tracePath !== "string") {
@@ -107,7 +114,7 @@ async function currentRunSummary(cwd: string): Promise<CurrentRunSummary> {
 }
 
 async function globalTraceSummary(cwd: string): Promise<GlobalTraceSummary> {
-  const tracePath = ".krn/traces/trace.jsonl";
+  const tracePath = runtimePath(getRuntimeLayout(cwd).tracesDir, "trace.jsonl");
 
   return {
     status: (await pathExists(path.join(cwd, tracePath))) ? "present" : "missing",
@@ -124,8 +131,9 @@ async function artifactStatus(cwd: string, relativePath: string): Promise<Artifa
 }
 
 async function evalStatus(cwd: string): Promise<EvalStatusSummary> {
+  const layout = getRuntimeLayout(cwd);
   const artifact = await readJsonFile<{ status?: unknown; downstream?: { status?: unknown } }>(
-    path.join(cwd, ".krn", "current", "eval-result.json"),
+    path.join(cwd, layout.currentDir, "eval-result.json"),
   );
 
   return {
@@ -137,7 +145,10 @@ async function evalStatus(cwd: string): Promise<EvalStatusSummary> {
 
 async function installSummary(cwd: string): Promise<InstallSummary> {
   try {
-    const rawTrace = await readFile(path.join(cwd, ".krn", "traces", "trace.jsonl"), "utf8");
+    const rawTrace = await readFile(
+      path.join(cwd, getRuntimeLayout(cwd).tracesDir, "trace.jsonl"),
+      "utf8",
+    );
     const installEvent = rawTrace
       .trim()
       .split("\n")
@@ -193,6 +204,8 @@ function renderHandoffMarkdown(input: {
   evalStatus: string;
   downstreamEvalStatus?: string | undefined;
   changedFiles: string[];
+  currentDir: string;
+  graphDir: string;
 }): string {
   const lines = [
     "# KRN Handoff",
@@ -247,13 +260,13 @@ function renderHandoffMarkdown(input: {
     "",
     "## Artifact Pointers",
     "",
-    "- Task contract: .krn/current/task-contract.json",
-    "- Context package: .krn/current/context-package.json",
-    "- Graph JSON: .krn/graph/repo-graph.json",
-    "- Graph Markdown: .krn/graph/repo-graph.md",
-    "- Verify result: .krn/current/verify-result.json",
-    "- Doctor result: .krn/current/doctor-result.json",
-    "- Eval result: .krn/current/eval-result.json",
+    `- Task contract: ${runtimePath(input.currentDir, "task-contract.json")}`,
+    `- Context package: ${runtimePath(input.currentDir, "context-package.json")}`,
+    `- Graph JSON: ${runtimePath(input.graphDir, "repo-graph.json")}`,
+    `- Graph Markdown: ${runtimePath(input.graphDir, "repo-graph.md")}`,
+    `- Verify result: ${runtimePath(input.currentDir, "verify-result.json")}`,
+    `- Doctor result: ${runtimePath(input.currentDir, "doctor-result.json")}`,
+    `- Eval result: ${runtimePath(input.currentDir, "eval-result.json")}`,
     `- Current run trace: ${input.run.tracePath ?? "missing"}`,
     "",
     "## Changed Files",
@@ -283,6 +296,7 @@ function renderHandoffMarkdown(input: {
 }
 
 export async function handoffCommand(runtime: CliRuntime): Promise<number> {
+  const layout = getRuntimeLayout(runtime.cwd);
   const [
     taskContract,
     contextPackage,
@@ -302,7 +316,7 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
     currentRunSummary(runtime.cwd),
     globalTraceSummary(runtime.cwd),
     installSummary(runtime.cwd),
-    artifactStatus(runtime.cwd, ".krn/current/doctor-result.json"),
+    artifactStatus(runtime.cwd, runtimePath(layout.currentDir, "doctor-result.json")),
     evalStatus(runtime.cwd),
     changedFiles(runtime.cwd),
   ]);
@@ -327,6 +341,8 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
     evalStatus: evalResult.status,
     downstreamEvalStatus: evalResult.downstreamStatus,
     changedFiles: files,
+    currentDir: layout.currentDir,
+    graphDir: layout.graphDir,
   });
 
   await writeCurrentMarkdown(runtime.cwd, "handoff.md", markdown);
@@ -341,7 +357,7 @@ export async function handoffCommand(runtime: CliRuntime): Promise<number> {
   });
 
   runtime.stdout(`KRN handoff: ready
-handoff: .krn/current/handoff.md
+handoff: ${runtimePath(layout.currentDir, "handoff.md")}
 verify: ${verifyResult?.status ?? "missing"}
 `);
 

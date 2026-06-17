@@ -48,22 +48,46 @@ describe("loadConfig", () => {
     await expect(loadConfig(path.join(fixturesRoot, "invalid-shape"))).rejects.toMatchObject({
       name: "ValidationError",
       code: "KRN_VALIDATION_ERROR",
-      message: "krn.config.json is invalid: runtime.dir must be .krn in P0",
+      message: "krn.config.json is invalid: runtime.dir must be a string",
     } satisfies Partial<ValidationError>);
   });
 
-  it("rejects custom runtime dirs because P0 hardcodes .krn artifacts", async () => {
+  it("loads safe custom runtime dirs for target namespace collisions", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-config-runtime-dir-"));
     await writeFile(
       path.join(cwd, "krn.config.json"),
-      JSON.stringify({ version: 1, runtime: { dir: ".custom-krn" } }),
+      JSON.stringify({ version: 1, runtime: { dir: ".krn-harness" } }),
+      "utf8",
+    );
+
+    await expect(loadConfig(cwd)).resolves.toMatchObject({
+      source: "file",
+      config: {
+        version: 1,
+        runtime: { dir: ".krn-harness" },
+      },
+    });
+  });
+
+  it.each([
+    "/tmp/krn",
+    "../.krn",
+    ".",
+    "src",
+    "docs",
+    "packages",
+    "krn-runtime",
+  ])("rejects unsafe runtime dir %s", async (runtimeDir) => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-config-runtime-dir-"));
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify({ version: 1, runtime: { dir: runtimeDir } }),
       "utf8",
     );
 
     await expect(loadConfig(cwd)).rejects.toMatchObject({
       name: "ValidationError",
       code: "KRN_VALIDATION_ERROR",
-      message: "krn.config.json is invalid: runtime.dir must be .krn in P0",
     } satisfies Partial<ValidationError>);
   });
 
@@ -135,6 +159,7 @@ describe("loadConfig", () => {
     ).toEqual(["verify.profiles.unit.commands[0].args must be an array of strings"]);
 
     expect(isKRNConfig({ version: 1, runtime: { dir: ".krn" } })).toBe(true);
+    expect(isKRNConfig({ version: 1, runtime: { dir: ".krn-harness" } })).toBe(true);
     expect(isKRNConfig({ version: 2 })).toBe(false);
   });
 });

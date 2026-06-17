@@ -1,6 +1,6 @@
 import path from "node:path";
 import { loadConfig } from "../../../config/src/index.js";
-import { pathExists } from "../../../core/src/index.js";
+import { getRuntimeLayout, pathExists, runtimePath } from "../../../core/src/index.js";
 import {
   buildVerifyResult,
   renderVerifyResultMarkdown,
@@ -55,6 +55,7 @@ export async function verifyCommand(args: string[], runtime: CliRuntime): Promis
     readCurrentContextPackage(runtime.cwd),
     loadConfig(runtime.cwd),
   ]);
+  const layout = getRuntimeLayout(runtime.cwd);
   const resolvedProfile = resolveVerifyProfile(loadedConfig.config.verify, parsedArgs.profileName);
   const profile = {
     ...resolvedProfile.profile,
@@ -77,13 +78,12 @@ export async function verifyCommand(args: string[], runtime: CliRuntime): Promis
     configSource: loadedConfig.source,
     generatedAt: (runtime.now?.() ?? new Date()).toISOString(),
     graphArtifactPresent: await pathExists(
-      path.join(runtime.cwd, ".krn", "graph", "repo-graph.json"),
+      path.join(runtime.cwd, layout.graphDir, "repo-graph.json"),
     ),
     currentRunTracePresent: await pathExists(
       path.join(
         runtime.cwd,
-        ".krn",
-        "runs",
+        layout.runsDir,
         taskContract?.id ?? contextPackage?.taskId ?? "missing-task",
         "trace.jsonl",
       ),
@@ -115,7 +115,7 @@ profile: ${result.profileName}
 mode: ${result.mode}
 commands: ${result.summary.totalCommands}
 executed: ${result.summary.executedCommands}
-result: .krn/current/verify-result.md
+result: ${runtimePath(layout.currentDir, "verify-result.md")}
 `);
 
   return 0;

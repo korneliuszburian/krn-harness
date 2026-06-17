@@ -1,5 +1,6 @@
 import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout, runtimePath } from "../../../core/src/index.js";
 import { buildTaskContract, parseTaskSpecInput } from "../../../task-contract/src/index.js";
 import { ensureCurrentStateDir, writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
 import { emitCliTrace } from "../run-trace.js";
@@ -170,6 +171,7 @@ async function loadTaskSpec(
 }
 
 export async function startCommand(taskParts: string[], runtime: CliRuntime): Promise<number> {
+  const layout = getRuntimeLayout(runtime.cwd);
   const parsedArgs = parseStartArgs(taskParts);
 
   if (parsedArgs.taskSpecPathMissing || parsedArgs.taskSpecPath === "") {
@@ -213,7 +215,7 @@ export async function startCommand(taskParts: string[], runtime: CliRuntime): Pr
   runtime.stdout(`KRN start: task accepted
 task_id: ${contract.id}
 intent_quality: ${contract.intentQuality}
-contract: .krn/current/task-contract.md
+contract: ${runtimePath(layout.currentDir, "task-contract.md")}
 `);
   for (const warning of contract.intentWarnings) {
     runtime.stderr(`KRN start warning: ${warning}\n`);

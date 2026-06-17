@@ -1,7 +1,7 @@
 import type { Dirent } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { readJsonFile } from "../../core/src/index.js";
+import { getRuntimeLayout, readJsonFile, runtimePath } from "../../core/src/index.js";
 
 export type ArtifactScope =
   | "current"
@@ -31,17 +31,22 @@ interface RuntimeSummary {
   targetRepoPath?: string | null | undefined;
 }
 
-const currentPrefixes = [".krn/current/", ".krn/graph/", ".krn/memory/", ".krn/traces/"] as const;
-
 function normalizeRelativePath(relativePath: string): string {
   return relativePath.split(path.sep).join("/");
 }
 
-function isInsideKrn(relativePath: string): boolean {
-  return relativePath === ".krn" || relativePath.startsWith(".krn/");
+function isInsideRuntimeRoot(relativePath: string, runtimeRoot: string): boolean {
+  return relativePath === runtimeRoot || relativePath.startsWith(`${runtimeRoot}/`);
 }
 
-function isCurrentArtifact(relativePath: string): boolean {
+function isCurrentArtifact(relativePath: string, cwd?: string | undefined): boolean {
+  const layout = getRuntimeLayout(cwd ?? process.cwd());
+  const currentPrefixes = [
+    `${layout.currentDir}/`,
+    `${layout.graphDir}/`,
+    `${layout.memoryDir}/`,
+    `${layout.tracesDir}/`,
+  ] as const;
   return currentPrefixes.some((prefix) => relativePath.startsWith(prefix));
 }
 
@@ -68,9 +73,10 @@ export function artifactPathHasSecretMarker(relativePath: string): boolean {
 
 export function artifactPathIsArchiveSafe(relativePath: string): boolean {
   const normalized = normalizeRelativePath(relativePath);
+  const layout = getRuntimeLayout(process.cwd());
   return (
-    isInsideKrn(normalized) &&
-    !normalized.startsWith(".krn/archive/") &&
+    isInsideRuntimeRoot(normalized, layout.root) &&
+    !normalized.startsWith(runtimePath(layout.root, "archive/")) &&
     !secretLookingPath(normalized)
   );
 }
@@ -80,16 +86,17 @@ export function classifyArtifactPath(
   options: { cwd?: string | undefined; summary?: RuntimeSummary | undefined } = {},
 ): Pick<ArtifactRecord, "scope" | "reason"> {
   const relativePath = normalizeRelativePath(relativePathInput);
+  const layout = getRuntimeLayout(options.cwd ?? process.cwd());
 
-  if (!isInsideKrn(relativePath)) {
-    return { scope: "historical", reason: "outside .krn runtime model" };
+  if (!isInsideRuntimeRoot(relativePath, layout.root)) {
+    return { scope: "historical", reason: `outside ${layout.root} runtime model` };
   }
 
-  if (relativePath.startsWith(".krn/archive/")) {
+  if (relativePath.startsWith(runtimePath(layout.root, "archive/"))) {
     return { scope: "archived", reason: "already archived artifact" };
   }
 
-  if (isCurrentArtifact(relativePath)) {
+  if (isCurrentArtifact(relativePath, options.cwd)) {
     return { scope: "current", reason: "current runtime evidence" };
   }
 
@@ -124,7 +131,7 @@ async function maybeReadSummary(
 }
 
 export async function listRuntimeArtifacts(cwd: string): Promise<ArtifactRecord[]> {
-  const root = path.join(cwd, ".krn");
+  const root = path.join(cwd, getRuntimeLayout(cwd).root);
   const artifacts: ArtifactRecord[] = [];
 
   async function walk(dir: string, depth: number): Promise<void> {

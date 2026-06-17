@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout } from "../../core/src/index.js";
 import { approveMemory } from "./approve.js";
 import { deprecateMemory } from "./deprecate.js";
 import { type CreatePendingMemoryInput, createPendingMemory } from "./pending.js";
@@ -23,7 +24,7 @@ export interface MemoryOperationResult {
 }
 
 export function memoryDir(cwd: string): string {
-  return path.join(cwd, ".krn", "memory");
+  return path.join(cwd, getRuntimeLayout(cwd).memoryDir);
 }
 
 export function memoryStorePath(cwd: string, status: MemoryStatus): string {

@@ -22,6 +22,11 @@ import { summaryCommand } from "./commands/summary.js";
 import { uninstallCommand } from "./commands/uninstall.js";
 import { verifyCommand } from "./commands/verify.js";
 import { type CliRuntime, defaultRuntime } from "./runtime.js";
+import {
+  applyRuntimeLayout,
+  guardWritableRuntimeDir,
+  resolveCliRuntimeLayout,
+} from "./runtime-layout.js";
 
 export const helpText = `KRN Harness CLI
 
@@ -65,48 +70,83 @@ export async function runCli(
     return 0;
   }
 
+  let commandRuntime = runtime;
+  if (command !== "config") {
+    try {
+      commandRuntime = applyRuntimeLayout(runtime, await resolveCliRuntimeLayout(runtime.cwd));
+    } catch (error) {
+      runtime.stderr(`KRN config: ${error instanceof Error ? error.message : String(error)}\n`);
+      return 1;
+    }
+  }
+
+  const writeProducingCommands = new Set([
+    "run",
+    "status",
+    "start",
+    "graph",
+    "context",
+    "verify",
+    "handoff",
+    "doctor",
+    "eval",
+    "install",
+    "uninstall",
+    "summary",
+    "review",
+    "report",
+    "release-check",
+    "artifacts",
+    "memory",
+    "hook",
+  ]);
+
+  if (writeProducingCommands.has(command) && !(await guardWritableRuntimeDir(commandRuntime))) {
+    return 1;
+  }
+
   if (command === "status") {
-    return statusCommand(runtime);
+    return statusCommand(commandRuntime);
   }
 
   if (command === "run") {
-    return runCommand(rest, runtime);
+    return runCommand(rest, commandRuntime);
   }
 
   if (command === "start") {
-    return startCommand(rest, runtime);
+    return startCommand(rest, commandRuntime);
   }
 
   if (command === "graph") {
-    return graphCommand(runtime);
+    return graphCommand(commandRuntime);
   }
 
   if (command === "context") {
-    return contextCommand(runtime);
+    return contextCommand(commandRuntime);
   }
 
   if (command === "verify") {
-    return verifyCommand(rest, runtime);
+    return verifyCommand(rest, commandRuntime);
   }
 
   if (command === "handoff") {
-    return handoffCommand(runtime);
+    return handoffCommand(commandRuntime);
   }
 
   if (command === "doctor") {
-    return doctorCommand(rest, runtime);
+    return doctorCommand(rest, commandRuntime);
   }
 
   if (command === "eval") {
-    return evalCommand(runtime);
+    return evalCommand(commandRuntime);
   }
 
   if (command === "install") {
-    return installCommand(rest, runtime);
+    return installCommand(rest, commandRuntime);
   }
 
   if (command === "uninstall") {
-    return uninstallCommand(rest, runtime);
+    return uninstallCommand(rest, commandRuntime);
   }
 
   if (command === "config") {
@@ -114,31 +154,31 @@ export async function runCli(
   }
 
   if (command === "summary") {
-    return summaryCommand(rest, runtime);
+    return summaryCommand(rest, commandRuntime);
   }
 
   if (command === "review") {
-    return reviewCommand(rest, runtime);
+    return reviewCommand(rest, commandRuntime);
   }
 
   if (command === "report") {
-    return reportCommand(rest, runtime);
+    return reportCommand(rest, commandRuntime);
   }
 
   if (command === "release-check") {
-    return releaseCheckCommand(rest, runtime);
+    return releaseCheckCommand(rest, commandRuntime);
   }
 
   if (command === "artifacts") {
-    return artifactsCommand(rest, runtime);
+    return artifactsCommand(rest, commandRuntime);
   }
 
   if (command === "memory") {
-    return memoryCommand(rest, runtime);
+    return memoryCommand(rest, commandRuntime);
   }
 
   if (command === "hook") {
-    return hookCommand(rest, runtime);
+    return hookCommand(rest, commandRuntime);
   }
 
   runtime.stderr(`Unknown command: ${command}\n`);

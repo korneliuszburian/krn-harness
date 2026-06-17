@@ -16,17 +16,19 @@ hook trust claims, or direct target-main changes.
 - Reject active scope with secrets, private/client data, raw corpora, dumps,
   backups, credentials, invoices, contracts, or production-only dependencies.
 - Do path-level safety classification before content reads.
-- Avoid repos that already track a product-owned `.krn/` directory until runtime
-  namespace policy is explicitly addressed.
+- If a repo already tracks a product-owned `.krn/` directory, configure
+  `runtime.dir` to a local ignored directory such as `.krn-harness`.
 
 ## Config-Only Adoption Flow
 
 1. Confirm the target validation command.
 2. Create a conservative `krn.config.json`.
 3. Run `krn config doctor --json`.
-4. Create a relative task spec under `.krn/local/`.
-5. Run `krn run --task-spec .krn/local/<task>.json --execute-verify --bundle`.
-6. Review `.krn/current/run-result.md` and `.krn/current/run-bundle/manifest.json`.
+4. Create a relative task spec under the chosen runtime dir, for example
+   `.krn/local/` or `.krn-harness/local/`.
+5. Run `krn run --task-spec <runtime-dir>/local/<task>.json --execute-verify --bundle`.
+6. Review `<runtime-dir>/current/run-result.md` and
+   `<runtime-dir>/current/run-bundle/manifest.json`.
 
 Only open a target PR when the allowed diff is limited to `krn.config.json`,
 `.gitignore` for `.krn/`, or a safe adoption note. Do not push target main and
@@ -34,9 +36,10 @@ do not merge the PR as part of adoption proof.
 
 ## Runtime Artifacts
 
-KRN writes local runtime evidence under `.krn/`. Target repos should ignore
-`.krn/` unless they intentionally own that namespace. Never stage runtime
-artifacts.
+KRN writes local runtime evidence under `.krn/` by default. If the target owns
+`.krn/`, set `runtime.dir` to `.krn-harness` or another safe repo-relative
+dot-directory. The chosen runtime directory should be ignored by the target and
+must never be staged.
 
 Generated target outputs such as `.local/`, `out/`, caches, and `__pycache__/`
 remain local unless the target already treats them as tracked product artifacts.

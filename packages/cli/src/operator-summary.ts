@@ -4,7 +4,7 @@ import { memoryCounts } from "../../memory/src/index.js";
 import type { TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
 import {
-  currentArtifactPaths,
+  currentArtifactPathsFor,
   readRepoJson,
   readRepoText,
   repoPathExists,
@@ -141,21 +141,27 @@ interface ReviewSummaryFixture {
   records?: Array<{ status?: unknown }> | undefined;
 }
 
-const artifacts = {
-  task: currentArtifactPaths.taskContract,
-  context: currentArtifactPaths.contextPackage,
-  graph: currentArtifactPaths.graph,
-  verify: currentArtifactPaths.verifyResult,
-  handoff: currentArtifactPaths.handoff,
-  trace: currentArtifactPaths.trace,
-  reviewSummary: currentArtifactPaths.reviewSummary,
-  reviewResult: currentArtifactPaths.reviewResult,
-  memoryPending: currentArtifactPaths.memoryPending,
-  memoryApproved: currentArtifactPaths.memoryApproved,
-  memoryDeprecated: currentArtifactPaths.memoryDeprecated,
-} as const;
+function summaryArtifacts(cwd: string) {
+  const currentArtifactPaths = currentArtifactPathsFor(cwd);
+  return {
+    task: currentArtifactPaths.taskContract,
+    context: currentArtifactPaths.contextPackage,
+    graph: currentArtifactPaths.graph,
+    verify: currentArtifactPaths.verifyResult,
+    handoff: currentArtifactPaths.handoff,
+    trace: currentArtifactPaths.trace,
+    reviewSummary: currentArtifactPaths.reviewSummary,
+    reviewResult: currentArtifactPaths.reviewResult,
+    memoryPending: currentArtifactPaths.memoryPending,
+    memoryApproved: currentArtifactPaths.memoryApproved,
+    memoryDeprecated: currentArtifactPaths.memoryDeprecated,
+  } as const;
+}
+
+type SummaryArtifacts = ReturnType<typeof summaryArtifacts>;
 
 async function collectArtifacts(cwd: string): Promise<OperatorSummaryArtifact[]> {
+  const artifacts = summaryArtifacts(cwd);
   const entries = [
     ["task contract", artifacts.task],
     ["context package", artifacts.context],
@@ -187,7 +193,10 @@ function artifactStatus(
   return collected.find((artifact) => artifact.path === artifactPath)?.status ?? "missing";
 }
 
-function currentTaskSignal(task: TaskContract | undefined): OperatorSummary["currentTask"] {
+function currentTaskSignal(
+  task: TaskContract | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["currentTask"] {
   if (!task) {
     return {
       status: "missing",
@@ -235,7 +244,10 @@ function identitySignal(identity: CliIdentity | undefined): OperatorSummary["ide
   };
 }
 
-function contextSignal(context: ContextPackage | undefined): OperatorSummary["context"] {
+function contextSignal(
+  context: ContextPackage | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["context"] {
   if (!context) {
     return {
       status: "missing",
@@ -265,7 +277,10 @@ function contextSignal(context: ContextPackage | undefined): OperatorSummary["co
   };
 }
 
-function graphSignal(graph: GraphArtifactFixture | undefined): OperatorSummary["graph"] {
+function graphSignal(
+  graph: GraphArtifactFixture | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["graph"] {
   if (!graph || typeof graph.nodeCount !== "number" || typeof graph.edgeCount !== "number") {
     return {
       status: "missing",
@@ -285,7 +300,10 @@ function graphSignal(graph: GraphArtifactFixture | undefined): OperatorSummary["
   };
 }
 
-function verifySignal(verify: VerifyResult | undefined): OperatorSummary["verify"] {
+function verifySignal(
+  verify: VerifyResult | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["verify"] {
   if (!verify) {
     return {
       status: "missing",
@@ -321,7 +339,10 @@ function verifySignal(verify: VerifyResult | undefined): OperatorSummary["verify
   };
 }
 
-function handoffSignal(handoff: string | undefined): OperatorSummary["handoff"] {
+function handoffSignal(
+  handoff: string | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["handoff"] {
   if (!handoff) {
     return {
       status: "missing",
@@ -364,7 +385,10 @@ function parseTraceEvents(rawTrace: string | undefined): TraceEventFixture[] {
     });
 }
 
-function hooksSignal(rawTrace: string | undefined): OperatorSummary["hooks"] {
+function hooksSignal(
+  rawTrace: string | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["hooks"] {
   const hookEvents = parseTraceEvents(rawTrace).filter((event) => event.name === "hook.received");
   const hookReceivedCount = hookEvents.length;
   const trustedHookEvents = hookEvents.filter(
@@ -406,7 +430,10 @@ function reviewerRecords(review: ReviewSummaryFixture | undefined): Array<{ stat
   return review?.reviewers ?? review?.records ?? [];
 }
 
-function reviewersSignal(review: ReviewSummaryFixture | undefined): OperatorSummary["reviewers"] {
+function reviewersSignal(
+  review: ReviewSummaryFixture | undefined,
+  artifacts: SummaryArtifacts,
+): OperatorSummary["reviewers"] {
   const records = reviewerRecords(review);
   if (!review || typeof review.status !== "string" || records.length === 0) {
     return {
@@ -441,7 +468,10 @@ function reviewersSignal(review: ReviewSummaryFixture | undefined): OperatorSumm
   };
 }
 
-async function memorySignal(cwd: string): Promise<OperatorSummary["memory"]> {
+async function memorySignal(
+  cwd: string,
+  artifacts: SummaryArtifacts,
+): Promise<OperatorSummary["memory"]> {
   const counts = await memoryCounts(cwd);
 
   return {
@@ -465,6 +495,7 @@ async function memorySignal(cwd: string): Promise<OperatorSummary["memory"]> {
 export async function buildOperatorSummary(
   input: BuildOperatorSummaryInput,
 ): Promise<OperatorSummary> {
+  const artifacts = summaryArtifacts(input.cwd);
   const [task, context, graph, verify, handoff, rawTrace, review, reviewAlias, realRepo, memory] =
     await Promise.all([
       readRepoJson<TaskContract>(input.cwd, artifacts.task),
@@ -476,20 +507,20 @@ export async function buildOperatorSummary(
       readRepoJson<ReviewSummaryFixture>(input.cwd, artifacts.reviewSummary),
       readRepoJson<ReviewSummaryFixture>(input.cwd, artifacts.reviewResult),
       realRepoDogfoodSignal(input.cwd),
-      memorySignal(input.cwd),
+      memorySignal(input.cwd, artifacts),
     ]);
 
   const collectedArtifacts = await collectArtifacts(input.cwd);
   const summary = {
-    currentTask: currentTaskSignal(task),
+    currentTask: currentTaskSignal(task, artifacts),
     identity: identitySignal(input.identity),
-    context: contextSignal(context),
-    graph: graphSignal(graph),
-    verify: verifySignal(verify),
-    handoff: handoffSignal(handoff),
-    hooks: hooksSignal(rawTrace),
+    context: contextSignal(context, artifacts),
+    graph: graphSignal(graph, artifacts),
+    verify: verifySignal(verify, artifacts),
+    handoff: handoffSignal(handoff, artifacts),
+    hooks: hooksSignal(rawTrace, artifacts),
     realRepoDogfood: realRepo,
-    reviewers: reviewersSignal(review ?? reviewAlias),
+    reviewers: reviewersSignal(review ?? reviewAlias, artifacts),
     memory,
   };
   const problems = summarizeOperatorSummaryProblems([

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getRuntimeLayout, runtimePath } from "../../core/src/index.js";
 import type { EvalGrade } from "./graders/types.js";
 import type { EvalFixtureResult, EvalResult } from "./run-eval-types.js";
 
@@ -19,8 +20,8 @@ export interface EvalBaselineGrade {
 export interface EvalBaselineArtifact {
   schema: "krn-eval-baseline-v1";
   generatedAt: string;
-  baselinePath: ".krn/evals/baseline.json";
-  currentResultPath: ".krn/current/eval-result.json";
+  baselinePath: string;
+  currentResultPath: string;
   current: {
     status: EvalResult["status"];
     passCount: number;
@@ -171,15 +172,17 @@ export function buildEvalBaselineArtifact(input: {
   result: EvalResult;
   previous?: EvalBaselineArtifact | undefined;
   generatedAt: string;
+  cwd?: string | undefined;
 }): EvalBaselineArtifact {
   const grades = flattenEvalGrades(input.result);
   const previous = previousSummary(input.previous);
+  const layout = getRuntimeLayout(input.cwd ?? process.cwd());
 
   return {
     schema: "krn-eval-baseline-v1",
     generatedAt: input.generatedAt,
-    baselinePath: evalBaselineRelativePath,
-    currentResultPath: ".krn/current/eval-result.json",
+    baselinePath: runtimePath(layout.evalsDir, "baseline.json"),
+    currentResultPath: runtimePath(layout.currentDir, "eval-result.json"),
     current: {
       status: input.result.status,
       passCount: input.result.passCount,
@@ -202,7 +205,7 @@ export function buildEvalBaselineArtifact(input: {
 export async function readEvalBaseline(cwd: string): Promise<EvalBaselineArtifact | undefined> {
   try {
     return JSON.parse(
-      await readFile(path.join(cwd, evalBaselineRelativePath), "utf8"),
+      await readFile(path.join(cwd, getRuntimeLayout(cwd).evalsDir, "baseline.json"), "utf8"),
     ) as EvalBaselineArtifact;
   } catch {
     return undefined;
@@ -213,7 +216,7 @@ export async function writeEvalBaseline(
   cwd: string,
   baseline: EvalBaselineArtifact,
 ): Promise<void> {
-  const targetPath = path.join(cwd, evalBaselineRelativePath);
+  const targetPath = path.join(cwd, getRuntimeLayout(cwd).evalsDir, "baseline.json");
   await mkdir(path.dirname(targetPath), { recursive: true });
   await writeFile(targetPath, `${JSON.stringify(baseline, null, 2)}\n`, "utf8");
 }

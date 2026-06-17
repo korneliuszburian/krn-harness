@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { buildRuntimeLayout, setRuntimeLayout } from "../../core/src/index.js";
 import { buildEvalBaselineArtifact, renderEvalResultMarkdown, runEval } from "./run-eval.js";
 
 async function writeTrace(cwd: string, names: string[]): Promise<string> {
@@ -24,19 +25,19 @@ async function writeTrace(cwd: string, names: string[]): Promise<string> {
   return tracePath;
 }
 
-async function writeRunTrace(cwd: string, names: string[]): Promise<void> {
+async function writeRunTrace(cwd: string, names: string[], runtimeDir = ".krn"): Promise<void> {
   const taskId = "task-run-trace";
-  const tracePath = path.join(cwd, ".krn", "runs", taskId, "trace.jsonl");
+  const tracePath = path.join(cwd, runtimeDir, "runs", taskId, "trace.jsonl");
   await mkdir(path.dirname(tracePath), { recursive: true });
-  await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+  await mkdir(path.join(cwd, runtimeDir, "current"), { recursive: true });
   await writeFile(
-    path.join(cwd, ".krn", "current", "run.json"),
+    path.join(cwd, runtimeDir, "current", "run.json"),
     `${JSON.stringify(
       {
         schemaVersion: 1,
         taskId,
-        runDir: `.krn/runs/${taskId}`,
-        tracePath: `.krn/runs/${taskId}/trace.jsonl`,
+        runDir: `${runtimeDir}/runs/${taskId}`,
+        tracePath: `${runtimeDir}/runs/${taskId}/trace.jsonl`,
       },
       null,
       2,
@@ -187,6 +188,21 @@ describe("harness-only eval", () => {
   it("prefers run-scoped trace when a current run exists", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-eval-"));
     await writeRunTrace(cwd, ["task.started", "context.built", "verify.ran", "handoff.created"]);
+
+    const result = await runEval({ cwd });
+
+    expect(result.runTraceMode).toBe("run-scoped");
+    expect(result.trace.status).toBe("pass");
+  });
+
+  it("reads run-scoped trace from the configured runtime layout", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-eval-"));
+    setRuntimeLayout(cwd, buildRuntimeLayout(".krn-harness"));
+    await writeRunTrace(
+      cwd,
+      ["task.started", "context.built", "verify.ran", "handoff.created"],
+      ".krn-harness",
+    );
 
     const result = await runEval({ cwd });
 

@@ -1,4 +1,9 @@
-import { readRepoJson, readRepoText, repoPathExists } from "../current-artifacts.js";
+import {
+  currentArtifactPathsFor,
+  readRepoJson,
+  readRepoText,
+  repoPathExists,
+} from "../current-artifacts.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -122,6 +127,7 @@ function isDeclaredProtectedExclusion(item: {
 }
 
 async function safetyReview(cwd: string): Promise<ReviewRecord> {
+  const artifactPaths = currentArtifactPathsFor(cwd);
   const contextPackage = await readCurrentContextPackage(cwd);
   const dogfoodSummaries = await collectDogfoodSummaries(cwd);
   const protectedContextItems =
@@ -149,7 +155,7 @@ async function safetyReview(cwd: string): Promise<ReviewRecord> {
       confidence: "high",
       summary: "Safety review found protected-looking paths or global KRN fallback evidence.",
       evidence: [
-        ...(contextPackage ? [".krn/current/context-package.json"] : []),
+        ...(contextPackage ? [artifactPaths.contextPackage] : []),
         ...dogfoodSummaries.map((summary) => summary.path),
       ],
       findings: [
@@ -174,7 +180,7 @@ async function safetyReview(cwd: string): Promise<ReviewRecord> {
         ? "Protected-looking paths are declared only as do-not-use exclusions."
         : "No protected-looking context paths or global KRN fallback evidence found.",
     evidence: [
-      ...(contextPackage ? [".krn/current/context-package.json"] : []),
+      ...(contextPackage ? [artifactPaths.contextPackage] : []),
       ...dogfoodSummaries.map((summary) => summary.path),
     ],
     findings: declaredOnlyProtectedExclusionPaths.map(
@@ -185,13 +191,14 @@ async function safetyReview(cwd: string): Promise<ReviewRecord> {
 }
 
 async function evidenceReview(cwd: string): Promise<ReviewRecord> {
+  const artifactPaths = currentArtifactPathsFor(cwd);
   const required = [
-    ".krn/current/task-contract.json",
-    ".krn/current/context-package.json",
-    ".krn/graph/repo-graph.json",
-    ".krn/current/verify-result.json",
-    ".krn/current/handoff.md",
-    ".krn/current/run.json",
+    artifactPaths.taskContract,
+    artifactPaths.contextPackage,
+    artifactPaths.graph,
+    artifactPaths.verifyResult,
+    artifactPaths.handoff,
+    `${artifactPaths.taskContract.slice(0, artifactPaths.taskContract.lastIndexOf("/"))}/run.json`,
   ];
   const present: string[] = [];
   const missing: string[] = [];
@@ -228,6 +235,7 @@ async function evidenceReview(cwd: string): Promise<ReviewRecord> {
 }
 
 async function contextReview(cwd: string): Promise<ReviewRecord> {
+  const artifactPaths = currentArtifactPathsFor(cwd);
   const contextPackage = await readCurrentContextPackage(cwd);
 
   if (!contextPackage) {
@@ -237,7 +245,7 @@ async function contextReview(cwd: string): Promise<ReviewRecord> {
       confidence: "high",
       summary: "Context review is blocked because context package is missing.",
       evidence: [],
-      findings: ["missing artifact: .krn/current/context-package.json"],
+      findings: [`missing artifact: ${artifactPaths.contextPackage}`],
       nextActions: ["Run krn context before review."],
     });
   }
@@ -248,7 +256,7 @@ async function contextReview(cwd: string): Promise<ReviewRecord> {
       status: "blocked",
       confidence: "high",
       summary: "Context review is blocked by active STOP state.",
-      evidence: [".krn/current/context-package.json"],
+      evidence: [artifactPaths.contextPackage],
       findings: [contextPackage.stopReason ?? "context STOP active"],
       nextActions: ["Resolve missing context before editing or verification."],
     });
@@ -270,13 +278,14 @@ async function contextReview(cwd: string): Promise<ReviewRecord> {
       findings.length > 0
         ? "Context package exists but has quality warnings."
         : "Context package is present without STOP or high-risk context warnings.",
-    evidence: [".krn/current/context-package.json"],
+    evidence: [artifactPaths.contextPackage],
     findings,
     nextActions: findings.length > 0 ? ["Review context package before editing."] : [],
   });
 }
 
 async function verifyReview(cwd: string): Promise<ReviewRecord> {
+  const artifactPaths = currentArtifactPathsFor(cwd);
   const verify = await readCurrentVerifyResult(cwd);
 
   if (!verify) {
@@ -286,7 +295,7 @@ async function verifyReview(cwd: string): Promise<ReviewRecord> {
       confidence: "high",
       summary: "Verify result is missing.",
       evidence: [],
-      findings: ["missing artifact: .krn/current/verify-result.json"],
+      findings: [`missing artifact: ${artifactPaths.verifyResult}`],
       nextActions: ["Run krn verify or krn verify --execute before review."],
     });
   }
@@ -308,7 +317,7 @@ async function verifyReview(cwd: string): Promise<ReviewRecord> {
     status,
     confidence: "high",
     summary: `Verify status is ${verify.status} in ${verify.mode} mode.`,
-    evidence: [".krn/current/verify-result.json"],
+    evidence: [artifactPaths.verifyResult],
     findings,
     nextActions:
       status === "pass" ? [] : ["Resolve verify findings before claiming task completion."],
@@ -316,7 +325,8 @@ async function verifyReview(cwd: string): Promise<ReviewRecord> {
 }
 
 async function handoffReview(cwd: string): Promise<ReviewRecord> {
-  const handoff = await readRepoText(cwd, ".krn/current/handoff.md");
+  const artifactPaths = currentArtifactPathsFor(cwd);
+  const handoff = await readRepoText(cwd, artifactPaths.handoff);
 
   if (!handoff) {
     return record({
@@ -325,7 +335,7 @@ async function handoffReview(cwd: string): Promise<ReviewRecord> {
       confidence: "high",
       summary: "Handoff artifact is missing.",
       evidence: [],
-      findings: ["missing artifact: .krn/current/handoff.md"],
+      findings: [`missing artifact: ${artifactPaths.handoff}`],
       nextActions: ["Run krn handoff before review."],
     });
   }
@@ -341,7 +351,7 @@ async function handoffReview(cwd: string): Promise<ReviewRecord> {
       missingSections.length > 0
         ? "Handoff exists but misses expected sections."
         : "Handoff exists and includes expected review sections.",
-    evidence: [".krn/current/handoff.md"],
+    evidence: [artifactPaths.handoff],
     findings: missingSections.map((section) => `missing section: ${section}`),
     nextActions: missingSections.length > 0 ? ["Regenerate or update the handoff."] : [],
   });

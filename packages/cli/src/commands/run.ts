@@ -1,5 +1,5 @@
 import type { VerifyResult } from "../../../verify/src/index.js";
-import { currentArtifactPaths, readRepoJson, repoPathExists } from "../current-artifacts.js";
+import { currentArtifactPathsFor, readRepoJson, repoPathExists } from "../current-artifacts.js";
 import { readCurrentContextPackage, readCurrentVerifyResult } from "../current-state.js";
 import type { OperatorReport } from "../operator-report.js";
 import { writeRunBundle } from "../run-artifacts.js";
@@ -231,12 +231,13 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
     ...(options.bundle ? { releaseCheck: skipped("not started") } : {}),
   };
   const generatedAt = (runtime.now?.() ?? new Date()).toISOString();
+  const artifactPaths = currentArtifactPathsFor(runtime.cwd);
   const releaseCheckBlocks = options.bundle ? await releaseCheckShouldBlockRun(runtime.cwd) : true;
 
   const startArgs = options.taskSpecPath
     ? ["--task-spec", options.taskSpecPath]
     : [options.taskText ?? ""];
-  const start = await runStep(runtime, [".krn/current/task-contract.json"], (stepRuntime) =>
+  const start = await runStep(runtime, [artifactPaths.taskContract], (stepRuntime) =>
     startCommand(startArgs, stepRuntime),
   );
   steps.start = start.step;
@@ -254,11 +255,11 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
     return finishRun(runtime, result, options);
   }
 
-  const graph = await runStep(runtime, [".krn/graph/repo-graph.json"], graphCommand);
+  const graph = await runStep(runtime, [artifactPaths.graph], graphCommand);
   steps.graph = graph.step;
   captures.push(graph.capture);
 
-  const context = await runStep(runtime, [".krn/current/context-package.json"], contextCommand);
+  const context = await runStep(runtime, [artifactPaths.contextPackage], contextCommand);
   steps.context = context.step;
   captures.push(context.capture);
 
@@ -289,7 +290,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
   }
 
   const verifyArgs = options.executeVerify && !options.dryRun ? ["--execute"] : [];
-  const verify = await runStep(runtime, [".krn/current/verify-result.json"], (stepRuntime) =>
+  const verify = await runStep(runtime, [artifactPaths.verifyResult], (stepRuntime) =>
     verifyCommand(verifyArgs, stepRuntime),
   );
   steps.verify = verify.step;
@@ -304,23 +305,23 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
       : steps.verify.summary,
   };
 
-  const handoff = await runStep(runtime, [".krn/current/handoff.md"], handoffCommand);
+  const handoff = await runStep(runtime, [artifactPaths.handoff], handoffCommand);
   steps.handoff = handoff.step;
   captures.push(handoff.capture);
 
-  const review = await runStep(runtime, [".krn/current/review-summary.json"], (stepRuntime) =>
+  const review = await runStep(runtime, [artifactPaths.reviewSummary], (stepRuntime) =>
     reviewCommand(["--write"], stepRuntime),
   );
   steps.review = review.step;
   captures.push(review.capture);
 
-  const summary = await runStep(runtime, [".krn/current/operator-summary.json"], (stepRuntime) =>
+  const summary = await runStep(runtime, [artifactPaths.operatorSummary], (stepRuntime) =>
     summaryCommand(["--write"], stepRuntime),
   );
   steps.summary = summary.step;
   captures.push(summary.capture);
 
-  const report = await runStep(runtime, [".krn/current/operator-report.json"], (stepRuntime) =>
+  const report = await runStep(runtime, [artifactPaths.operatorReportJson], (stepRuntime) =>
     reportCommand(options.bundle ? ["--bundle"] : ["--write"], stepRuntime),
   );
   steps.report = report.step;
@@ -328,7 +329,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
 
   const operatorReport = await readRepoJson<OperatorReport>(
     runtime.cwd,
-    currentArtifactPaths.operatorReportJson,
+    artifactPaths.operatorReportJson,
   );
   steps.report = {
     ...steps.report,
@@ -339,7 +340,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
   if (options.bundle) {
     const releaseCheck = await runStep(
       runtime,
-      [".krn/current/release-check.json", ".krn/current/release-check.md"],
+      [artifactPaths.releaseCheckJson, artifactPaths.releaseCheckMarkdown],
       (stepRuntime) => releaseCheckCommand(["--write"], stepRuntime),
     );
     steps.releaseCheck = releaseCheck.step;
@@ -347,7 +348,7 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
 
     const releaseCheckResult = await readRepoJson<ReleaseCheckResultFixture>(
       runtime.cwd,
-      currentArtifactPaths.releaseCheckJson,
+      artifactPaths.releaseCheckJson,
     );
     const releaseCheckStatus = releaseCheckStepStatus(releaseCheckResult);
     const releaseCheckNonBlockingFailure = !releaseCheckBlocks && releaseCheckStatus === "failed";
@@ -379,16 +380,17 @@ export async function runCommand(args: string[], runtime: CliRuntime): Promise<n
 }
 
 function finishRun(runtime: CliRuntime, result: RunResult, options: RunCommandOptions): number {
+  const artifactPaths = currentArtifactPathsFor(runtime.cwd);
   if (options.json) {
     runtime.stdout(`${JSON.stringify(result, null, 2)}\n`);
   } else {
     runtime.stdout(`KRN run: ${result.status}
-result: .krn/current/run-result.md
-json: .krn/current/run-result.json
+result: ${artifactPaths.runResultMarkdown}
+json: ${artifactPaths.runResultJson}
 verify: ${result.verify.status ?? "missing"} (${result.verify.mode ?? "missing"})
 productionProof: false
 hookTrust: ${result.proof.hookTrustStatus}
-${options.bundle ? "bundle: .krn/current/run-bundle/manifest.json\n" : ""}`);
+${options.bundle ? `bundle: ${artifactPaths.runBundleManifest}\n` : ""}`);
   }
 
   return result.status === "failed" || result.status === "blocked" ? 1 : 0;

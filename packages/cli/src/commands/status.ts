@@ -1,4 +1,5 @@
 import { loadConfig } from "../../../config/src/index.js";
+import { defaultRuntimeDir } from "../../../core/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
 import type { CliRuntime } from "../runtime.js";
 
@@ -16,7 +17,7 @@ export async function statusCommand(runtime: CliRuntime): Promise<number> {
 
   runtime.stdout(`KRN status: ready
 config: ${loaded.source}
-runtime: ${loaded.config.runtime?.dir ?? ".krn"}
+runtime: ${runtime.runtimeDir ?? loaded.config.runtime?.dir ?? defaultRuntimeDir}
 `);
 
   return 0;
