@@ -50,6 +50,10 @@ Dry-run prints the same schema but writes nothing.
 Generated uninstallable files include the `KRN-HARNESS-MANAGED:v1` marker.
 Existing files without that marker are preserved.
 
+The generated runtime skill is a managed skill folder, not only a single
+`SKILL.md` file. P0 installs `SKILL.md`, `agents/openai.yaml`, and
+`references/workflow.md`. Runtime skill scripts are not installed in P0.
+
 Before planning file writes, `krn install` validates the generated downstream
 `AGENTS.md` template. The quality gate requires `## Roles`,
 `## Non-negotiables`, `## KRN Workflow`, KRN command references, and a runtime

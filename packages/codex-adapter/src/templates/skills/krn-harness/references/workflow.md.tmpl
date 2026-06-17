@@ -1,0 +1,38 @@
+# KRN Downstream Workflow Reference
+
+Use this reference only when the task is non-trivial, STOP appears, verification
+is ambiguous, or handoff quality matters. Keep active context focused on the
+target repo, not KRN Harness internals.
+
+## Decision Tree
+
+1. If no pinned KRN command path is provided, use `./.krn/bin/krn` when it exists.
+2. If neither pinned path nor `./.krn/bin/krn` exists, stop and ask the operator to run `krn install`.
+3. Run `krn status` before edits.
+4. Run `krn start "<full user intent>"` with outcome, constraints, forbidden files, required proof, and target-specific context.
+5. Run `krn graph` and `krn context`.
+6. Read `.krn/current/task-contract.md` and `.krn/current/context-package.md`.
+7. If context says STOP, do not edit; report the missing or unsafe condition.
+8. Edit only files aligned with task/context evidence.
+9. Run `krn verify --execute` only when the configured profile is safe and the task requires execution; otherwise run `krn verify` and record record-only status.
+10. Run `krn handoff` and report exact artifact paths.
+
+## Output Contract
+
+End with:
+
+- changed files;
+- verification command and result;
+- `.krn/current/verify-result.json` status;
+- `.krn/current/handoff.md` path;
+- production proof status, which remains false unless explicitly proven elsewhere;
+- hook trust status, which remains unproven unless real non-bypass Codex emits `hook.received`.
+
+## Review Checklist
+
+- The task intent was preserved, not shortened to a slug.
+- STOP was respected.
+- Runtime artifacts were not staged for commit.
+- Protected or forbidden files were not touched.
+- Verification status is explicit: execute/pass, execute/fail, record-only, or blocked.
+- No production-proof or hook-trust claim was made from local-only evidence.

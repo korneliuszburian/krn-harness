@@ -7,6 +7,9 @@ description: Downstream KRN Harness workflow for status, start, context, STOP po
 
 Use a provided pinned KRN command path; do not use global `krn`.
 
+For detailed decision rules, read `references/workflow.md` when the task is
+non-trivial, STOP appears, verification is ambiguous, or handoff quality matters.
+
 1. Run `krn status`.
 2. For visual/layout work, include concrete sizes, such as mobile 320-480px, tablet 768-1024px, desktop 1280-1440px, or a specific tolerance.
 3. Run `krn start "<full user intent>"`.

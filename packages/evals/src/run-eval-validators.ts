@@ -282,6 +282,10 @@ export async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<Ev
     failures.push("runtime skill template is too broad for downstream active context");
   }
 
+  if (!runtimeSkill.includes("references/workflow.md")) {
+    failures.push("runtime skill template does not point to its workflow reference");
+  }
+
   for (const event of supportedCodexHookEvents) {
     const command = hooks.hooks?.[event]?.[0]?.hooks?.[0]?.command;
 

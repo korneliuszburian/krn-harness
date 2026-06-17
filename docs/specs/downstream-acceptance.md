@@ -10,6 +10,8 @@ KRN Harness P0 is accepted in a downstream repository when onboarding produces a
 - `AGENTS.md`
 - `.codex/hooks.json`
 - `.agents/skills/krn-harness/SKILL.md`
+- `.agents/skills/krn-harness/agents/openai.yaml`
+- `.agents/skills/krn-harness/references/workflow.md`
 - `.krn/current/`
 - `.krn/graph/`
 - `.krn/traces/`
@@ -46,6 +48,11 @@ The loop is local-only evidence. It does not claim CI, sandbox, hosted, or produ
 ## Template Expectations
 
 Generated `AGENTS.md` and runtime skill content must stay thin. They route Codex through KRN CLI commands and must not embed full architecture, raw research, or a policy engine.
+
+The runtime skill folder may include a small `references/workflow.md` file for
+decision rules, output contract, and review checklist. `krn install` creates
+that reference and `agents/openai.yaml` when missing, preserving existing files.
+P0 does not install runtime skill scripts.
 
 Generated `AGENTS.md` must pass the adapter quality gate before `krn install`
 creates downstream files. The gate requires:

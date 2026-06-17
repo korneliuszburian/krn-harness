@@ -30,7 +30,7 @@ Build-time skills are repo-scoped `.agents/skills/*` workflows created through `
 
 ## Runtime Skill Adapter Model
 
-The downstream runtime skill is a short instruction-only template that routes Codex through `krn status`, `krn start`, `krn context`, STOP policy, `krn verify`, and `krn handoff`.
+The downstream runtime skill is a short instruction-first template that routes Codex through `krn status`, `krn start`, `krn context`, STOP policy, `krn verify`, and `krn handoff`. It may include small downstream references for decision rules and output checks, but P0 does not install runtime skill scripts or a skill pack.
 
 ## Hook Pack
 

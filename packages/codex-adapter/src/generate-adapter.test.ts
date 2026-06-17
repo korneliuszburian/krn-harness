@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { formatAgentsQualityError, validateAgentsAdapter } from "./agents-quality.js";
 import { generateAgentsAdapter } from "./generate-agents.js";
 import { generateHooksTemplate } from "./generate-hooks.js";
-import { generateRuntimeSkillTemplate } from "./generate-runtime-skill.js";
+import {
+  generateRuntimeSkillTemplate,
+  generateRuntimeSkillTemplateFiles,
+} from "./generate-runtime-skill.js";
 
 const expectedHookEvents = [
   "SessionStart",
@@ -100,11 +103,31 @@ describe("Codex adapter generation", () => {
     expect(output).toContain(".krn/current/context-package.md");
     expect(output).toContain('krn start "<full user intent>"');
     expect(output).toContain("Use a provided pinned KRN command path");
+    expect(output).toContain("references/workflow.md");
     expect(output).toContain("Run `krn graph`, then `krn context`");
     expect(output).toContain("Hooks remain unproven");
     expect(output).toContain('Bad: `krn start "wp-acf-field-mapping"`');
     expect(output).toContain("320-480px");
     expect(output).not.toContain("dashboard");
     expect(output).not.toContain("MCP server");
+  });
+
+  it("generates runtime skill support files for downstream install", () => {
+    const files = generateRuntimeSkillTemplateFiles();
+
+    expect(files.map((file) => file.path)).toEqual([
+      ".agents/skills/krn-harness/SKILL.md",
+      ".agents/skills/krn-harness/agents/openai.yaml",
+      ".agents/skills/krn-harness/references/workflow.md",
+    ]);
+    expect(files.find((file) => file.path.endsWith("openai.yaml"))?.content).toContain(
+      "default_prompt",
+    );
+    expect(files.find((file) => file.path.endsWith("workflow.md"))?.content).toContain(
+      "Decision Tree",
+    );
+    expect(files.find((file) => file.path.endsWith("workflow.md"))?.content).toContain(
+      "Output Contract",
+    );
   });
 });

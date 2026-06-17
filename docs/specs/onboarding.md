@@ -4,7 +4,7 @@
 
 1. Install KRN Harness.
 2. Run `krn install` in the downstream repository.
-3. Review generated `AGENTS.md`, `.codex/hooks.json`, and `.agents/skills/krn-harness/SKILL.md`.
+3. Review generated `AGENTS.md`, `.codex/hooks.json`, `.agents/skills/krn-harness/SKILL.md`, and the runtime skill reference under `.agents/skills/krn-harness/references/workflow.md`.
 4. Keep or adapt generated hooks only if the repo owner trusts the local command.
 5. Run `krn status`.
 6. Start work with `krn start "<full user intent>"`.
@@ -34,6 +34,17 @@ Each install run writes an `install.ran` JSONL trace event with deterministic cr
 - `.krn/memory/`
 
 They are local runtime state. They are not a hosted service, daemon, sandbox, or plugin distribution channel.
+
+## Runtime Skill Folder
+
+`krn install` creates a thin downstream skill folder:
+
+- `.agents/skills/krn-harness/SKILL.md`
+- `.agents/skills/krn-harness/agents/openai.yaml`
+- `.agents/skills/krn-harness/references/workflow.md`
+
+These files guide Codex through local CLI artifacts. They do not prove hook
+trust, production readiness, or Codex runtime behavior.
 
 ## Acceptance
 

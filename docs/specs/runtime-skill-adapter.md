@@ -3,10 +3,17 @@
 ## Purpose
 
 The runtime skill template gives downstream Codex sessions a short KRN workflow.
+It is the product-facing skill layer installed into target repositories, not a
+build-time skill used to build KRN Harness itself.
 
 ## Template Path
 
 `packages/codex-adapter/src/templates/skills/krn-harness/SKILL.md.tmpl`
+
+Support files:
+
+- `packages/codex-adapter/src/templates/skills/krn-harness/agents/openai.yaml.tmpl`
+- `packages/codex-adapter/src/templates/skills/krn-harness/references/workflow.md.tmpl`
 
 ## Required Flow
 
@@ -15,13 +22,19 @@ The runtime skill template gives downstream Codex sessions a short KRN workflow.
 3. `krn start "<full user intent>"`
    - Do not pass only a task id, slug, or title when richer instructions exist.
    - Include expected outcome, constraints, forbidden files, required proof, and task-specific context.
-4. `krn context`
-5. Read `.krn/current/task-contract.md`
-6. Read `.krn/current/context-package.md`
-7. Respect STOP
-8. `krn verify`
-9. `krn handoff`
+4. `krn graph`
+5. `krn context`
+6. Read `.krn/current/task-contract.md`
+7. Read `.krn/current/context-package.md`
+8. Respect STOP
+9. `krn verify`
+10. `krn handoff`
+
+The runtime skill may point to `references/workflow.md` for decision rules,
+output contract, review checklist, STOP handling, and verification ambiguity.
+The reference is still guidance, not enforcement.
 
 ## Non-Goal
 
-Do not embed full architecture or raw research into the downstream skill.
+Do not embed full architecture or raw research into the downstream skill. Do
+not add scripts unless they have a deterministic KRN/CI invocation path.

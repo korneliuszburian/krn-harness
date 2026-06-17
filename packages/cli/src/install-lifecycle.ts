@@ -3,7 +3,7 @@ import path from "node:path";
 import {
   generateAgentsAdapter,
   generateHooksTemplate,
-  generateRuntimeSkillTemplate,
+  generateRuntimeSkillTemplateFiles,
 } from "../../codex-adapter/src/index.js";
 import { pathExists, readJsonFile } from "../../core/src/index.js";
 
@@ -174,8 +174,12 @@ export function renderConfig(
   return `${JSON.stringify(configObjectForProfile(profile ?? "minimal"), null, 2)}\n`;
 }
 
-function managedText(content: string, markerStyle: "markdown" | "shell"): string {
+function managedText(content: string, markerStyle: "markdown" | "shell" | "yaml"): string {
   if (markerStyle === "shell") {
+    return content.includes(KRN_MANAGED_MARKER) ? content : `# ${KRN_MANAGED_MARKER}\n${content}`;
+  }
+
+  if (markerStyle === "yaml") {
     return content.includes(KRN_MANAGED_MARKER) ? content : `# ${KRN_MANAGED_MARKER}\n${content}`;
   }
 
@@ -212,10 +216,10 @@ function installFiles(options: InstallOptions): FileTarget[] {
       path: ".codex/hooks.json",
       content: managedHooksTemplate(),
     },
-    {
-      path: ".agents/skills/krn-harness/SKILL.md",
-      content: managedText(generateRuntimeSkillTemplate(), "markdown"),
-    },
+    ...generateRuntimeSkillTemplateFiles().map((file) => ({
+      path: file.path,
+      content: managedText(file.content, file.markerStyle),
+    })),
   ];
 }
 
@@ -318,7 +322,14 @@ export async function runInstallPlan(cwd: string, options: InstallOptions): Prom
 }
 
 function uninstallTargets(): string[] {
-  return ["AGENTS.md", ".codex/hooks.json", ".agents/skills/krn-harness/SKILL.md", ".krn/bin/krn"];
+  return [
+    "AGENTS.md",
+    ".codex/hooks.json",
+    ".agents/skills/krn-harness/SKILL.md",
+    ".agents/skills/krn-harness/agents/openai.yaml",
+    ".agents/skills/krn-harness/references/workflow.md",
+    ".krn/bin/krn",
+  ];
 }
 
 async function hasManagedMarker(cwd: string, relativePath: string): Promise<boolean> {

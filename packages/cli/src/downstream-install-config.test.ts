@@ -91,7 +91,7 @@ markdown: .krn/graph/repo-graph.md
 
     expect(install.code).toBe(0);
     expect(install.stdout).toContain("KRN install: installed");
-    expect(install.stdout).toContain("created: 11");
+    expect(install.stdout).toContain("created: 13");
     expect(install.stdout).toContain("skipped: 0");
 
     await expectDirectory(install.cwd, ".krn/current");
@@ -119,6 +119,14 @@ markdown: .krn/graph/repo-graph.md
       path.join(install.cwd, ".agents/skills/krn-harness/SKILL.md"),
       "utf8",
     );
+    const runtimeSkillMetadata = await readFile(
+      path.join(install.cwd, ".agents/skills/krn-harness/agents/openai.yaml"),
+      "utf8",
+    );
+    const runtimeSkillWorkflow = await readFile(
+      path.join(install.cwd, ".agents/skills/krn-harness/references/workflow.md"),
+      "utf8",
+    );
 
     expect(agents).toContain("KRN Harness");
     expect(agents).toContain("KRN-HARNESS-MANAGED:v1");
@@ -139,15 +147,23 @@ markdown: .krn/graph/repo-graph.md
     expect(runtimeSkill).toContain("krn context");
     expect(runtimeSkill).toContain("krn verify");
     expect(runtimeSkill).toContain("krn handoff");
+    expect(runtimeSkill).toContain("references/workflow.md");
     expect(runtimeSkill.length).toBeLessThan(1600);
     expect(runtimeSkill).not.toContain("Architecture Spec");
+    expect(runtimeSkillMetadata).toContain("KRN-HARNESS-MANAGED:v1");
+    expect(runtimeSkillMetadata).toContain("default_prompt");
+    expect(runtimeSkillWorkflow).toContain("KRN-HARNESS-MANAGED:v1");
+    expect(runtimeSkillWorkflow).toContain("Decision Tree");
+    expect(runtimeSkillWorkflow).toContain("Output Contract");
+    expect(runtimeSkillWorkflow).toContain("Review Checklist");
+    expect(runtimeSkillWorkflow).not.toContain("Architecture Spec");
 
     await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
       {
         name: "install.ran",
         data: {
           status: "installed",
-          created: 11,
+          created: 13,
           skipped: 0,
           reason: null,
           actions: [
@@ -166,6 +182,16 @@ markdown: .krn/graph/repo-graph.md
               kind: "file",
               status: "created",
             },
+            {
+              path: ".agents/skills/krn-harness/agents/openai.yaml",
+              kind: "file",
+              status: "created",
+            },
+            {
+              path: ".agents/skills/krn-harness/references/workflow.md",
+              kind: "file",
+              status: "created",
+            },
           ],
         },
       },
@@ -174,7 +200,7 @@ markdown: .krn/graph/repo-graph.md
     const secondInstall = await runInCwd(install.cwd, ["install"]);
     expect(secondInstall).toMatchObject({ code: 0 });
     expect(secondInstall.stdout).toContain("created: 0");
-    expect(secondInstall.stdout).toContain("skipped: 11");
+    expect(secondInstall.stdout).toContain("skipped: 13");
     await expect(readTraceEvents(install.cwd)).resolves.toMatchObject([
       { name: "install.ran" },
       {
@@ -182,7 +208,7 @@ markdown: .krn/graph/repo-graph.md
         data: {
           status: "installed",
           created: 0,
-          skipped: 11,
+          skipped: 13,
           reason: null,
           actions: [
             { path: ".krn/current", kind: "directory", status: "skipped" },
@@ -197,6 +223,16 @@ markdown: .krn/graph/repo-graph.md
             { path: ".codex/hooks.json", kind: "file", status: "skipped" },
             {
               path: ".agents/skills/krn-harness/SKILL.md",
+              kind: "file",
+              status: "skipped",
+            },
+            {
+              path: ".agents/skills/krn-harness/agents/openai.yaml",
+              kind: "file",
+              status: "skipped",
+            },
+            {
+              path: ".agents/skills/krn-harness/references/workflow.md",
               kind: "file",
               status: "skipped",
             },
@@ -290,6 +326,14 @@ markdown: .krn/graph/repo-graph.md
           path: ".agents/skills/krn-harness/SKILL.md",
           status: "would-remove",
         }),
+        expect.objectContaining({
+          path: ".agents/skills/krn-harness/agents/openai.yaml",
+          status: "would-remove",
+        }),
+        expect.objectContaining({
+          path: ".agents/skills/krn-harness/references/workflow.md",
+          status: "would-remove",
+        }),
         expect.objectContaining({ path: ".krn/bin/krn", status: "would-remove" }),
       ]),
     );
@@ -300,9 +344,15 @@ markdown: .krn/graph/repo-graph.md
     const confirmed = await runInCwd(install.cwd, ["uninstall", "--confirm", "--json"]);
     const result = JSON.parse(confirmed.stdout) as { status: string; removed: number };
     expect(confirmed.code).toBe(0);
-    expect(result).toMatchObject({ status: "uninstalled", removed: 4 });
+    expect(result).toMatchObject({ status: "uninstalled", removed: 6 });
     await expect(stat(path.join(install.cwd, "AGENTS.md"))).rejects.toThrow();
     await expect(stat(path.join(install.cwd, ".codex", "hooks.json"))).rejects.toThrow();
+    await expect(
+      stat(path.join(install.cwd, ".agents", "skills", "krn-harness", "agents", "openai.yaml")),
+    ).rejects.toThrow();
+    await expect(
+      stat(path.join(install.cwd, ".agents", "skills", "krn-harness", "references", "workflow.md")),
+    ).rejects.toThrow();
     await expect(stat(path.join(install.cwd, ".krn", "bin", "krn"))).rejects.toThrow();
     await expectFile(install.cwd, ".krn/current/operator-report.json");
     await expectFile(install.cwd, ".krn/current/uninstall-result.json");
@@ -640,6 +690,8 @@ markdown: .krn/graph/repo-graph.md
     await expectFile(cwd, "AGENTS.md");
     await expectFile(cwd, ".codex/hooks.json");
     await expectFile(cwd, ".agents/skills/krn-harness/SKILL.md");
+    await expectFile(cwd, ".agents/skills/krn-harness/agents/openai.yaml");
+    await expectFile(cwd, ".agents/skills/krn-harness/references/workflow.md");
     await expectFile(cwd, ".krn/current/handoff.md");
     await expectFile(cwd, ".krn/current/doctor-result.json");
     await expectFile(cwd, ".krn/current/eval-result.json");
