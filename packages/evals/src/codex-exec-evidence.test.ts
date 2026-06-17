@@ -207,6 +207,62 @@ describe("codex exec metrics extraction", () => {
     expect(pack.metrics.krn_adherence.ran_krn_status).toBe(true);
     expect(pack.metrics.krn_adherence.used_pinned_krn).toBe(false);
   });
+
+  it("detects shell-wrapped pinned KRN commands and sed reads from real Codex exec shape", () => {
+    const rawJsonl = jsonl([
+      commandCompleted(
+        "read-skill",
+        "/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/SKILL.md\"",
+      ),
+      commandCompleted(
+        "read-workflow",
+        "/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/references/workflow.md\"",
+      ),
+      commandCompleted("status", "/usr/bin/zsh -lc './.krn/bin/krn status'"),
+      commandCompleted(
+        "start",
+        "/usr/bin/zsh -lc './.krn/bin/krn start \"Update docs overview with a safe verification sentence before handoff\"'",
+      ),
+      commandCompleted("graph", "/usr/bin/zsh -lc './.krn/bin/krn graph'"),
+      commandCompleted("context", "/usr/bin/zsh -lc './.krn/bin/krn context'"),
+      commandCompleted(
+        "contract",
+        "/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/task-contract.md\"",
+      ),
+      commandCompleted(
+        "context-package",
+        "/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/context-package.md\"",
+      ),
+      commandCompleted("verify", "/usr/bin/zsh -lc './.krn/bin/krn verify --execute'"),
+      commandCompleted("handoff", "/usr/bin/zsh -lc './.krn/bin/krn handoff'"),
+      { type: "turn.completed" },
+    ]);
+
+    const pack = summarizeCodexExecRun({
+      rawJsonl,
+      finalMessage: "Guardrails respected. STOP: false. Verify and handoff completed.",
+      runId: "wrapped-shape",
+      kind: "fixture_codex_exec",
+      targetRepo: "fixture",
+      targetCommit: "unknown",
+      krnSourceCommit: "test-sha",
+    });
+
+    expect(pack.metrics.krn_adherence).toMatchObject({
+      used_runtime_skill: true,
+      read_workflow_reference: true,
+      used_pinned_krn: true,
+      ran_krn_status: true,
+      ran_krn_start_full_intent: true,
+      ran_krn_graph: true,
+      ran_krn_context: true,
+      read_task_contract: true,
+      read_context_package: true,
+      respected_stop: true,
+      ran_verify: true,
+      ran_handoff: true,
+    });
+  });
 });
 
 describe("codex exec redaction", () => {

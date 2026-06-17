@@ -1,0 +1,34 @@
+{"line":1,"type":"thread.started"}
+{"line":2,"type":"item.completed"}
+{"line":3,"type":"turn.started"}
+{"line":4,"type":"item.completed","paths":["docs","docs/overview.md"]}
+{"line":5,"type":"item.started","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/SKILL.md\"","paths":[".agents/skills/krn-harness/SKILL.md"]}
+{"line":6,"type":"item.started","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/references/workflow.md\"","paths":[".agents/skills/krn-harness/references/workflow.md"]}
+{"line":7,"type":"item.completed","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/SKILL.md\"","paths":[".agents/skills/krn-harness/SKILL.md","src/theme/","docs",".krn/current/task-contract.md",".krn/current/context-package.md"]}
+{"line":8,"type":"item.completed","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/references/workflow.md\"","paths":[".agents/skills/krn-harness/references/workflow.md",".krn/current/task-contract.md",".krn/current/context-package.md",".krn/current/verify-result.json",".krn/current/handoff.md"]}
+{"line":9,"type":"item.started","command":"/usr/bin/zsh -lc './.krn/bin/krn status'"}
+{"line":10,"type":"item.completed","command":"/usr/bin/zsh -lc './.krn/bin/krn status'","paths":[".krn"]}
+{"line":11,"type":"item.started","command":"/usr/bin/zsh -lc './.krn/bin/krn start \"Update docs/overview.md by adding one concise sentence stating this fixture verifies with `node src/index.test.ts`; do not edit source code, tests, config, hooks, runtime skill files, .krn/bin/krn, or protected data; then run the configured KRN verify path and complete handoff.\"'","paths":["docs/overview.md","src/index.test.ts"]}
+{"line":12,"type":"item.completed","command":"/usr/bin/zsh -lc './.krn/bin/krn start \"Update docs/overview.md by adding one concise sentence stating this fixture verifies with `node src/index.test.ts`; do not edit source code, tests, config, hooks, runtime skill files, .krn/bin/krn, or protected data; then run the configured KRN verify path and complete handoff.\"'","paths":["docs/overview.md","src/index.test.ts",".krn/current/task-contract.md"]}
+{"line":13,"type":"item.completed"}
+{"line":14,"type":"item.started","command":"/usr/bin/zsh -lc './.krn/bin/krn graph'"}
+{"line":15,"type":"item.started","command":"/usr/bin/zsh -lc './.krn/bin/krn context'"}
+{"line":16,"type":"item.completed","command":"/usr/bin/zsh -lc './.krn/bin/krn graph'","paths":[".krn/graph/repo-graph.json",".krn/graph/repo-graph.md"]}
+{"line":17,"type":"item.completed","command":"/usr/bin/zsh -lc './.krn/bin/krn context'","paths":[".krn/current/context-package.md"]}
+{"line":18,"type":"item.started","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/task-contract.md\"","paths":[".krn/current/task-contract.md"]}
+{"line":19,"type":"item.started","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/context-package.md\"","paths":[".krn/current/context-package.md"]}
+{"line":20,"type":"item.completed","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/task-contract.md\"","paths":[".krn/current/task-contract.md","docs/overview.md","docs/overview.md"]}
+{"line":21,"type":"item.completed","command":"/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/context-package.md\"","paths":[".krn/current/context-package.md","docs/architecture/architecture-spec-v0.1.md","docs/overview.md","docs/specs/context-package.schema.md",".agents/skills/krn-harness/references/workflow.md","docs/overview.md",".agents/skills/krn-harness/SKILL.md"]}
+{"line":22,"type":"item.completed","paths":["docs/overview.md"]}
+{"line":23,"type":"item.started","command":"/usr/bin/zsh -lc \"sed -n '1,260p' docs/overview.md\"","paths":["docs/overview.md"]}
+{"line":24,"type":"item.completed","command":"/usr/bin/zsh -lc \"sed -n '1,260p' docs/overview.md\"","paths":["docs/overview.md","docs"]}
+{"line":25,"type":"item.completed","paths":["docs/overview.md"]}
+{"line":26,"type":"item.started","paths":["docs/overview.md"]}
+{"line":27,"type":"item.completed","paths":["docs/overview.md"]}
+{"line":28,"type":"item.started","command":"/usr/bin/zsh -lc './.krn/bin/krn verify --execute'"}
+{"line":29,"type":"item.completed","command":"/usr/bin/zsh -lc './.krn/bin/krn verify --execute'","paths":[".krn/current/verify-result.md"]}
+{"line":30,"type":"item.completed"}
+{"line":31,"type":"item.started","command":"/usr/bin/zsh -lc './.krn/bin/krn handoff'"}
+{"line":32,"type":"item.completed","command":"/usr/bin/zsh -lc './.krn/bin/krn handoff'","paths":[".krn/current/handoff.md"]}
+{"line":33,"type":"item.completed","paths":["docs/overview.md","docs/overview.md","src/index.test.ts","docs",".krn/current/verify-result.md",".krn/current/verify-result.md",".krn/current/handoff.md",".krn/current/handoff.md"]}
+{"line":34,"type":"turn.completed","usage":{"input_tokens":208763,"cached_input_tokens":190592,"output_tokens":2731,"reasoning_output_tokens":1574}}

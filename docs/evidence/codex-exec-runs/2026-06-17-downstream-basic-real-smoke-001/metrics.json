@@ -1,0 +1,52 @@
+{
+  "schema": "krn-codex-exec-metrics-v1",
+  "run_id": "2026-06-17-downstream-basic-real-smoke-001",
+  "kind": "real_codex_exec",
+  "target_repo": "downstream-basic-disposable-fixture",
+  "target_commit": "0ef74a07e4c97e36f85348c9fcc8150a21df98c8",
+  "krn_source_commit": "0e358b2b152e4d4c13d07149cd27de511f5a2d3f",
+  "codex_mode": "exec",
+  "sandbox": "workspace-write",
+  "status": "completed",
+  "started_at": null,
+  "duration_seconds": null,
+  "usage": {
+    "input_tokens": 208763,
+    "cached_input_tokens": 190592,
+    "output_tokens": 2731,
+    "reasoning_output_tokens": 1574
+  },
+  "event_counts": {
+    "thread.started": 1,
+    "item.completed": 19,
+    "turn.started": 1,
+    "item.started": 12,
+    "turn.completed": 1
+  },
+  "command_summary": {
+    "total": 11,
+    "krn_commands": 6,
+    "verify_commands": 2,
+    "blocked_or_failed": 0
+  },
+  "krn_adherence": {
+    "used_runtime_skill": true,
+    "read_workflow_reference": true,
+    "used_pinned_krn": true,
+    "ran_krn_status": true,
+    "ran_krn_start_full_intent": true,
+    "ran_krn_graph": true,
+    "ran_krn_context": true,
+    "read_task_contract": true,
+    "read_context_package": true,
+    "respected_stop": true,
+    "ran_verify": true,
+    "ran_handoff": true
+  },
+  "proof_boundaries": {
+    "production_proof": false,
+    "hook_trust": "unproven",
+    "raw_jsonl_committed": false,
+    "sanitized": true
+  }
+}

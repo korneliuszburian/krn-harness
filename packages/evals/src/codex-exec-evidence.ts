@@ -414,7 +414,7 @@ function invokesKrn(command: string): boolean {
 function invokesKrnSubcommand(command: string, subcommand: string): boolean {
   const escaped = subcommand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
-    `(^|\\s)(?:\\.\\/)?(?:\\.krn\\/bin\\/krn|krn|[^\\s]*\\/\\.krn\\/bin\\/krn)\\s+${escaped}(\\s|$)`,
+    `(^|[\\s"'])(?:\\.\\/)?(?:\\.krn\\/bin\\/krn|krn|[^\\s]*\\/\\.krn\\/bin\\/krn)\\s+${escaped}(?=$|[\\s"'])`,
   ).test(command);
 }
 
@@ -481,7 +481,7 @@ function extractPathsFromText(value: string): string[] {
 function eventAction(event: CodexExecEvent, text: string): CodexExecFileEvent["action"] {
   if (/file.*(change|edit|write)|patch|apply_patch|updated|created/.test(event.type))
     return "write";
-  if (/(^|\s)(cat|sed|nl|head|tail|rg|grep|less)\s+/.test(text)) return "read";
+  if (/(^|[\s"'])(cat|sed|nl|head|tail|rg|grep|less)\s+/.test(text)) return "read";
   if (/\bfile_read\b/.test(text)) return "read";
   if (/read/.test(event.type)) return "read";
   return "unknown";
@@ -546,9 +546,9 @@ export function detectKrnAdherence(input: {
   const hasGlobalKrnWithoutPinned =
     krnCommands.length > 0 && !krnCommands.some((event) => isPinnedKrnCommand(event.command));
   const stopMentioned = /\bSTOP\b/.test(`${input.eventText}\n${input.finalMessage}`);
-  const stopChecked = /\bSTOP\b.*\b(checked|not active|none|no active|absent)\b/i.test(
-    input.finalMessage,
-  );
+  const stopChecked =
+    /\bSTOP\b.*\b(checked|not active|none|no active|absent)\b/i.test(input.finalMessage) ||
+    /\bSTOP:\s*false\b/i.test(`${input.eventText}\n${input.finalMessage}`);
 
   return {
     used_runtime_skill: pathWasRead(input.fileEvents, ".agents/skills/krn-harness/SKILL.md"),
