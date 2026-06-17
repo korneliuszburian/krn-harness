@@ -35,10 +35,17 @@ diffstat.txt
 verdict.md
 ```
 
+Packs that capture Codex stderr may also contain:
+
+```txt
+stderr.redacted.txt
+```
+
 Raw/local-only files stay outside committed evidence:
 
 ```txt
 .local/codex-exec-runs/<run-id>/events.raw.jsonl
+.local/codex-exec-runs/<run-id>/stderr.raw.log
 .local/codex-exec-runs/<run-id>/final.md
 .local/codex-exec-runs/<run-id>/patch.diff
 ```
@@ -67,6 +74,8 @@ The metrics record:
 - Codex mode, sandbox, status, duration, event counts, and token usage;
 - command totals, KRN command totals, verify totals, and failed/blocked totals;
 - deterministic KRN workflow adherence fields;
+- optional stderr diagnostics for skill-load, hooks-parse, frontmatter, and
+  Codex exec errors;
 - proof boundaries with `production_proof: false`,
   `raw_jsonl_committed: false`, and `sanitized: true`.
 
@@ -92,4 +101,10 @@ pnpm tsx scripts/summarize-codex-exec-run.ts ...
 
 The summarizer parses JSONL line by line, fails malformed non-empty lines,
 redacts sensitive text, writes only sanitized pack files, and fails closed when
-raw JSONL appears to contain `.env`, auth files, or obvious secret values.
+raw JSONL or raw stderr appears to contain `.env`, auth files, or obvious secret
+values.
+
+When `--stderr` is provided, the committed `stderr.redacted.txt` keeps only
+diagnostic lines such as skill loading, frontmatter, hooks config, parse errors,
+warnings, and Codex exec errors. Large progress/noise output stays out of the
+committed pack.

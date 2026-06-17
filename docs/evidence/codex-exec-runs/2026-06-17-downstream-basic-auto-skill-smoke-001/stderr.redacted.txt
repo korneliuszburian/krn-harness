@@ -1,0 +1,1 @@
+stderr captured; no diagnostic lines selected

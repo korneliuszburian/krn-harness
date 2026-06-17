@@ -20,6 +20,7 @@ interface ParsedArgs {
   krnSourceCommit: string;
   prompt?: string | undefined;
   command?: string | undefined;
+  stderr?: string | undefined;
   sandbox?: CodexExecSandboxMode | undefined;
 }
 
@@ -35,7 +36,7 @@ function usage(): string {
     "  --target-repo <name> \\",
     "  --target-commit <sha|unknown> \\",
     "  --krn-source-commit <sha> \\",
-    "  [--prompt <path>] [--command <path>] [--sandbox read-only|workspace-write|danger-full-access|unknown]",
+    "  [--prompt <path>] [--command <path>] [--stderr <path>] [--sandbox read-only|workspace-write|danger-full-access|unknown]",
   ].join("\n");
 }
 
@@ -94,6 +95,7 @@ function parseArgs(args: string[]): ParsedArgs {
     krnSourceCommit: values.get("--krn-source-commit") as string,
     prompt: values.get("--prompt"),
     command: values.get("--command"),
+    stderr: values.get("--stderr"),
     sandbox: sandbox as CodexExecSandboxMode | undefined,
   };
 }
@@ -104,11 +106,12 @@ async function readOptional(pathValue: string | undefined): Promise<string | und
 
 export async function main(argv: string[]): Promise<void> {
   const args = parseArgs(argv);
-  const [rawJsonl, finalMessage, promptText, commandText] = await Promise.all([
+  const [rawJsonl, finalMessage, promptText, commandText, stderrText] = await Promise.all([
     readFile(args.rawJsonl, "utf8"),
     readFile(args.finalMessage, "utf8"),
     readOptional(args.prompt),
     readOptional(args.command),
+    readOptional(args.stderr),
   ]);
 
   const pack = await writeCodexExecEvidencePack({
@@ -122,6 +125,7 @@ export async function main(argv: string[]): Promise<void> {
     krnSourceCommit: args.krnSourceCommit,
     promptText,
     commandText,
+    stderrText,
     sandbox: args.sandbox,
   });
 

@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   assertRawJsonlSafeForEvidence,
+  detectCodexExecDiagnostics,
   detectKrnAdherence,
   extractCommandEvents,
   extractFileEvents,
@@ -11,6 +12,7 @@ import {
   parseCodexExecJsonl,
   redactText,
   requiredCodexExecEvidenceFiles,
+  sanitizeCodexExecStderr,
   summarizeCodexExecRun,
   validateCodexExecEvidencePackDirectory,
   validateCodexExecMetrics,
@@ -298,6 +300,69 @@ describe("codex exec redaction", () => {
         jsonl([{ type: "item.completed", command: "OPENAI_API_KEY=sk-test1234567890 pnpm test" }]),
       ),
     ).toThrow("secret-like value");
+  });
+});
+
+describe("codex exec stderr evidence", () => {
+  it("sanitizes previous hooks parse and runtime skill frontmatter diagnostics", () => {
+    const stderr = [
+      "Failed to parse .codex/hooks.json: unknown field `_krnManaged` in hooks config",
+      "Runtime skill could not be loaded as a skill because the managed marker appears before YAML frontmatter",
+    ].join("\n");
+    const pack = summarizeCodexExecRun({
+      rawJsonl: jsonl([{ type: "turn.completed" }]),
+      stderrText: stderr,
+      finalMessage: "No edits.",
+      runId: "stderr-diagnostics",
+      kind: "fixture_codex_exec",
+      targetRepo: "fixture",
+      targetCommit: "unknown",
+      krnSourceCommit: "test-sha",
+    });
+
+    expect(pack.files["stderr.redacted.txt"]).toContain("unknown field `_krnManaged`");
+    expect(pack.files["stderr.redacted.txt"]).toContain("YAML frontmatter");
+    expect(pack.metrics.diagnostics).toMatchObject({
+      stderr_captured: true,
+      skill_load_errors: 1,
+      hooks_parse_errors: 1,
+      frontmatter_errors: 1,
+    });
+  });
+
+  it("redacts home and temp paths from committed stderr diagnostics", () => {
+    const redacted = sanitizeCodexExecStderr(
+      "Warning: Codex exec hook config at /home/krn/private/.codex/hooks.json referenced /tmp/krn-secret-target-123/.codex/hooks.json\n",
+    );
+
+    expect(redacted).toContain("<home>/private/.codex/hooks.json");
+    expect(redacted).toContain("<tmp>");
+    expect(redacted).not.toContain("/home/krn");
+    expect(redacted).not.toContain("/tmp/krn-secret-target-123");
+  });
+
+  it("fails closed when raw stderr contains secret-like values", () => {
+    expect(() =>
+      sanitizeCodexExecStderr("Error: OPENAI_API_KEY=sk-test1234567890 leaked\n"),
+    ).toThrow("Raw Codex stderr is unsafe for committed evidence: secret-like value");
+  });
+
+  it("keeps old evidence packs valid when no stderr input is provided", async () => {
+    const outDir = await mkdtemp(path.join(os.tmpdir(), "krn-codex-evidence-no-stderr-"));
+    const pack = await writeCodexExecEvidencePack({
+      outDir,
+      rawJsonl: fixtureRawJsonl(),
+      finalMessage: "STOP checked and not active. Verify and handoff completed.",
+      runId: "no-stderr",
+      kind: "fixture_codex_exec",
+      targetRepo: "fixture",
+      targetCommit: "unknown",
+      krnSourceCommit: "test-sha",
+    });
+
+    await expect(readFile(path.join(outDir, "stderr.redacted.txt"), "utf8")).rejects.toThrow();
+    expect(pack.metrics.diagnostics).toEqual(detectCodexExecDiagnostics(undefined));
+    expect(validateCodexExecMetrics(pack.metrics)).toEqual([]);
   });
 });
 

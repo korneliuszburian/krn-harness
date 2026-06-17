@@ -39,7 +39,8 @@ After edits, run the configured verify path and create handoff.
 
 Task:
 <small real downstream task>" \
-  > .local/codex-exec-runs/<run-id>/events.raw.jsonl
+  > .local/codex-exec-runs/<run-id>/events.raw.jsonl \
+  2> .local/codex-exec-runs/<run-id>/stderr.raw.log
 ```
 
 ## Summarize
@@ -58,11 +59,12 @@ pnpm tsx scripts/summarize-codex-exec-run.ts \
   --krn-source-commit $(git rev-parse HEAD) \
   --prompt .local/codex-exec-runs/<run-id>/prompt.txt \
   --command .local/codex-exec-runs/<run-id>/command.txt \
+  --stderr .local/codex-exec-runs/<run-id>/stderr.raw.log \
   --sandbox workspace-write
 ```
 
 The summarizer must fail rather than write committed evidence if raw JSONL
-mentions `.env`, auth files, or obvious secret values.
+or raw stderr mentions `.env`, auth files, or obvious secret values.
 
 ## Review
 
@@ -75,4 +77,4 @@ git diff --check
 ```
 
 Stage only the sanitized pack. Never stage `.local`, raw JSONL, raw diffs, auth
-files, `.env` files, or target protected data.
+files, raw stderr, `.env` files, or target protected data.

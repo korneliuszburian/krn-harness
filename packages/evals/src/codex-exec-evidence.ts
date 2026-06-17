@@ -55,6 +55,11 @@ export const requiredCodexExecEvidenceFiles = [
   "verdict.md",
 ] as const;
 
+export const optionalCodexExecEvidenceFiles = ["stderr.redacted.txt"] as const;
+
+type RequiredCodexExecEvidenceFile = (typeof requiredCodexExecEvidenceFiles)[number];
+type OptionalCodexExecEvidenceFile = (typeof optionalCodexExecEvidenceFiles)[number];
+
 export interface CodexExecUsage {
   input_tokens: number | null;
   cached_input_tokens: number | null;
@@ -67,6 +72,14 @@ export interface CodexExecCommandSummary {
   krn_commands: number;
   verify_commands: number;
   blocked_or_failed: number;
+}
+
+export interface CodexExecDiagnostics {
+  stderr_captured: boolean;
+  skill_load_errors: number;
+  hooks_parse_errors: number;
+  frontmatter_errors: number;
+  codex_exec_errors: number;
 }
 
 export interface CodexExecMetrics {
@@ -85,6 +98,7 @@ export interface CodexExecMetrics {
   event_counts: Record<string, number>;
   command_summary: CodexExecCommandSummary;
   krn_adherence: CodexExecAdherence;
+  diagnostics: CodexExecDiagnostics;
   proof_boundaries: {
     production_proof: false;
     hook_trust: "unproven" | "proven" | "not_checked";
@@ -120,7 +134,8 @@ export interface CodexExecEvidencePack {
   events: Array<Record<string, unknown>>;
   commandEvents: CodexExecCommandEvent[];
   fileEvents: CodexExecFileEvent[];
-  files: Record<(typeof requiredCodexExecEvidenceFiles)[number], string>;
+  files: Record<RequiredCodexExecEvidenceFile, string> &
+    Partial<Record<OptionalCodexExecEvidenceFile, string>>;
 }
 
 export interface SummarizeCodexExecRunInput {
@@ -133,6 +148,7 @@ export interface SummarizeCodexExecRunInput {
   krnSourceCommit: string;
   promptText?: string | undefined;
   commandText?: string | undefined;
+  stderrText?: string | undefined;
   sandbox?: CodexExecSandboxMode | undefined;
 }
 
@@ -227,27 +243,75 @@ export function redactText(input: string): string {
 }
 
 export function assertRawJsonlSafeForEvidence(rawJsonl: string): void {
+  assertRawTextSafeForEvidence(rawJsonl, "Raw Codex JSONL");
+}
+
+export function assertRawTextSafeForEvidence(rawText: string, label: string): void {
   const forbidden: string[] = [];
 
-  if (/(^|[^A-Za-z0-9_-])\.env(?:\.[A-Za-z0-9._-]+)?\b/i.test(rawJsonl)) {
+  if (/(^|[^A-Za-z0-9_-])\.env(?:\.[A-Za-z0-9._-]+)?\b/i.test(rawText)) {
     forbidden.push(".env reference");
   }
-  if (/\b(auth|credentials)\.json\b/i.test(rawJsonl)) {
+  if (/\b(auth|credentials)\.json\b/i.test(rawText)) {
     forbidden.push("auth file reference");
   }
   if (
     /\b(?:OPENAI_API_KEY|CODEX_API_KEY|API_KEY|TOKEN|SECRET|PASSWORD)\s*[:=]\s*["']?[^"'\s,;]{6,}/i.test(
-      rawJsonl,
+      rawText,
     ) ||
-    /\bBearer\s+[A-Za-z0-9._~+/-]{10,}/i.test(rawJsonl) ||
-    /\bsk-[A-Za-z0-9_-]{10,}/i.test(rawJsonl)
+    /\bBearer\s+[A-Za-z0-9._~+/-]{10,}/i.test(rawText) ||
+    /\bsk-[A-Za-z0-9_-]{10,}/i.test(rawText)
   ) {
     forbidden.push("secret-like value");
   }
 
   if (forbidden.length > 0) {
-    throw new Error(`Raw Codex JSONL is unsafe for committed evidence: ${forbidden.join(", ")}`);
+    throw new Error(`${label} is unsafe for committed evidence: ${forbidden.join(", ")}`);
   }
+}
+
+function stderrDiagnosticLine(line: string): boolean {
+  return /skill|frontmatter|hooks?|parse|warning|warn|error|failed|failure|codex exec|codex-cli/i.test(
+    line,
+  );
+}
+
+function diagnosticCount(rawStderr: string, pattern: RegExp): number {
+  return rawStderr.split(/\r?\n/).filter((line) => pattern.test(line)).length;
+}
+
+export function detectCodexExecDiagnostics(rawStderr: string | undefined): CodexExecDiagnostics {
+  const text = rawStderr ?? "";
+  return {
+    stderr_captured: rawStderr !== undefined,
+    skill_load_errors: diagnosticCount(
+      text,
+      /skill.*(?:error|fail|failed|failure|could not|couldn't|not load|load failed)|could not be loaded as a skill/i,
+    ),
+    hooks_parse_errors: diagnosticCount(
+      text,
+      /hooks?.*(?:parse|config|error|fail|failed|unsupported|unknown)|_krnManaged/i,
+    ),
+    frontmatter_errors: diagnosticCount(
+      text,
+      /frontmatter|before YAML|YAML frontmatter|marker.*frontmatter/i,
+    ),
+    codex_exec_errors: diagnosticCount(text, /error|failed|failure/i),
+  };
+}
+
+export function sanitizeCodexExecStderr(rawStderr: string): string {
+  assertRawTextSafeForEvidence(rawStderr, "Raw Codex stderr");
+  const selected = rawStderr
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && stderrDiagnosticLine(line))
+    .slice(0, 80)
+    .map(redactText);
+
+  const body =
+    selected.length > 0 ? selected.join("\n") : "stderr captured; no diagnostic lines selected";
+  return `${body.slice(0, 16_000)}\n`;
 }
 
 function collectStrings(value: unknown, output: string[], depth = 0): void {
@@ -699,6 +763,7 @@ export function summarizeCodexExecRun(input: SummarizeCodexExecRunInput): CodexE
       finalMessage: input.finalMessage,
       eventText,
     }),
+    diagnostics: detectCodexExecDiagnostics(input.stderrText),
     proof_boundaries: {
       production_proof: false,
       hook_trust: "unproven",
@@ -729,6 +794,9 @@ export function summarizeCodexExecRun(input: SummarizeCodexExecRunInput): CodexE
     "diffstat.txt": diffstat,
     "verdict.md": renderVerdict(metrics),
   };
+  if (input.stderrText !== undefined) {
+    files["stderr.redacted.txt"] = sanitizeCodexExecStderr(input.stderrText);
+  }
 
   return { metrics, events: sanitizedEvents, commandEvents, fileEvents, files };
 }
@@ -740,6 +808,12 @@ export async function writeCodexExecEvidencePack(
   await mkdir(input.outDir, { recursive: true });
   for (const file of requiredCodexExecEvidenceFiles) {
     await writeFile(path.join(input.outDir, file), pack.files[file], "utf8");
+  }
+  for (const file of optionalCodexExecEvidenceFiles) {
+    const content = pack.files[file];
+    if (content !== undefined) {
+      await writeFile(path.join(input.outDir, file), content, "utf8");
+    }
   }
   return pack;
 }
@@ -770,6 +844,7 @@ export function validateCodexExecMetrics(value: unknown): string[] {
   const usage = validateRecord(metrics.usage, "usage", issues);
   const command = validateRecord(metrics.command_summary, "command_summary", issues);
   const adherence = validateRecord(metrics.krn_adherence, "krn_adherence", issues);
+  const diagnostics = metrics.diagnostics;
   const proof = validateRecord(metrics.proof_boundaries, "proof_boundaries", issues);
 
   if (metrics.schema !== metricsSchema) issues.push("schema must be krn-codex-exec-metrics-v1");
@@ -816,6 +891,23 @@ export function validateCodexExecMetrics(value: unknown): string[] {
       issues.push(`krn_adherence.${key} must be boolean or null`);
   }
 
+  if (diagnostics !== undefined) {
+    const parsedDiagnostics = validateRecord(diagnostics, "diagnostics", issues);
+    for (const key of [
+      "skill_load_errors",
+      "hooks_parse_errors",
+      "frontmatter_errors",
+      "codex_exec_errors",
+    ]) {
+      if (typeof parsedDiagnostics[key] !== "number") {
+        issues.push(`diagnostics.${key} must be number`);
+      }
+    }
+    if (typeof parsedDiagnostics.stderr_captured !== "boolean") {
+      issues.push("diagnostics.stderr_captured must be boolean");
+    }
+  }
+
   if (proof.production_proof !== false)
     issues.push("proof_boundaries.production_proof must be false");
   if (proof.raw_jsonl_committed !== false) {
@@ -845,6 +937,7 @@ async function findForbiddenRawFiles(dir: string): Promise<string[]> {
       if (
         /(^|[.])raw[.]jsonl$/i.test(entry.name) ||
         entry.name === "events.raw.jsonl" ||
+        entry.name === "stderr.raw.log" ||
         entry.name === "patch.diff"
       ) {
         forbidden.push(path.relative(dir, fullPath));

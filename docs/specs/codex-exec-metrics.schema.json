@@ -103,6 +103,24 @@
         "ran_handoff": { "type": ["boolean", "null"] }
       }
     },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stderr_captured",
+        "skill_load_errors",
+        "hooks_parse_errors",
+        "frontmatter_errors",
+        "codex_exec_errors"
+      ],
+      "properties": {
+        "stderr_captured": { "type": "boolean" },
+        "skill_load_errors": { "type": "number" },
+        "hooks_parse_errors": { "type": "number" },
+        "frontmatter_errors": { "type": "number" },
+        "codex_exec_errors": { "type": "number" }
+      }
+    },
     "proof_boundaries": {
       "type": "object",
       "additionalProperties": false,

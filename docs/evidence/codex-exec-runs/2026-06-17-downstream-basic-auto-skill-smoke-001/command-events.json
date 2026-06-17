@@ -1,0 +1,218 @@
+[
+  {
+    "id": "item_1",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' .agents/skills/krn-harness/SKILL.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_2",
+    "command": "/usr/bin/zsh -lc 'rg -n \"krn-downstream-basic-auto-skill|KRN Harness|pinned\" <home>/.codex/memories/MEMORY.md'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_4",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,260p' .agents/skills/krn-harness/references/workflow.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_5",
+    "command": "/usr/bin/zsh -lc \"ls -l .krn/bin/krn && git status --short && sed -n '1,120p' docs/overview.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_7",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn status'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_9",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn start \"Update docs/overview.md by adding one concise sentence stating this fixture verifies with node src/index.test.ts. Constraints: edit only docs/overview.md; do not edit source code, tests, config, hooks, runtime skill files, .krn/bin/krn, or protected data. Required proof: follow KRN workflow, run graph and context before editing, run configured verification path required by repository instructions, and produce KRN handoff/evidence.\"'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_11",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn context'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_12",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn graph'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_14",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' .krn/current/task-contract.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_15",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,260p' .krn/current/context-package.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_17",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,180p' docs/architecture/architecture-spec-v0.1.md\"",
+    "status": "failed",
+    "exit_code": 2,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_18",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,160p' src/index.test.ts\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_19",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' AGENTS.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_20",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,120p' docs/overview.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_24",
+    "command": "/usr/bin/zsh -lc 'git status --short'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_25",
+    "command": "/usr/bin/zsh -lc 'git diff -- docs/overview.md'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_27",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn verify --execute'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": true
+  },
+  {
+    "id": "item_29",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' .krn/current/verify-result.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": true
+  },
+  {
+    "id": "item_30",
+    "command": "/usr/bin/zsh -lc 'ls -l .krn/current'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_32",
+    "command": "/usr/bin/zsh -lc './.krn/bin/krn handoff'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_34",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' .krn/current/verify-result.json\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": true
+  },
+  {
+    "id": "item_35",
+    "command": "/usr/bin/zsh -lc 'git status --short'",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_36",
+    "command": "/usr/bin/zsh -lc \"sed -n '1,220p' .krn/current/handoff.md\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "item_38",
+    "command": "/usr/bin/zsh -lc \"nl -ba <home>/.codex/memories/MEMORY.md | sed -n '772,790p'\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  }
+]
