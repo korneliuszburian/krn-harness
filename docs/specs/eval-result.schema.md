@@ -10,7 +10,7 @@
 - `.krn/current/eval-result.md`
 - `.krn/current/eval-baseline.json`
 
-The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, Hook Guardrails, Memory Governance, Fixture Results, Trace Coverage, Failures, and P0 Limits sections.
+The Markdown artifact contains Summary, Graph Coverage, Downstream Acceptance, Verify Profiles, Codex Exec Evidence, Hook Guardrails, Memory Governance, Fixture Results, Trace Coverage, Failures, and P0 Limits sections.
 
 `krn eval` also writes `.krn/evals/baseline.json` as rolling local runtime
 state. See `docs/specs/eval-baseline.schema.md`.
@@ -24,6 +24,7 @@ state. See `docs/specs/eval-baseline.schema.md`.
 - `graph`: graph behavior grader result.
 - `graphArtifact`: generated graph artifact shape grader result.
 - `downstream`: downstream onboarding acceptance grader result.
+- `codexExecEvidence`: Codex exec fixture evidence-pack/schema grader result.
 - `verify`: verify profile and policy grader result.
 - `hooks`: hook guardrail fixture matrix grader result.
 - `memory`: governed memory grader result.
@@ -56,6 +57,8 @@ The memory grader is harness-only. It verifies that pending memory is inactive, 
 The hook grader is harness-only. It loads the deterministic guardrail matrix and remediation taxonomy fixture, then checks blocked, warned, and allowed decisions, false-positive ownership collisions, compact owned hint lists, package-owned proof fixtures, cross-package proof-path blocks, unowned proof-path blocks, `enforced: false`, the P0 proof-path ownership model, expected ownership hints, declared hint and byte limits, selected English/Polish operator wording, compact remediation codes, writer-side compact trace payload shape, and expected trace finding-code payloads without invoking Codex or relying on a live hook run.
 
 The downstream acceptance grader is harness-only. It checks fixture shape and generated AGENTS/hooks/runtime skill template contracts without installing into the source checkout, invoking Codex, or running downstream project commands.
+
+The Codex exec evidence grader is harness-only. It validates the committed fixture evidence pack, metrics schema, and proof boundaries without invoking Codex, reading raw JSONL, or claiming real downstream product proof.
 
 The verify grader is harness-only. It checks safe record-only profile behavior, unsafe command blocking, output limits, and deterministic `execute` behavior using a tiny local node fixture. It does not run downstream project commands.
 

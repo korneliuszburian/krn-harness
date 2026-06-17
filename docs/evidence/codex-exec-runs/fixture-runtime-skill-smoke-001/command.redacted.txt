@@ -1,0 +1,1 @@
+codex exec --sandbox workspace-write --json <fixture-prompt>

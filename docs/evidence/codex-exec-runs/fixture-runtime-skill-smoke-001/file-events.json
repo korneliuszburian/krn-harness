@@ -1,0 +1,22 @@
+[
+  {
+    "path": ".agents/skills/krn-harness/SKILL.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".agents/skills/krn-harness/references/workflow.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/task-contract.md",
+    "action": "read",
+    "event_type": "item.completed"
+  },
+  {
+    "path": ".krn/current/context-package.md",
+    "action": "read",
+    "event_type": "item.completed"
+  }
+]

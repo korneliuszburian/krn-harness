@@ -1,0 +1,15 @@
+{"line":1,"type":"thread.started"}
+{"line":2,"type":"turn.started"}
+{"line":3,"type":"item.completed","paths":[".agents/skills/krn-harness/SKILL.md"]}
+{"line":4,"type":"item.completed","paths":[".agents/skills/krn-harness/references/workflow.md"]}
+{"line":5,"type":"item.started","command":"./.krn/bin/krn status"}
+{"line":6,"type":"item.completed","command":"./.krn/bin/krn status"}
+{"line":7,"type":"item.started","command":"./.krn/bin/krn start \"Implement a small downstream runtime skill evidence task\""}
+{"line":8,"type":"item.completed","command":"./.krn/bin/krn start \"Implement a small downstream runtime skill evidence task\""}
+{"line":9,"type":"item.completed","command":"./.krn/bin/krn graph"}
+{"line":10,"type":"item.completed","command":"./.krn/bin/krn context"}
+{"line":11,"type":"item.completed","command":"cat .krn/current/task-contract.md","paths":[".krn/current/task-contract.md"]}
+{"line":12,"type":"item.completed","command":"cat .krn/current/context-package.md","paths":[".krn/current/context-package.md"]}
+{"line":13,"type":"item.completed","command":"./.krn/bin/krn verify --execute"}
+{"line":14,"type":"item.completed","command":"./.krn/bin/krn handoff"}
+{"line":15,"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":25,"output_tokens":50,"reasoning_output_tokens":10}}

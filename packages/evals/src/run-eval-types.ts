@@ -15,6 +15,7 @@ export interface EvalResult {
   graph: EvalGrade;
   graphArtifact: EvalGrade;
   downstream: EvalGrade;
+  codexExecEvidence: EvalGrade;
   verify: EvalGrade;
   hooks: EvalGrade;
   memory: EvalGrade;

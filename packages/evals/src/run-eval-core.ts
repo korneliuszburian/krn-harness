@@ -15,6 +15,7 @@ import { gradeHookGuardrails } from "./run-eval-hook-validator.js";
 import { gradeMemoryGovernance } from "./run-eval-memory-validator.js";
 import type { EvalFixtureResult, EvalResult, RunEvalInput } from "./run-eval-types.js";
 import {
+  gradeCodexExecEvidencePack,
   gradeDownstreamAcceptance,
   gradeGraphArtifact,
   gradeGraphBehavior,
@@ -127,11 +128,13 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
   const verify = await gradeVerifyProfiles(cwd, fixtureRoot);
   const hooks = await gradeHookGuardrails(fixtureRoot);
   const downstream = await gradeDownstreamAcceptance(fixtureRoot);
+  const codexExecEvidence = await gradeCodexExecEvidencePack(fixtureRoot);
   const allGrades = [
     ...fixtures.flatMap((fixture) => fixture.grades),
     graphGrade,
     graphArtifact,
     downstream,
+    codexExecEvidence,
     verify,
     hooks,
     memory,
@@ -148,6 +151,7 @@ export async function runEval(input: RunEvalInput = {}): Promise<EvalResult> {
     graph: graphGrade,
     graphArtifact,
     downstream,
+    codexExecEvidence,
     verify,
     hooks,
     memory,

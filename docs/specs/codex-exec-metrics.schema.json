@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "krn-codex-exec-metrics.schema.json",
+  "title": "KRN Codex Exec Metrics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "kind",
+    "target_repo",
+    "target_commit",
+    "krn_source_commit",
+    "codex_mode",
+    "sandbox",
+    "status",
+    "started_at",
+    "duration_seconds",
+    "usage",
+    "event_counts",
+    "command_summary",
+    "krn_adherence",
+    "proof_boundaries"
+  ],
+  "properties": {
+    "schema": { "const": "krn-codex-exec-metrics-v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "kind": {
+      "enum": ["real_codex_exec", "fixture_codex_exec", "manual_import"]
+    },
+    "target_repo": { "type": "string", "minLength": 1 },
+    "target_commit": { "type": ["string", "null"] },
+    "krn_source_commit": { "type": "string", "minLength": 1 },
+    "codex_mode": { "const": "exec" },
+    "sandbox": {
+      "enum": ["read-only", "workspace-write", "danger-full-access", "unknown"]
+    },
+    "status": {
+      "enum": ["completed", "failed", "blocked", "unknown"]
+    },
+    "started_at": { "type": ["string", "null"] },
+    "duration_seconds": { "type": ["number", "null"] },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_tokens",
+        "cached_input_tokens",
+        "output_tokens",
+        "reasoning_output_tokens"
+      ],
+      "properties": {
+        "input_tokens": { "type": ["number", "null"] },
+        "cached_input_tokens": { "type": ["number", "null"] },
+        "output_tokens": { "type": ["number", "null"] },
+        "reasoning_output_tokens": { "type": ["number", "null"] }
+      }
+    },
+    "event_counts": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "command_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "krn_commands", "verify_commands", "blocked_or_failed"],
+      "properties": {
+        "total": { "type": "number" },
+        "krn_commands": { "type": "number" },
+        "verify_commands": { "type": "number" },
+        "blocked_or_failed": { "type": "number" }
+      }
+    },
+    "krn_adherence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "used_runtime_skill",
+        "read_workflow_reference",
+        "used_pinned_krn",
+        "ran_krn_status",
+        "ran_krn_start_full_intent",
+        "ran_krn_graph",
+        "ran_krn_context",
+        "read_task_contract",
+        "read_context_package",
+        "respected_stop",
+        "ran_verify",
+        "ran_handoff"
+      ],
+      "properties": {
+        "used_runtime_skill": { "type": ["boolean", "null"] },
+        "read_workflow_reference": { "type": ["boolean", "null"] },
+        "used_pinned_krn": { "type": ["boolean", "null"] },
+        "ran_krn_status": { "type": ["boolean", "null"] },
+        "ran_krn_start_full_intent": { "type": ["boolean", "null"] },
+        "ran_krn_graph": { "type": ["boolean", "null"] },
+        "ran_krn_context": { "type": ["boolean", "null"] },
+        "read_task_contract": { "type": ["boolean", "null"] },
+        "read_context_package": { "type": ["boolean", "null"] },
+        "respected_stop": { "type": ["boolean", "null"] },
+        "ran_verify": { "type": ["boolean", "null"] },
+        "ran_handoff": { "type": ["boolean", "null"] }
+      }
+    },
+    "proof_boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production_proof", "hook_trust", "raw_jsonl_committed", "sanitized"],
+      "properties": {
+        "production_proof": { "const": false },
+        "hook_trust": { "enum": ["unproven", "proven", "not_checked"] },
+        "raw_jsonl_committed": { "const": false },
+        "sanitized": { "const": true }
+      }
+    }
+  }
+}

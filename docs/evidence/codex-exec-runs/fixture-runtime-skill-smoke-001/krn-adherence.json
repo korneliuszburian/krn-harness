@@ -1,0 +1,14 @@
+{
+  "used_runtime_skill": true,
+  "read_workflow_reference": true,
+  "used_pinned_krn": true,
+  "ran_krn_status": true,
+  "ran_krn_start_full_intent": true,
+  "ran_krn_graph": true,
+  "ran_krn_context": true,
+  "read_task_contract": true,
+  "read_context_package": true,
+  "respected_stop": true,
+  "ran_verify": true,
+  "ran_handoff": true
+}

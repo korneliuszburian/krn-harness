@@ -740,11 +740,12 @@ describe("krn CLI current flow artifacts", () => {
 
     expect(evalJson).toMatchObject({
       status: "pass",
-      passCount: 25,
+      passCount: 26,
       failCount: 0,
       graph: { status: "pass" },
       graphArtifact: { status: "pass" },
       downstream: { status: "pass" },
+      codexExecEvidence: { status: "pass" },
       verify: { status: "pass" },
       hooks: { status: "pass" },
       memory: { status: "pass" },
@@ -764,6 +765,7 @@ describe("krn CLI current flow artifacts", () => {
     expect(evalMarkdown).toContain("## Graph Coverage");
     expect(evalMarkdown).toContain("## Downstream Acceptance");
     expect(evalMarkdown).toContain("## Verify Profiles");
+    expect(evalMarkdown).toContain("## Codex Exec Evidence");
     expect(evalMarkdown).toContain("## Hook Guardrails");
     expect(evalMarkdown).toContain("## Memory Governance");
     expect(evalMarkdown).toContain("## Trace Coverage");
@@ -809,7 +811,7 @@ describe("krn CLI current flow artifacts", () => {
         data: {
           status: "pass",
           fixtures: 6,
-          passCount: 25,
+          passCount: 26,
           failCount: 0,
           downstreamStatus: "pass",
           verifyStatus: "pass",

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "cmd-1",
+    "command": "./.krn/bin/krn status",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "cmd-2",
+    "command": "./.krn/bin/krn start \"Implement a small downstream runtime skill evidence task\"",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed", "item.started"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "cmd-3",
+    "command": "./.krn/bin/krn graph",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "cmd-4",
+    "command": "./.krn/bin/krn context",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  },
+  {
+    "id": "cmd-5",
+    "command": "cat .krn/current/task-contract.md",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "cmd-6",
+    "command": "cat .krn/current/context-package.md",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed"],
+    "is_krn_command": false,
+    "is_verify_command": false
+  },
+  {
+    "id": "cmd-7",
+    "command": "./.krn/bin/krn verify --execute",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed"],
+    "is_krn_command": true,
+    "is_verify_command": true
+  },
+  {
+    "id": "cmd-8",
+    "command": "./.krn/bin/krn handoff",
+    "status": "completed",
+    "exit_code": 0,
+    "event_types": ["item.completed"],
+    "is_krn_command": true,
+    "is_verify_command": false
+  }
+]

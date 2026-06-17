@@ -15,6 +15,7 @@ import {
   resolveVerifyProfile,
   runVerifyCommands,
 } from "../../verify/src/index.js";
+import { validateCodexExecEvidencePackDirectory } from "./codex-exec-evidence.js";
 import type { EvalGrade } from "./graders/types.js";
 
 export function gradeGraphBehavior(input: {
@@ -300,6 +301,54 @@ export async function gradeDownstreamAcceptance(fixtureRoot: string): Promise<Ev
     detail:
       failures.length === 0
         ? "downstream-basic fixture, product-code dogfood fixture, and generated AGENTS/hooks/runtime skill templates satisfy local onboarding acceptance"
+        : failures.join("; "),
+  };
+}
+
+export async function gradeCodexExecEvidencePack(fixtureRoot: string): Promise<EvalGrade> {
+  const failures: string[] = [];
+  const specPath = path.join(fixtureRoot, "docs/specs/codex-exec-evidence-pack.md");
+  const schemaPath = path.join(fixtureRoot, "docs/specs/codex-exec-metrics.schema.json");
+  const fixturePackPath = path.join(
+    fixtureRoot,
+    "docs/evidence/codex-exec-runs/fixture-runtime-skill-smoke-001",
+  );
+
+  if (!(await pathExists(specPath))) failures.push("missing codex exec evidence pack spec");
+  if (!(await pathExists(schemaPath))) failures.push("missing codex exec metrics schema");
+
+  try {
+    const spec = await readFile(specPath, "utf8");
+    for (const expected of [
+      "raw JSONL",
+      "fixture_codex_exec",
+      "production_proof: false",
+      "used_pinned_krn",
+      "prompt mention alone does not",
+    ]) {
+      if (!spec.includes(expected)) failures.push(`codex exec evidence spec missing ${expected}`);
+    }
+  } catch {
+    failures.push("codex exec evidence spec could not be read");
+  }
+
+  failures.push(...(await validateCodexExecEvidencePackDirectory(fixturePackPath)));
+
+  try {
+    const verdict = await readFile(path.join(fixturePackPath, "verdict.md"), "utf8");
+    if (!verdict.includes("Fixture only") || !verdict.includes("not product proof")) {
+      failures.push("fixture verdict does not clearly reject product-proof claims");
+    }
+  } catch {
+    failures.push("fixture verdict could not be read");
+  }
+
+  return {
+    name: "codex-exec-evidence-pack",
+    status: failures.length === 0 ? "pass" : "fail",
+    detail:
+      failures.length === 0
+        ? "codex exec fixture evidence pack, metrics schema, and proof boundaries validate"
         : failures.join("; "),
   };
 }

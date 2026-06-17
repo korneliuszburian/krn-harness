@@ -1,0 +1,52 @@
+{
+  "schema": "krn-codex-exec-metrics-v1",
+  "run_id": "fixture-runtime-skill-smoke-001",
+  "kind": "fixture_codex_exec",
+  "target_repo": "fixture-runtime-skill",
+  "target_commit": null,
+  "krn_source_commit": "07b245b7b1f173d2590eefef0dc5723e09c79e60",
+  "codex_mode": "exec",
+  "sandbox": "workspace-write",
+  "status": "completed",
+  "started_at": "2026-06-17T00:00:00.000Z",
+  "duration_seconds": 12,
+  "usage": {
+    "input_tokens": 100,
+    "cached_input_tokens": 25,
+    "output_tokens": 50,
+    "reasoning_output_tokens": 10
+  },
+  "event_counts": {
+    "thread.started": 1,
+    "turn.started": 1,
+    "item.started": 2,
+    "item.completed": 10,
+    "turn.completed": 1
+  },
+  "command_summary": {
+    "total": 8,
+    "krn_commands": 6,
+    "verify_commands": 1,
+    "blocked_or_failed": 0
+  },
+  "krn_adherence": {
+    "used_runtime_skill": true,
+    "read_workflow_reference": true,
+    "used_pinned_krn": true,
+    "ran_krn_status": true,
+    "ran_krn_start_full_intent": true,
+    "ran_krn_graph": true,
+    "ran_krn_context": true,
+    "read_task_contract": true,
+    "read_context_package": true,
+    "respected_stop": true,
+    "ran_verify": true,
+    "ran_handoff": true
+  },
+  "proof_boundaries": {
+    "production_proof": false,
+    "hook_trust": "unproven",
+    "raw_jsonl_committed": false,
+    "sanitized": true
+  }
+}
