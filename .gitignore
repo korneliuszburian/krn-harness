@@ -5,3 +5,4 @@ coverage/
 .turbo/
 .DS_Store
 *.log
+GOAL.local.md

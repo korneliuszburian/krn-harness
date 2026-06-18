@@ -16,16 +16,14 @@ to actual repo truth or recorded target-adoption friction.
 
 ## Current Baseline
 
-- Source HEAD inspected: `b8ee7e1` on `main`.
+- Original consolidation baseline inspected: `b8ee7e1` on `main`.
 - Worktree is dirty. Source-owned audit consolidation changes currently span
   build-time skills, product docs, specs, CLI/task-contract code, and docs
-  regression tests. Operator scratch/context remains untracked in
-  `ARCHITECTURE-AUDIT.md`, `GOAL-8H.md`, `GOAL.md`, `docs/audit/`,
-  `docs/audits/`, and this goal document until it is intentionally added.
-- Treat dirty operator files as user/workspace context unless a later goal
-  explicitly owns them.
-- `docs/audits/*` and `docs/audit/new-audit-*.md` are raw audit inputs, not
-  active product truth by themselves.
+  regression tests.
+- Root `GOAL.md` is a pointer only. Historical root-level inputs are quarantined
+  in `docs/audit/raw/`.
+- `docs/audits/*`, `docs/audit/new-audit-*.md`, and `docs/audit/raw/*` are raw
+  audit inputs, not active product truth by themselves.
 - No active `.agents/skills/grill-with-docs/` directory is present in the
   current workspace; Stage 4 resolved it by keeping `$kanon`, `$pilnuj`, and
   `$review` as the accepted replacement lanes.
@@ -52,8 +50,9 @@ to actual repo truth or recorded target-adoption friction.
   approval.
 - Do not convert raw audit prose directly into canon. First classify each claim
   against current repo truth.
-- Do not overwrite `GOAL.md`, `GOAL-8H.md`, or other operator scratch files
-  unless the operator explicitly assigns them as owned files.
+- Do not turn root-level operator scratch files into active truth. Keep root
+  `GOAL.md` as a pointer; put local scratch in ignored `GOAL.local.md` or
+  historical raw input under `docs/audit/raw/` only after explicit approval.
 - Prefer docs/spec/tests around existing workflows before any runtime code.
 - Every accepted change must have a validation command and a residual-risk note.
 

@@ -23,6 +23,8 @@ operating state, proof boundaries, skill workflow, and next safe slice.
 5. The specific canonical doc/spec for the next extension task.
 
 Do not rely on chat memory alone. Reinspect current files before editing.
+Root `GOAL.md` is a pointer only; historical root-level goal and audit inputs
+live under `docs/audit/raw/`.
 
 ## Current Goal State
 
@@ -165,7 +167,7 @@ Use this table to avoid growing duplicate truth while this goal is active.
 | Contract / Truth | Canonical file | Secondary or historical files | Condensation rule |
 | --- | --- | --- | --- |
 | Goal status and recovery | `docs/product/audit-consolidation-goal-2026-06-18.md`; this ledger | Chat context and temporary summaries | Reinspect files before acting; do not treat chat memory as current proof. |
-| Raw audit intake | `docs/product/audit-consolidation-goal-2026-06-18.md` | `docs/audits/*`, `docs/audit/new-audit-*.md` | Raw audits stay historical input until condensed into a canon/spec/ADR/product doc. |
+| Raw audit intake | `docs/product/audit-consolidation-goal-2026-06-18.md` | `docs/audits/*`, `docs/audit/new-audit-*.md`, `docs/audit/raw/*`; root `GOAL.md` is a pointer only | Raw audits and historical root inputs stay historical until condensed into a canon/spec/ADR/product doc. |
 | Product north star and daily flows | `docs/product/daily-work-model.md`; concise status in `docs/product/mvp-state.md` | Backlog references | Do not duplicate flow contracts elsewhere; link to the model. |
 | Governed memory | `docs/specs/memory.schema.md` | `docs/product/evidence-matrix.md` for proof status; Codex personal `MEMORY.md` is outside KRN truth | First governed context-recall usefulness proof exists; target-workflow outcome impact still needs Stage 9 re-audit. |
 | Daily ledger and static cockpit readiness | `docs/product/operator-console.md`; ADR-0014 for dashboard-lite boundary | Operator-summary/report specs as input contracts | Keep cockpit as artifact-viewer readiness, not implementation. |

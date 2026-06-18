@@ -134,7 +134,7 @@ Implementation stop conditions:
 
 - Stage 9 target repeats are still missing;
 - Stage 10 same-authority comparison is still missing;
-- memory usefulness remains unproven;
+- memory usefulness beyond governed context recall remains unproven;
 - reviewer usefulness beyond deterministic local records remains unproven;
 - operator-summary usefulness beyond first deterministic artifact remains
   unproven;

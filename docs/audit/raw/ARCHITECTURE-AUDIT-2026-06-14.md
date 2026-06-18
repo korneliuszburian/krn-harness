@@ -1,3 +1,9 @@
+> RAW / HISTORICAL INPUT.
+>
+> This is not active architecture canon and not the current roadmap. Current
+> active goal pointer: `GOAL.md`. Current audit-consolidation goal:
+> `docs/product/audit-consolidation-goal-2026-06-18.md`.
+
 # KRN Harness — Deep Architectural & Code Review Report
 
 > Repo: `/home/krn/coding/krn/krn-harness`
