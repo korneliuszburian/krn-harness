@@ -15,6 +15,22 @@ and whether an ADR follow-up is needed.
 
 Use this when turning research, external docs, prior discussion, or architectural reasoning into durable KRN Harness canon.
 
+## Scope
+
+Job: convert evidence into concise active project truth.
+
+Use when:
+- updating specs, ADRs, security docs, research-backed architecture, or canon;
+- deciding what raw research, audit prose, or prior discussion means for KRN.
+
+Do not use when:
+- the work is pure implementation without a canon/spec/ADR decision;
+- the user wants raw research collection only;
+- the change would dump unfiltered notes into active docs.
+
+Stop when evidence is missing, the decision needs an ADR but none is owned, or
+the proposed truth would expand beyond documented P0/P1 scope.
+
 ## Workflow
 
 1. Separate raw research from active truth.

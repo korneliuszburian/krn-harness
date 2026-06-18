@@ -15,6 +15,24 @@ known gaps, P0 scope status, and the next concrete `/goal`.
 
 Use this to prepare KRN Harness work for external review and safe continuation.
 
+## Scope
+
+Job: produce a concise review-ready closeout or continuation summary.
+
+Use when:
+- non-trivial KRN work is complete enough to summarize for review;
+- context is about to compact, a session is ending, or another reviewer needs
+  exact changed files, validation, gaps, and next action.
+
+Do not use when:
+- work is still being designed or implemented;
+- the user asks for an evidence audit with pass/fail judgment, which belongs to
+  `$review`;
+- the response can be a simple direct answer.
+
+Stop when validation evidence is missing, changed files are unclear, or the
+handoff would imply production proof or hook trust from local evidence.
+
 ## Workflow
 
 1. Summarize what changed and why.

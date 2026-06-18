@@ -14,6 +14,22 @@ proof, and residual risk before any final handoff.
 
 Use this as the default operating loop for substantial KRN Harness work.
 
+## Scope
+
+Job: turn a clear KRN Harness task into a verified delivery slice.
+
+Use when:
+- the work is non-trivial, multi-step, architectural, or implementation-facing;
+- Codex should move from intent to changed files plus validation evidence.
+
+Do not use when:
+- the user asks for read-only review, planning, or a direct answer only;
+- the task is a narrow docs/test/code slice that already fits `$wycinek`;
+- the task is mainly canon/spec/ADR distillation, which belongs to `$kanon`.
+
+Stop when the request lacks success criteria, requires unaccepted architecture,
+or would broaden P0/P1 scope without an explicit goal.
+
 ## Workflow
 
 1. Frame the outcome as acceptance criteria and proof level.

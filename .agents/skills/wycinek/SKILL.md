@@ -15,6 +15,23 @@ commands, and a stop condition for unaccepted architecture.
 
 Use this to implement KRN Harness in small measurable vertical slices.
 
+## Scope
+
+Job: deliver one small measurable code/docs/test slice after scope is clear.
+
+Use when:
+- editing TypeScript packages, CLI commands, schemas, trace, graph, context,
+  doctor, verify, eval fixtures, or focused docs/tests;
+- acceptance and proof commands can be named before editing.
+
+Do not use when:
+- the work needs architecture classification first, which belongs to `$pilnuj`;
+- the work is broad multi-step delivery coordination, which belongs to `$buduj`;
+- the work is only final evidence audit, which belongs to `$review`.
+
+Stop when the slice expands beyond the owned files, needs an unaccepted
+dependency or surface, or cannot be verified with focused local evidence.
+
 ## Workflow
 
 1. Define one small outcome.

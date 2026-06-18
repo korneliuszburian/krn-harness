@@ -16,6 +16,23 @@ scope boundaries, and the narrowest accepted slice.
 
 Use this to prevent P0 scope creep, overengineering, and architectural drift.
 
+## Scope
+
+Job: classify scope and enforce the narrowest accepted architecture boundary.
+
+Use when:
+- work touches package boundaries, runtime model, hooks, context, graph, memory,
+  evals, MCP, dashboard, multi-agent behavior, roadmap, or architecture;
+- a proposed slice may hide P1/P2/P3 complexity inside P0 work.
+
+Do not use when:
+- the task is already a small implementation detail with settled scope;
+- the user asks for final evidence review, which belongs to `$review`;
+- the work would require inventing architecture instead of classifying it.
+
+Stop when the slice requires forbidden P0 scope, lacks ADR/spec rationale for an
+architecture change, or cannot be narrowed without user approval.
+
 ## Workflow
 
 1. Classify the requested work as P0, P1, P2, P3, or rejected.
