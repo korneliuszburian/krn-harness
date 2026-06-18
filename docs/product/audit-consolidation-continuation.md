@@ -169,9 +169,9 @@ Use this table to avoid growing duplicate truth while this goal is active.
 | Goal status and recovery | `docs/product/audit-consolidation-goal-2026-06-18.md`; this ledger | Chat context and temporary summaries | Reinspect files before acting; do not treat chat memory as current proof. |
 | Raw audit intake | `docs/product/audit-consolidation-goal-2026-06-18.md` | `docs/audits/*`, `docs/audit/new-audit-*.md`, `docs/audit/raw/*`; root `GOAL.md` is a pointer only | Raw audits and historical root inputs stay historical until condensed into a canon/spec/ADR/product doc. |
 | Product north star and daily flows | `docs/product/daily-work-model.md`; concise status in `docs/product/mvp-state.md` | Backlog references | Do not duplicate flow contracts elsewhere; link to the model. |
-| Governed memory | `docs/specs/memory.schema.md` | `docs/product/evidence-matrix.md` for proof status; Codex personal `MEMORY.md` is outside KRN truth | First governed context-recall usefulness proof exists; target-workflow outcome impact still needs Stage 9 re-audit. |
+| Governed memory | `docs/specs/memory.schema.md` | `docs/product/evidence-matrix.md` for proof status; Codex personal `MEMORY.md` is outside KRN truth | First governed context-recall usefulness proof exists; Stage 9 reused the approved wrapper-first memory only as reference-only workflow guidance; comparative target-workflow outcome impact remains Stage 10 work. |
 | Daily ledger and static cockpit readiness | `docs/product/operator-console.md`; ADR-0014 for dashboard-lite boundary | Operator-summary/report specs as input contracts | Keep cockpit as artifact-viewer readiness, not implementation. |
-| Stage 9/10 target adoption and comparison | `docs/product/target-adoption-playbook.md` | `docs/product/evidence-matrix.md` for proof status | Approval packets are readiness only until approved target artifacts exist. |
+| Stage 9/10 target adoption and comparison | `docs/product/target-adoption-playbook.md` | `docs/product/evidence-matrix.md` for proof status; `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` | Stage 9 approved target artifacts exist; Stage 10 approval packets remain readiness only until same-authority baseline artifacts exist. |
 | Frontend visual proof metadata | `docs/specs/task-contract.schema.md`; `packages/task-contract/src/schema.ts` | `docs/product/target-adoption-playbook.md` for target-owned visual gates; `docs/product/evidence-matrix.md` for proof status | Visual metadata is contract/readiness only; never promote it to rendered proof, screenshot proof, Stage 9/10 evidence, or production proof without approved target artifacts. |
 | Delegation/worktree protocol | `docs/product/subagent-contracts.md` | Official Codex subagent/worktree docs | Delegation remains human-approved isolated work, not a KRN swarm. |
 | Evidence status | `docs/product/evidence-matrix.md` | Handoffs and raw run artifacts | Matrix records current proof status; do not promote local evidence to production proof. |
@@ -180,22 +180,24 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 ## Next Safe Slice
 
-Recommended next slice: Stage 9 target-evidence preparation.
+Recommended next slice: Stage 10 same-authority baseline comparison preparation.
 
 Owned areas:
 
 - `docs/product/audit-consolidation-goal-2026-06-18.md` and this ledger for
   status only;
-- target-adoption approval packet drafts only after explicit operator target
-  selection;
+- Stage 10 baseline comparison packet drafts only after explicit operator
+  approval;
 - reuse `memory-9ea13b133ba2` only as reference-only context unless a later
   approved task explicitly re-audits target-workflow effect.
 
 Acceptance:
 
-- no new source surface before checking whether the goal can close;
+- no new source surface before checking whether the goal can close after Stage
+  10;
 - EXT-003 source and first governed context-recall evidence are complete;
-- Stage 9/10 remain open until approved isolated target artifacts exist;
+- Stage 9 local target evidence is complete;
+- Stage 10 remains open until approved same-authority baseline artifacts exist;
 - no generated screenshots, appshots, browser captures, or Codex-managed
   snapshots become proof.
 
@@ -209,11 +211,12 @@ Proof:
 
 Residual risk:
 
-- the next real progress requires operator-approved target evidence; local source
-  docs and memory recall proof cannot close Stage 9/10.
+- the next real progress requires operator-approved same-authority comparison
+  evidence; local source docs, memory recall proof, and Stage 9 local target
+  proof cannot close Stage 10.
 
 ## Completion Gate Reminder
 
 Do not mark the active goal complete until current evidence proves every
-requirement in the completion audit. In particular, Stage 9, Stage 10, and
+requirement in the completion audit. In particular, Stage 10 and comparative
 target-workflow outcome evidence remain open.

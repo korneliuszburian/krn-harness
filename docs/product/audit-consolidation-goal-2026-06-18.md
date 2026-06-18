@@ -481,14 +481,28 @@ Current Stage 9 audit:
 - Existing evidence also proves one `marketing-intelligence-studio` fast
   quality-gate repeat and one `krn-ai-os` runtime-dir proof, but those are not
   two additional post-hardening product-code/test-code mutation tasks.
-- Stage 9 therefore remains incomplete until two approved, non-protected,
-  isolated target product-code/test-code tasks are run with structured
-  boundaries and `krn run --task-spec ... --execute-verify --bundle`.
-- Do not mutate target repositories to satisfy this stage without explicit
-  operator approval and target selection.
-- Before any Stage 9 run, prepare the Stage 9/10 pre-run approval packet from
-  `docs/product/target-adoption-playbook.md`, using its packet template; the
-  packet is readiness evidence only and does not count as target-run proof.
+- 2026-06-18 update: Stage 9 is now satisfied by two approved, non-protected,
+  isolated target product-code/test-code tasks run with structured boundaries
+  and `krn run --task-spec ... --execute-verify --bundle`.
+- Evidence lives in
+  `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`.
+- Target A: `korneliuszburian/krn-llm-wiki`, isolated path
+  `/tmp/krn-stage9-llm-wiki-20260618-214155`, base commit
+  `19e6f220b8d05fcf3e2947a8d48116c5d953e8ca`, task spec
+  `.krn/local/stage9-llm-wiki-status-safety-boundaries.json`, run status
+  `verified`, verify `pass`/`execute`, target validation
+  `python3 tools/check_all_readonly.py`, coverage `full-suite`.
+- Target B: `korneliuszburian/marketing-intelligence-studio`, isolated path
+  `/tmp/krn-stage9-marketing-intelligence-studio-20260618-214155`, base commit
+  `24197d255adaf8493887b2f6cb345990d1cc268d`, task spec
+  `.krn-harness/local/stage9-marketing-brief-review-gate.json`, run status
+  `verified`, verify `pass`/`execute`, target validation
+  `python3 tools/krn_stage9_check_brief_templates.py`, coverage
+  `fast-quality-gate`.
+- Both runs kept `productionProof: false` and `hookTrustStatus: unproven`; no
+  target push, merge, PR, protected-data access, browser evidence, screenshot,
+  appshot, dashboard, vector, MCP, subagent, publishing, or Stage 10 baseline
+  run was performed.
 - Source-side preflight hardening is in place: deterministic review fails
   `boundaries.targetValidation` task specs that omit expected touched files,
   forbidden touched files, rollback, no-push, no-merge, target approval, an
@@ -611,24 +625,26 @@ The repo is in a stronger state when all of the following are true:
 ## Current Completion Audit
 
 This audit is a current-state check, not a completion claim. Source-side
-hardening has made the goal materially stronger, but Stage 9 and Stage 10 still
-need explicit operator-approved target evidence before the full goal can close.
-EXT-003 now has first governed context-recall usefulness evidence, but target
-workflow outcome impact remains to be re-audited during Stage 9.
+hardening plus Stage 9 target evidence have made the goal materially stronger,
+but Stage 10 still needs explicit operator-approved same-authority comparison
+evidence before the full goal can close. EXT-003 now has first governed
+context-recall usefulness evidence; Stage 9 reused the wrapper-first memory as
+reference-only workflow guidance, but comparative target-workflow outcome impact
+remains open until Stage 10.
 
 | Requirement | Current status | Evidence | Remaining work |
 | --- | --- | --- | --- |
 | Original external audits are represented by a claim matrix. | Satisfied | Audit Claim Matrix in this document covers `A1` and `A2`. | Keep future raw audit notes out of active canon until distilled. |
 | Later raw audit inputs are bounded before they affect roadmap language. | Satisfied for `docs/audit/new-audit-001.md` and `docs/audit/new-audit-002.md`. | New Audit Intake 2026-06-18 records them as raw strategic audit input, condensed audit data, strict implementation rules, and current-goal extension tasks only. | Do not treat later audit prose as active canon or Stage 9/10 proof without a new classified intake. |
-| New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; target-evidence gaps remain. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and `docs/product/evidence-matrix.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, and `docs/product/mvp-state.md` carries the north-star wording. | Finish Stage 9/10 approved target evidence. Do not treat source-side visual metadata or memory context recall as rendered proof, target outcome proof, production proof, or hook trust. |
+| New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; Stage 9 target evidence satisfied; Stage 10 remains open. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and `docs/product/evidence-matrix.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records the two approved isolated target runs, and `docs/product/mvp-state.md` carries the north-star wording. | Finish Stage 10 approved same-authority comparison evidence. Do not treat source-side visual metadata, memory context recall, or Stage 9 local target evidence as rendered proof, production proof, hook trust, CI proof, or comparative outcome proof. |
 | Active docs no longer contradict the audit classification. | Satisfied for source-side claims. | Stage 0-8 results; `docs/product/evidence-matrix.md`; `docs/product/target-adoption-playbook.md`; `docs/specs/task-contract.schema.md`; `docs/specs/run-result.schema.md`. | Recheck after Stage 9/10 target evidence changes source truth. |
 | `grill-with-docs` is resolved. | Satisfied. | Stage 4 result; no active `.agents/skills/grill-with-docs/` directory. | None unless a future goal explicitly creates a new build-time skill through `$skill-creator`. |
 | `$review` has proven closeout value or a narrower documented role. | Satisfied. | `docs/product/reviewers.md`; `.agents/skills/review/SKILL.md`; deterministic review tests. | Re-evaluate usefulness after real target repeats. |
-| Target validation boundaries are explicit enough to avoid wrapper theater. | Satisfied for source contract. | `boundaries.targetValidation`; adoption playbook wrapper limits; deterministic review checks. | Stage 9 must use the contract on two approved target tasks. |
+| Target validation boundaries are explicit enough to avoid wrapper theater. | Satisfied for source contract and Stage 9 target evidence. | `boundaries.targetValidation`; adoption playbook wrapper limits; deterministic review checks; `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`. | Re-audit after Stage 10 comparison, especially wrapper cost/noise. |
 | Task specs can carry critical target-proof boundaries. | Satisfied for source contract. | Task-contract schema/docs and review checks for touched files, rollback, no-push, no-merge, target approval, approval reference, target isolation, and protected-data exclusion. | Future additions require a new target finding. |
 | Run-result semantics separate core verdict from supporting projection. | Satisfied. | `coreStatus`, `supportingProjection`, proof-scope fields, and run-command tests. | Keep report/release-check language from becoming production readiness. |
 | At least one later hardening slice is validated with source tests. | Satisfied. | Docs regression plus CLI/task-contract tests for Stages 5-8. | Continue reporting exact validation in handoffs. |
-| Later real target repeats still use `krn run` as the primary workflow. | Incomplete. | Current Stage 9 audit shows only one qualifying isolated product-code/checker run; the pre-run approval packet template is documented but is readiness evidence only. | Fill approval packets with target-isolation boundaries, then run two approved, non-protected, isolated product-code/test-code tasks through `krn run --task-spec ... --execute-verify --bundle`. |
+| Later real target repeats still use `krn run` as the primary workflow. | Satisfied for Stage 9. | `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; target run-results and run-bundle manifests in isolated `.krn/current/*` and `.krn-harness/current/*`. | Stage 10 still needs a same-authority baseline comparison; do not treat Stage 9 as comparative outcome proof. |
 | Stage 10 measures KRN against a simpler same-authority baseline. | Incomplete. | Current Stage 10 audit says fixture-only baseline evidence is insufficient; the baseline packet fields are documented but no approved target baseline is recorded. | Record an approved target-run baseline with the same task class and target validation authority. |
 | Production proof and hook trust remain unclaimed. | Satisfied as a boundary. | `productionProof: false`; hook trust unproven in evidence docs and run-result schema. | Do not upgrade either claim without a separate approved proof goal. |
 | Runtime artifacts and protected data are not committed. | Satisfied for the current source slice. | `git ls-files .krn .krn-harness` check; protected-data exclusion boundaries. | Re-run before any closeout or commit. |
