@@ -44,6 +44,21 @@ Bias toward caution over speed; use judgment for trivial tasks.
 - Make surgical changes: touch only files needed for the request, match local style, and clean up only unused code created by your change.
 - Execute against clear success criteria: for multi-step work, define the verification loop before editing and keep working until the agreed checks pass or a blocker is explicit.
 
+## Code creation rules
+
+- Start from repo truth: read this file, the active goal or task, and the relevant docs/specs/ADRs before changing code.
+- Build one vertical slice at a time: task contract, context, runtime behavior, verification, and handoff evidence should move together when the slice requires them.
+- Keep code TypeScript-first, typed, and package-boundary aware; reuse local helpers and schemas before adding abstractions.
+- Add abstractions only when they remove real duplication, enforce a contract, or match an established package pattern.
+- Do not add dependencies, command surfaces, runtime storage, external services, or generated artifact formats without an explicit docs/spec/ADR reason.
+- Do not smuggle P1+ product surface into P0: dashboard, MCP, vector/embedding, subagent orchestration, browser evidence, production runner, publishing, and hook-trust features stay blocked unless separately approved.
+- Treat target repositories as external evidence surfaces: use isolated clones/worktrees, target-owned validation, explicit approvals, no protected data, no target-main mutation, no push, no merge, and no PR unless the operator explicitly approves that action.
+- Do not commit generated runtime or proof artifacts such as `.krn/`, `.krn-harness/`, `/tmp` target outputs, screenshots, appshots, browser captures, or placeholder evidence.
+- Never upgrade local evidence into production proof, CI proof, hook trust, target-main approval, or broad adoption proof.
+- Governed KRN memory and Codex personal memory are separate; KRN memory may enter context only through the repo-defined governed memory path and only as allowed by the task.
+- Tests must match risk: code/schema/parser/generated-artifact changes need focused tests plus relevant gates; docs-only changes need docs hygiene checks and do not need invented tests.
+- Every closeout must list changed files, exact validation commands and results, proof status, known gaps, and the next concrete action.
+
 ## P0 scope
 
 P0 may include:

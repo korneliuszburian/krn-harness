@@ -25,6 +25,8 @@ operating state, proof boundaries, skill workflow, and next safe slice.
 Do not rely on chat memory alone. Reinspect current files before editing.
 Root `GOAL.md` is a pointer only; historical root-level goal and audit inputs
 live under `docs/audit/raw/`.
+For code creation rules, `AGENTS.md` is the canonical repo-level operating
+contract. Do not duplicate or weaken those rules inside this ledger.
 
 ## Current Goal State
 
@@ -129,6 +131,8 @@ not to invent targets or run a weaker proof.
 
 ## Non-Negotiable Proof Boundaries
 
+- Before code changes, follow `AGENTS.md` code creation rules as the active
+  repo-level implementation contract.
 - No generated screenshots, appshots, browser captures, Codex-managed worktree
   snapshots, or visual snapshots as proof in this goal.
 - No string-level tests for docs-only wording.
