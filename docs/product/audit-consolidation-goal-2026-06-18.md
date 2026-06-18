@@ -568,6 +568,60 @@ Current Stage 10 audit:
   outcome dimensions. This is only a readiness checklist, not Stage 10 evidence
   until an approved target run records both the simpler baseline and the KRN
   comparison.
+
+Stage 10 resume packet:
+
+- Approval ref to use after operator `goal resume`:
+  `operator-2026-06-18-stage10-raw-vs-krn-sibling-tasks`.
+- Target: `korneliuszburian/marketing-intelligence-studio`.
+- Base commit: use the current remote `main` base commit at execution time and
+  record the exact SHA before cloning. Do not reuse the Stage 9 `/tmp` clones.
+- Method: create two fresh isolated clones from the same base commit.
+- Task class: two equivalent tiny non-UI sibling tasks in the same
+  brief-template / review-gate module family.
+- Raw Codex baseline:
+  - use repo `AGENTS.md`/`README.md` and target-owned validation only;
+  - do not use KRN task-spec, KRN context package, KRN review, KRN report, KRN
+    bundle, KRN memory, or `.krn` artifact pipeline;
+  - record prompt, changed files, commands, validation result, retries,
+    interventions, scope violations, protected-path incidents,
+    false-done/overclaim events, and time to reviewable evidence.
+- Codex+KRN comparison:
+  - use a separate fresh clone from the same base commit;
+  - use the equivalent sibling task, not the exact raw task repeated;
+  - use the same target validation authority as the raw baseline;
+  - run `krn run --task-spec ... --execute-verify --bundle`;
+  - include expected touched files, forbidden paths, rollback, `noPush: true`,
+    `noMerge: true`, target isolation, target approval reference, and
+    protected-data exclusion;
+  - use `memory-9ea13b133ba2` only as reference-only context if task-relevant;
+  - do not broaden KRN verify allowlists.
+- Pre-register both task prompts, expected touched files, forbidden touched
+  files, validation authority, success criteria, and comparison dimensions
+  before either run.
+- Contamination risk to record: same operator, same target/module class, and
+  sequential execution can transfer learning from the raw baseline into the KRN
+  comparison. Mitigation: both tasks and acceptance criteria are pre-registered
+  before execution.
+- Global constraints:
+  - no target push, merge, PR, or target-main mutation;
+  - no protected data or protected-looking paths;
+  - no production proof, hook trust proof, CI proof, target-main approval, or
+    market/product superiority claim;
+  - no screenshots, appshots, browser captures, dashboards, vectors, MCP
+    surfaces, subagent runs, publishing artifacts, or placeholder evidence.
+- Required closeout:
+  - comparison packet with `comparisonId`, target repo, base commit, both
+    isolated paths, task class, validation authority, raw baseline result, KRN
+    result, changed files, validation results, retries, interventions,
+    scope/claim incidents, review usefulness, artifact auditability, memory
+    reuse if any, repeated mistakes avoided or repeated, and time to auditable
+    proof;
+  - decision: `meaningfulDelta: true | false | unclear`;
+  - exact dimensions where KRN helped, hurt, or added noise;
+  - explicit statement that Stage 10 evidence is local comparison evidence
+    only, not production proof, hook trust proof, CI proof, or target-main
+    approval.
 - If that comparison shows no meaningful delta, product scope should narrow
   instead of adding surfaces.
 

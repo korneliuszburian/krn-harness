@@ -182,6 +182,37 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 Recommended next slice: Stage 10 same-authority baseline comparison preparation.
 
+Operator may resume with:
+
+```text
+APPROVED: Stage 10 same-authority comparison only.
+
+Approval ref: operator-2026-06-18-stage10-raw-vs-krn-sibling-tasks.
+
+Use korneliuszburian/marketing-intelligence-studio with two fresh isolated
+clones from the same current remote main base commit.
+
+Run one Raw Codex baseline and one Codex+KRN comparison using two equivalent
+tiny non-UI sibling tasks in the same brief-template / review-gate task class.
+Pre-register both task prompts, expected touched files, forbidden touched
+files, target validation authority, success criteria, contamination risk, and
+comparison dimensions before either run.
+
+Raw baseline: no KRN task-spec, context package, review, report, bundle, memory,
+or .krn artifact pipeline. Use repo instructions and target-owned validation
+only.
+
+KRN comparison: use krn run --task-spec ... --execute-verify --bundle with the
+same target validation authority, structured boundaries, and
+memory-9ea13b133ba2 only as reference-only context if task-relevant.
+
+Do not push, merge, open PRs, mutate target main, touch protected data, broaden
+verify allowlists, claim production proof/hook trust/CI proof/target-main
+approval, or create screenshots, appshots, browser captures, dashboards,
+vectors, MCP surfaces, subagent runs, publishing artifacts, or placeholder
+evidence.
+```
+
 Owned areas:
 
 - `docs/product/audit-consolidation-goal-2026-06-18.md` and this ledger for
