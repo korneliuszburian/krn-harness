@@ -23,8 +23,9 @@ Runtime validation lives in `packages/task-contract/src/schema.ts`.
   `boundaries.targetValidation` may declare a target-owned validation command,
   coverage level, reason, limitations, and unsafe conditions. Deterministic
   review checks that the declared command is configured and executed in verify
-  evidence, fails when target-run boundaries are incomplete, and warns when
-  coverage is narrower than `full-suite`. Target-run proof must also carry
+  evidence, fails when target-run boundaries are incomplete, fails Python
+  `tools/*.py` wrappers that omit limitations or unsafe conditions, and warns
+  when coverage is narrower than `full-suite`. Target-run proof must also carry
   `boundaries.targetApproval.required: true`, an `approvalRef`, and
   `boundaries.targetIsolation.isolated: true`,
   `boundaries.targetIsolation.sourceCheckoutRejected: true`, and
@@ -61,8 +62,12 @@ Required now:
   `smoke`, or `lint-only`.
 - `boundaries.targetValidation.reason`: non-empty explanation of why the target
   command is meaningful for this task.
-- `boundaries.targetValidation.limitations`: optional non-empty string array.
-- `boundaries.targetValidation.unsafeIf`: optional non-empty string array.
+- `boundaries.targetValidation.limitations`: optional non-empty string array;
+  deterministic review requires it for wrapper commands such as
+  `python3 tools/*.py`.
+- `boundaries.targetValidation.unsafeIf`: optional non-empty string array;
+  deterministic review requires it for wrapper commands such as
+  `python3 tools/*.py`.
 - `boundaries.rollback.boundary`: optional non-empty rollback boundary text.
 - `boundaries.noPush`: optional literal `true`; false is invalid.
 - `boundaries.noMerge`: optional literal `true`; false is invalid.

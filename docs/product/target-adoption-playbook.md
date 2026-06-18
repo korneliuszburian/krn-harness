@@ -295,6 +295,10 @@ following are true:
 - the handoff records the wrapper's authority, coverage, limitations, and
   unsafe conditions through `targetValidation`.
 
+Deterministic review fails `python3 tools/*.py` wrapper proof when
+`targetValidation.limitations` or `targetValidation.unsafeIf` is missing. This
+keeps wrappers as explicit adoption adapters instead of hidden proof theater.
+
 A wrapper is an evidence smell when it hides a failing full suite, broadens the
 validated surface beyond the task, requires protected data, or becomes the only
 reason the target appears compatible with KRN.

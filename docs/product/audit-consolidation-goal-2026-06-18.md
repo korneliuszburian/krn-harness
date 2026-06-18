@@ -373,7 +373,9 @@ Stage 5 result:
 - `boundaries.targetValidation` carries validation authority, command,
   coverage, rationale, limitations, and unsafe conditions for target-run proof.
 - Python wrapper use is accepted only as a narrow target-owned adapter with
-  explicit coverage and limitations.
+  explicit coverage, limitations, and unsafe conditions.
+- Deterministic review now fails `python3 tools/*.py` wrapper proof when
+  limitations or unsafe conditions are missing.
 - No shell mode, broad allowlist, arbitrary target command approval, target
   push, or target merge was added.
 
@@ -612,6 +614,8 @@ Current Stage 10 audit:
 - Useful follow-up findings:
   - KRN needed wrapper/config overhead because verify policy correctly rejects
     broad Python module commands and shell chains.
+    A follow-up source slice now fails Python wrapper proof when
+    `targetValidation.limitations` or `targetValidation.unsafeIf` is missing.
   - KRN review surfaced fast-quality-gate and context over-inclusion caveats.
     A follow-up source slice now suppresses standalone graph doc-match noise for
     expected-file target tasks and reduced the Stage 10 isolated target context
@@ -782,18 +786,19 @@ Stage 10 local comparison evidence, EXT-011 skill hardening, and expected-file
 context high-risk hardening have made the goal materially stronger.
 Stage 10 shows a narrow auditability/proof-discipline delta, and the first
 follow-up source slices have reduced release-check target-run noise and
-expected-file context over-inclusion noise. Remaining findings are
-wrapper/config overhead and no measured memory outcome impact.
+expected-file context over-inclusion noise, and now fail wrapper proof that
+omits safety metadata. Remaining findings are residual wrapper/config overhead
+and no measured memory outcome impact.
 
 | Requirement | Current status | Evidence | Remaining work |
 | --- | --- | --- | --- |
 | Original external audits are represented by a claim matrix. | Satisfied | Audit Claim Matrix in this document covers `A1` and `A2`. | Keep future raw audit notes out of active canon until distilled. |
 | Later raw audit inputs are bounded before they affect roadmap language. | Satisfied for `docs/audit/new-audit-001.md` and `docs/audit/new-audit-002.md`. | New Audit Intake 2026-06-18 records them as raw strategic audit input, condensed audit data, strict implementation rules, and current-goal extension tasks only. | Do not treat later audit prose as active canon or Stage 9/10 proof without a new classified intake. |
-| New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; Stage 9 target evidence satisfied; Stage 10 local comparison evidence satisfied; first Stage 10 release-check source hardening slice satisfied; EXT-011 source-side skill hardening satisfied; Stage 10 expected-file context high-risk hardening satisfied. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and local comparison evidence in `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, EXT-011 has build-time skill workflow API hardening in `.agents/skills/*`, `.agents/skills/README.md`, and `docs/specs/build-time-skills.md`, `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records the two approved isolated target runs, `packages/cli/src/commands/release-check.ts` and `packages/cli/src/run-result-builder.ts` now classify approved isolated target runs as source-release not-applicable warning evidence, `packages/context/src/context-graph-selection.ts` now suppresses standalone graph doc-match noise for expected-file target tasks, and `docs/product/mvp-state.md` carries the north-star wording. | Harden remaining Stage 10 wrapper/config overhead without treating source-side visual metadata, memory context recall, Stage 9 local target evidence, Stage 10 local comparison evidence, EXT-011 skill hardening, or context high-risk hardening as rendered proof, production proof, hook trust, CI proof, target-main approval, memory outcome proof, or broad code-quality proof. |
+| New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; Stage 9 target evidence satisfied; Stage 10 local comparison evidence satisfied; first Stage 10 release-check source hardening slice satisfied; EXT-011 source-side skill hardening satisfied; Stage 10 expected-file context high-risk hardening satisfied; Stage 10 wrapper safety boundary hardening satisfied. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and local comparison evidence in `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, EXT-011 has build-time skill workflow API hardening in `.agents/skills/*`, `.agents/skills/README.md`, and `docs/specs/build-time-skills.md`, `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records the two approved isolated target runs, `packages/cli/src/commands/release-check.ts` and `packages/cli/src/run-result-builder.ts` now classify approved isolated target runs as source-release not-applicable warning evidence, `packages/context/src/context-graph-selection.ts` now suppresses standalone graph doc-match noise for expected-file target tasks, `packages/cli/src/commands/review.ts` now fails Python wrapper proof missing limitations or unsafe conditions, and `docs/product/mvp-state.md` carries the north-star wording. | Measure residual Stage 10 wrapper/config overhead without treating source-side visual metadata, memory context recall, Stage 9 local target evidence, Stage 10 local comparison evidence, EXT-011 skill hardening, context high-risk hardening, or wrapper safety hardening as rendered proof, production proof, hook trust, CI proof, target-main approval, memory outcome proof, or broad code-quality proof. |
 | Active docs no longer contradict the audit classification. | Satisfied for source-side claims. | Stage 0-8 results; `docs/product/evidence-matrix.md`; `docs/product/target-adoption-playbook.md`; `docs/specs/task-contract.schema.md`; `docs/specs/run-result.schema.md`. | Recheck after Stage 9/10 target evidence changes source truth. |
 | `grill-with-docs` is resolved. | Satisfied. | Stage 4 result; no active `.agents/skills/grill-with-docs/` directory. | None unless a future goal explicitly creates a new build-time skill through `$skill-creator`. |
 | `$review` has proven closeout value or a narrower documented role. | Satisfied. | `docs/product/reviewers.md`; `.agents/skills/review/SKILL.md`; deterministic review tests. | Re-evaluate usefulness after real target repeats. |
-| Target validation boundaries are explicit enough to avoid wrapper theater. | Satisfied for source contract, Stage 9 target evidence, and Stage 10 local comparison; wrapper overhead remains a measured adoption cost. | `boundaries.targetValidation`; adoption playbook wrapper limits; deterministic review checks; `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`. | Harden wrapper/noise findings without broadening verify allowlists. |
+| Target validation boundaries are explicit enough to avoid wrapper theater. | Satisfied for source contract, Stage 9 target evidence, Stage 10 local comparison, and first wrapper safety hardening; wrapper/config overhead remains a measured adoption cost. | `boundaries.targetValidation`; adoption playbook wrapper limits; deterministic review checks; `packages/cli/src/commands/review.ts`; `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`. | Measure residual wrapper/config overhead without broadening verify allowlists. |
 | Task specs can carry critical target-proof boundaries. | Satisfied for source contract. | Task-contract schema/docs and review checks for touched files, rollback, no-push, no-merge, target approval, approval reference, target isolation, and protected-data exclusion. | Future additions require a new target finding. |
 | Run-result semantics separate core verdict from supporting projection. | Satisfied. | `coreStatus`, `supportingProjection`, proof-scope fields, and run-command tests. | Keep report/release-check language from becoming production readiness. |
 | At least one later hardening slice is validated with source tests. | Satisfied. | Docs regression plus CLI/task-contract tests for Stages 5-8. | Continue reporting exact validation in handoffs. |
@@ -996,6 +1001,12 @@ Extension task progress:
   release files are absent. This removes source-release blockers from target
   runs without hiding the warning, broadening verify allowlists, or turning
   target-local evidence into release readiness.
+- 2026-06-18 Stage 10 wrapper safety hardening:
+  `packages/cli/src/commands/review.ts` now fails `python3 tools/*.py`
+  target-validation wrappers that omit `limitations` or `unsafeIf`.
+  `packages/cli/src/real-repo-review-summary.test.ts` covers both missing and
+  complete wrapper metadata. This keeps wrapper-first adoption explicit without
+  broadening verify allowlists or treating wrappers as production proof.
 - 2026-06-18 EXT-011 source-side skill hardening: `.agents/skills/*/SKILL.md`,
   `.agents/skills/README.md`, and `docs/specs/build-time-skills.md` now define
   build-time skills as small workflow APIs with explicit trigger/input/output,
@@ -1075,7 +1086,7 @@ Extension task progress:
   proof, hook-trust claim, or Stage 9/10 evidence was added.
 - 2026-06-18 continuation audit: `docs/product/audit-consolidation-continuation.md`
   now carries an evidence/state queue for the remaining current-goal work:
-  remaining Stage 10 wrapper/config hardening. Stage 9 is recorded as satisfied
+  residual Stage 10 wrapper/config overhead. Stage 9 is recorded as satisfied
   by `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; Stage 10 is
   recorded as local comparison evidence by
   `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`; EXT-003 is
@@ -1114,8 +1125,9 @@ active canon without condensation and validation.
 Proceed from Stage 10 findings, not from a new surface idea.
 
 Recommended order:
-1. Continue measuring Python wrapper/config overhead before broadening any
-   verify policy.
+1. Continue measuring residual Python wrapper/config overhead before broadening
+   any verify policy. Add another source change only if the remaining overhead
+   is concrete and testable.
 
 Forbidden:
 - no broad verify allowlist;

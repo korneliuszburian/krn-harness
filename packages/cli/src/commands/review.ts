@@ -123,6 +123,17 @@ function protectedLookingPath(filePath: string): boolean {
   );
 }
 
+function isPythonToolsWrapperCommand(command: string): boolean {
+  const [binary, script] = command.trim().split(/\s+/);
+  return (
+    binary === "python3" && script !== undefined && /^tools\/[A-Za-z0-9._/-]+\.py$/.test(script)
+  );
+}
+
+function hasNonEmptyValues(values: string[] | undefined): boolean {
+  return values !== undefined && values.length > 0;
+}
+
 function isDeclaredProtectedExclusion(item: {
   bucket?: string | undefined;
   source?: string | undefined;
@@ -337,6 +348,19 @@ function targetValidationBoundaryReview(
     );
   }
 
+  if (isPythonToolsWrapperCommand(boundary.command)) {
+    if (!hasNonEmptyValues(boundary.limitations)) {
+      failFindings.push(
+        `target validation wrapper command is missing limitations: ${boundary.command}`,
+      );
+    }
+    if (!hasNonEmptyValues(boundary.unsafeIf)) {
+      failFindings.push(
+        `target validation wrapper command is missing unsafe conditions: ${boundary.command}`,
+      );
+    }
+  }
+
   if (boundary.coverage !== "full-suite") {
     warningFindings.push(`target validation coverage is ${boundary.coverage}, not full-suite`);
   }
@@ -349,6 +373,7 @@ function targetValidationBoundaryReview(
       : [
           "Align task-spec target validation boundaries with configured and executed verify evidence.",
           "Add expected touched files, forbidden touched files, rollback, no-push, no-merge, target approval, target approval reference, target isolation, and protected data boundaries before target-run proof.",
+          "Add targetValidation limitations and unsafeIf entries before using Python tools wrappers as target proof.",
           "Do not claim full-suite target validation unless task-spec coverage is full-suite.",
         ];
 

@@ -49,12 +49,13 @@ Completed or source-hardened extension slices:
 | EXT-011 build-time skill quality hardening | Source-side skill/docs slice complete | `.agents/skills/*`, `.agents/skills/README.md`, `docs/specs/build-time-skills.md` | Build-time skills now expose trigger/input/output/escalation/proof/condensation contracts as small workflow APIs grounded in official Codex skills guidance and condensed Matt Pocock skill patterns; no new skill, copied skill pack, giant router, runtime template, or XML cargo cult was added. |
 | EXT-012 compaction continuation hook | Source/code slice complete | `packages/cli/src/continuation-state.ts`, `packages/cli/src/commands/hook.ts`, `packages/hooks/src/*`, `docs/specs/hooks-pack.md`, hook fixtures/tests | Official Codex `PreCompact` now writes local continuation state and `SessionStart` surfaces it as a restart anchor, while keeping hook trust unproven and `enforced: false`. |
 | Stage 10 expected-file context hardening | Source/code slice complete | `packages/context/src/context-graph-selection.ts`, `packages/context/src/build-context-package.test.ts`, `docs/specs/context-package.schema.md`, `docs/product/evidence-matrix.md` | Expected-file-focused target tasks now suppress standalone graph doc-match noise while keeping task-contract expected files, explicit task paths, do-not-use paths, package-owned selectors, and base safety context. The Stage 10 isolated target context recheck dropped from 93 items/65 reference-only/high risk to 13 items/1 reference-only/medium risk. |
+| Stage 10 wrapper safety boundary hardening | Source/code slice complete | `packages/cli/src/commands/review.ts`, `packages/cli/src/real-repo-review-summary.test.ts`, `docs/specs/task-contract.schema.md`, `docs/product/target-adoption-playbook.md` | Python `tools/*.py` target-validation wrappers now fail deterministic review when they omit limitations or unsafe conditions. This keeps wrapper-first adoption explicit without broadening verify allowlists. |
 
 Still open:
 
-- Stage 10 findings hardening: wrapper/config overhead remains open.
-  Target-run release-check/report noise and expected-file context
-  over-inclusion have first source fixes.
+- Stage 10 findings hardening: residual wrapper/config overhead remains open.
+  Target-run release-check/report noise, expected-file context over-inclusion,
+  and missing wrapper safety metadata have first source fixes.
 
 ## Evidence Request Queue
 
@@ -121,6 +122,9 @@ Follow-up findings:
 - release-check/report output was noisy in non-source target runs; a follow-up
   source fix now classifies approved isolated target runs as source-release
   not-applicable warning evidence instead of source-release blockers;
+- wrapper commands can become proof theater if they omit limitations or unsafe
+  conditions; a follow-up source fix now makes deterministic review fail
+  `python3 tools/*.py` target-validation wrappers that omit either field;
 - no governed memory item appeared in the target context package, so memory
   outcome impact remains unproven.
 
@@ -193,12 +197,12 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 ## Next Safe Slice
 
-Recommended next slice: remaining Stage 10 wrapper/config overhead hardening.
+Recommended next slice: residual Stage 10 wrapper/config overhead measurement.
 
 Operator may resume with:
 
 ```text
-APPROVED: source hardening from remaining Stage 10 wrapper/config overhead only.
+APPROVED: source hardening from residual Stage 10 wrapper/config overhead only.
 
 Start from current HEAD. Do not rerun Stage 9 or Stage 10 unless a later
 operator prompt explicitly asks for a new target comparison.
@@ -210,7 +214,8 @@ First inspect:
 
 Allowed slices:
 1. Continue measuring Python wrapper/config overhead before broadening any
-   verify policy.
+   verify policy. Do not add another source change unless a remaining overhead
+   finding is concrete and testable.
 
 Do not add dashboards, MCP, vectors, subagent runtime, browser proof,
 screenshots, appshots, publishing, broad verify allowlists, production proof,
@@ -235,6 +240,7 @@ Acceptance:
 - Stage 10 local comparison evidence is complete;
 - Stage 10 expected-file context high-risk over-inclusion has a first source
   fix and isolated target recheck;
+- Stage 10 wrapper safety metadata has a first deterministic review fix;
 - no generated screenshots, appshots, browser captures, or Codex-managed
   snapshots become proof.
 
@@ -248,14 +254,14 @@ Proof:
 
 Residual risk:
 
-- the next real progress must reduce remaining Stage 10 wrapper/config friction;
-  local comparison evidence must not be overclaimed as broad product
-  superiority.
+- the next real progress must reduce or explicitly bound residual Stage 10
+  wrapper/config friction; local comparison evidence must not be overclaimed as
+  broad product superiority.
 
 ## Completion Gate Reminder
 
 Do not mark the active goal complete until current evidence proves every
 requirement in the completion audit. Stage 10 local comparison evidence,
-EXT-011 source-side skill hardening, and expected-file context high-risk
-hardening exist, but remaining Stage 10 wrapper/config follow-up hardening is
-still open.
+EXT-011 source-side skill hardening, expected-file context high-risk hardening,
+and wrapper safety boundary hardening exist, but residual Stage 10
+wrapper/config overhead follow-up remains open.

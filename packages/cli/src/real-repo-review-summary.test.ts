@@ -410,6 +410,195 @@ describe("krn CLI review and operator summary", () => {
     );
   }, 20_000);
 
+  it("fails Python wrapper target validation without documented limits", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, "tools"), { recursive: true });
+    await writeFile(path.join(cwd, "tools", "check_quality.py"), "print('target pass')\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: ["python3 tools/check_quality.py"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, "task.json"),
+      JSON.stringify(
+        {
+          prompt: "Validate Python wrapper target proof safety metadata.",
+          expectedTouchedFiles: ["tools/check_quality.py"],
+          forbiddenTouchedFiles: [".env", ".git/**"],
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "python3 tools/check_quality.py",
+              coverage: "full-suite",
+              reason: "Target-owned wrapper calls the local quality gate.",
+            },
+            rollback: {
+              boundary: "No automatic rollback; discard the isolated checkout if invalid.",
+            },
+            noPush: true,
+            noMerge: true,
+            targetIsolation: {
+              isolated: true,
+              sourceCheckoutRejected: true,
+              isolatedPath: "/tmp/target-proof",
+              baseCommit: "fixture-base",
+              reason: "Target proof runs outside the source checkout.",
+            },
+            targetApproval: {
+              required: true,
+              approvalRef: "operator-approved-fixture-run",
+            },
+            protectedData: {
+              allowed: false,
+              paths: [".env"],
+              reason: "Protected data is outside this target proof.",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    for (const args of [
+      ["start", "--task-spec", "task.json"],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const verify = result.reviewers.find((item) => item.reviewer === "verify");
+
+    expect(verify).toMatchObject({ status: "fail" });
+    expect(verify?.findings).toEqual([
+      "target validation wrapper command is missing limitations: python3 tools/check_quality.py",
+      "target validation wrapper command is missing unsafe conditions: python3 tools/check_quality.py",
+    ]);
+    expect(result.blockers).toContain(
+      "target validation wrapper command is missing limitations: python3 tools/check_quality.py",
+    );
+    expect(result.blockers).toContain(
+      "target validation wrapper command is missing unsafe conditions: python3 tools/check_quality.py",
+    );
+  }, 20_000);
+
+  it("accepts Python wrapper target validation with documented limits", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, "tools"), { recursive: true });
+    await writeFile(path.join(cwd, "tools", "check_quality.py"), "print('target pass')\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: ["python3 tools/check_quality.py"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, "task.json"),
+      JSON.stringify(
+        {
+          prompt: "Validate complete Python wrapper target proof metadata.",
+          expectedTouchedFiles: ["tools/check_quality.py"],
+          forbiddenTouchedFiles: [".env", ".git/**"],
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "python3 tools/check_quality.py",
+              coverage: "fast-quality-gate",
+              reason: "Target-owned wrapper calls the local quality gate.",
+              limitations: ["Focused wrapper gate only; not production or CI proof."],
+              unsafeIf: [
+                "Invalid if it reads protected data, uses network, or hides full-suite failure.",
+              ],
+            },
+            rollback: {
+              boundary: "No automatic rollback; discard the isolated checkout if invalid.",
+            },
+            noPush: true,
+            noMerge: true,
+            targetIsolation: {
+              isolated: true,
+              sourceCheckoutRejected: true,
+              isolatedPath: "/tmp/target-proof",
+              baseCommit: "fixture-base",
+              reason: "Target proof runs outside the source checkout.",
+            },
+            targetApproval: {
+              required: true,
+              approvalRef: "operator-approved-fixture-run",
+            },
+            protectedData: {
+              allowed: false,
+              paths: [".env"],
+              reason: "Protected data is outside this target proof.",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    for (const args of [
+      ["start", "--task-spec", "task.json"],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const verify = result.reviewers.find((item) => item.reviewer === "verify");
+
+    expect(verify).toMatchObject({ status: "warn" });
+    expect(verify?.findings).toEqual([
+      "target validation coverage is fast-quality-gate, not full-suite",
+    ]);
+    expect(result.blockers).not.toContain(
+      "target validation wrapper command is missing limitations: python3 tools/check_quality.py",
+    );
+    expect(result.blockers).not.toContain(
+      "target validation wrapper command is missing unsafe conditions: python3 tools/check_quality.py",
+    );
+  }, 20_000);
+
   it("keeps dogfood reviewer findings focused when historical skips accumulate", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
 
