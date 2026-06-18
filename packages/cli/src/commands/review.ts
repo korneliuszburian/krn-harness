@@ -1,3 +1,5 @@
+import type { TaskContract } from "../../../task-contract/src/index.js";
+import type { VerifyResult } from "../../../verify/src/index.js";
 import {
   currentArtifactPathsFor,
   readRepoJson,
@@ -99,6 +101,13 @@ function aggregateStatus(records: ReviewRecord[]): ReviewStatus {
 
 function unique(values: string[]): string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function strongestStatus(left: ReviewStatus, right: ReviewStatus): ReviewStatus {
+  if (left === "blocked" || right === "blocked") return "blocked";
+  if (left === "fail" || right === "fail") return "fail";
+  if (left === "warn" || right === "warn") return "warn";
+  return "pass";
 }
 
 function protectedLookingPath(filePath: string): boolean {
@@ -284,9 +293,79 @@ async function contextReview(cwd: string): Promise<ReviewRecord> {
   });
 }
 
-async function verifyReview(cwd: string): Promise<ReviewRecord> {
+function targetValidationBoundaryReview(
+  verify: VerifyResult,
+  taskContract: TaskContract | undefined,
+): { status: ReviewStatus; findings: string[]; nextActions: string[] } {
+  const boundary = taskContract?.metadata?.boundaries?.targetValidation;
+  if (!boundary) {
+    return { status: "pass", findings: [], nextActions: [] };
+  }
+
+  const failFindings: string[] = [];
+  const warningFindings: string[] = [];
+  const commandConfigured = verify.configuredCommands.includes(boundary.command);
+  const metadata = taskContract?.metadata;
+  const targetApproval = metadata?.boundaries?.targetApproval;
+  const missingTargetRunBoundaries = [
+    ...(metadata?.expectedTouchedFiles && metadata.expectedTouchedFiles.length > 0
+      ? []
+      : ["expected touched files"]),
+    ...(metadata?.forbiddenTouchedFiles && metadata.forbiddenTouchedFiles.length > 0
+      ? []
+      : ["forbidden touched files"]),
+    ...(metadata?.boundaries?.rollback ? [] : ["rollback boundary"]),
+    ...(metadata?.boundaries?.noPush ? [] : ["no-push boundary"]),
+    ...(metadata?.boundaries?.noMerge ? [] : ["no-merge boundary"]),
+    ...(targetApproval ? [] : ["target approval boundary"]),
+    ...(targetApproval && !targetApproval.approvalRef ? ["target approval reference"] : []),
+    ...(metadata?.boundaries?.targetIsolation ? [] : ["target isolation boundary"]),
+    ...(metadata?.boundaries?.protectedData ? [] : ["protected data boundary"]),
+  ];
+
+  if (!commandConfigured) {
+    failFindings.push(`target validation command is not configured: ${boundary.command}`);
+  } else if (!verify.executedCommands.includes(boundary.command)) {
+    failFindings.push(`target validation command was not executed: ${boundary.command}`);
+  }
+
+  if (missingTargetRunBoundaries.length > 0) {
+    failFindings.push(
+      `target validation task spec is missing required target-run boundaries: ${missingTargetRunBoundaries.join(
+        ", ",
+      )}`,
+    );
+  }
+
+  if (boundary.coverage !== "full-suite") {
+    warningFindings.push(`target validation coverage is ${boundary.coverage}, not full-suite`);
+  }
+
+  const status: ReviewStatus =
+    failFindings.length > 0 ? "fail" : warningFindings.length > 0 ? "warn" : "pass";
+  const nextActions =
+    status === "pass"
+      ? []
+      : [
+          "Align task-spec target validation boundaries with configured and executed verify evidence.",
+          "Add expected touched files, forbidden touched files, rollback, no-push, no-merge, target approval, target approval reference, target isolation, and protected data boundaries before target-run proof.",
+          "Do not claim full-suite target validation unless task-spec coverage is full-suite.",
+        ];
+
+  return {
+    status,
+    findings: [...failFindings, ...warningFindings],
+    nextActions,
+  };
+}
+
+async function verifyReview(
+  cwd: string,
+  taskContract: TaskContract | undefined,
+): Promise<ReviewRecord> {
   const artifactPaths = currentArtifactPathsFor(cwd);
   const verify = await readCurrentVerifyResult(cwd);
+  const targetValidationBoundary = taskContract?.metadata?.boundaries?.targetValidation;
 
   if (!verify) {
     return record({
@@ -303,7 +382,7 @@ async function verifyReview(cwd: string): Promise<ReviewRecord> {
   const findings = verify.checks
     .filter((check) => check.status !== "pass")
     .map((check) => `${check.name}: ${check.detail}`);
-  const status: ReviewStatus =
+  const baseStatus: ReviewStatus =
     verify.status === "pass"
       ? "pass"
       : verify.status === "blocked"
@@ -311,16 +390,28 @@ async function verifyReview(cwd: string): Promise<ReviewRecord> {
         : verify.status === "warn" || verify.status === "not-runnable"
           ? "warn"
           : "fail";
+  const boundaryReview = targetValidationBoundaryReview(verify, taskContract);
+  const status = strongestStatus(baseStatus, boundaryReview.status);
 
   return record({
     reviewer: "verify",
     status,
     confidence: "high",
-    summary: `Verify status is ${verify.status} in ${verify.mode} mode.`,
-    evidence: [artifactPaths.verifyResult],
-    findings,
+    summary: targetValidationBoundary
+      ? `Verify status is ${verify.status} in ${verify.mode} mode. Task-spec target validation boundary was checked.`
+      : `Verify status is ${verify.status} in ${verify.mode} mode.`,
+    evidence: [
+      artifactPaths.verifyResult,
+      ...(targetValidationBoundary ? [artifactPaths.taskContract] : []),
+    ],
+    findings: [...findings, ...boundaryReview.findings],
     nextActions:
-      status === "pass" ? [] : ["Resolve verify findings before claiming task completion."],
+      status === "pass"
+        ? []
+        : unique([
+            "Resolve verify findings before claiming task completion.",
+            ...boundaryReview.nextActions,
+          ]),
   });
 }
 
@@ -391,17 +482,15 @@ export async function reviewCommand(args: string[], runtime: CliRuntime): Promis
     return 1;
   }
 
-  const [taskContract, records] = await Promise.all([
-    readCurrentTaskContract(runtime.cwd),
-    Promise.all([
-      safetyReview(runtime.cwd),
-      evidenceReview(runtime.cwd),
-      contextReview(runtime.cwd),
-      verifyReview(runtime.cwd),
-      handoffReview(runtime.cwd),
-      dogfoodReview(runtime.cwd),
-      releaseReview(runtime.cwd),
-    ]),
+  const taskContract = await readCurrentTaskContract(runtime.cwd);
+  const records = await Promise.all([
+    safetyReview(runtime.cwd),
+    evidenceReview(runtime.cwd),
+    contextReview(runtime.cwd),
+    verifyReview(runtime.cwd, taskContract),
+    handoffReview(runtime.cwd),
+    dogfoodReview(runtime.cwd),
+    releaseReview(runtime.cwd),
   ]);
   const blockers = unique(records.flatMap((item) => item.blockers));
   const warnings = unique(records.flatMap((item) => item.warnings));

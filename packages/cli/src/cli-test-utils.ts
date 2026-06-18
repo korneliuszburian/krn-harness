@@ -253,6 +253,7 @@ export interface ReleaseCheckFixture {
 export interface RunResultFixture {
   schema: string;
   status: string;
+  coreStatus: string;
   dryRun: boolean;
   executeVerify: boolean;
   taskText?: string;
@@ -276,7 +277,22 @@ export interface RunResultFixture {
     totalCommands?: number;
     profileName?: string;
   };
-  proof: { productionProof: boolean; hookTrustStatus: string };
+  proof: {
+    productionProof: boolean;
+    hookTrustStatus: string;
+    fixture: string;
+    config: string;
+    productCode: string;
+    notes: string[];
+  };
+  supportingProjection: {
+    reportVerdict?: string;
+    reportStepStatus: string;
+    releaseCheckStatus?: string;
+    releaseCheckStepStatus?: string;
+    releaseCheckBlocking: boolean;
+    nonBlockingReleaseCheckFailure: boolean;
+  };
   blockers: string[];
   warnings: string[];
   nextActions: string[];

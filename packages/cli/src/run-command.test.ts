@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -29,6 +29,7 @@ describe("krn CLI run command", () => {
     expect(run).toMatchObject({
       schema: "krn-run-result-v1",
       status: "ran",
+      coreStatus: "ran",
       dryRun: false,
       executeVerify: false,
       taskText: "Smoke local run",
@@ -40,6 +41,15 @@ describe("krn CLI run command", () => {
       proof: {
         productionProof: false,
         hookTrustStatus: "unproven",
+        fixture: "not-indicated",
+        config: "not-indicated",
+        productCode: "not-indicated",
+      },
+      supportingProjection: {
+        reportVerdict: "warn",
+        reportStepStatus: "ran",
+        releaseCheckBlocking: false,
+        nonBlockingReleaseCheckFailure: false,
       },
     });
     expect(run.steps.start.status).toBe("ran");
@@ -47,6 +57,11 @@ describe("krn CLI run command", () => {
     expect(run.steps.context.status).toBe("ran");
     expect(run.steps.verify.status).toBe("ran");
     expect(run.steps.report.status).toBe("ran");
+    expect(run.proof.notes).toEqual(
+      expect.arrayContaining([
+        "No expectedTouchedFiles or fixture task-spec path were declared, so proof scope is not indicated.",
+      ]),
+    );
     expect(run.artifacts.runResultJson).toBe(".krn/current/run-result.json");
   }, 15_000);
 
@@ -214,12 +229,13 @@ describe("krn CLI run command", () => {
 
   it("runs from task spec paths", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, "fixtures"), { recursive: true });
     await writeFile(
-      path.join(cwd, "task.json"),
+      path.join(cwd, "fixtures", "task.json"),
       `${JSON.stringify(
         {
           prompt: "Task spec smoke",
-          expectedTouchedFiles: ["src/index.ts"],
+          expectedTouchedFiles: ["src/index.ts", "krn.config.json"],
         },
         null,
         2,
@@ -227,12 +243,17 @@ describe("krn CLI run command", () => {
       "utf8",
     );
 
-    const result = await runInCwd(cwd, ["run", "--task-spec", "task.json"]);
+    const result = await runInCwd(cwd, ["run", "--task-spec", "fixtures/task.json"]);
     const run = await readJson<RunResultFixture>(cwd, ".krn/current/run-result.json");
 
     expect(result.code).toBe(0);
     expect(run.taskText).toBe("Task spec smoke");
-    expect(run.taskSpecPath).toBe("task.json");
+    expect(run.taskSpecPath).toBe("fixtures/task.json");
+    expect(run.proof).toMatchObject({
+      fixture: "claimed-unverified",
+      config: "claimed-unverified",
+      productCode: "claimed-unverified",
+    });
   }, 15_000);
 
   it("keeps task-spec do-not-use paths out of graph content reads during runs", async () => {
@@ -334,6 +355,13 @@ describe("krn CLI run command", () => {
 
     expect(result.code).toBe(1);
     expect(run.status).toBe("failed");
+    expect(run.coreStatus).toBe("ran");
+    expect(run.supportingProjection).toMatchObject({
+      reportVerdict: "fail",
+      reportStepStatus: "failed",
+      releaseCheckBlocking: false,
+      nonBlockingReleaseCheckFailure: false,
+    });
     expect(run.blockers).toContain(
       "reviewers: Review summary is present with 7 reviewer record(s).",
     );
@@ -516,6 +544,36 @@ describe("krn CLI run command", () => {
           expectedTouchedFiles: ["target.test.js"],
           forbiddenTouchedFiles: ["raw/**", ".env", ".git/**"],
           requiredDoNotUsePaths: ["raw/**"],
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "node target.test.js",
+              coverage: "fast-quality-gate",
+              reason: "Target repository owns the local validation command.",
+              limitations: ["Fast quality gate only; not full release validation."],
+            },
+            rollback: {
+              boundary: "No automatic rollback; discard the isolated target checkout if invalid.",
+            },
+            noPush: true,
+            noMerge: true,
+            targetIsolation: {
+              isolated: true,
+              sourceCheckoutRejected: true,
+              isolatedPath: "/tmp/target-run",
+              baseCommit: "fixture-base",
+              reason: "Target proof runs outside the source checkout.",
+            },
+            targetApproval: {
+              required: true,
+              approvalRef: "operator-approved-fixture-run",
+            },
+            protectedData: {
+              allowed: false,
+              paths: [".env"],
+              reason: "Protected data is outside this target run.",
+            },
+          },
         },
         null,
         2,
@@ -535,20 +593,46 @@ describe("krn CLI run command", () => {
       cwd,
       ".krn/current/release-check.json",
     );
+    const review = await readJson<ReviewResultFixture>(cwd, ".krn/current/review-summary.json");
     const manifest = await readJson<RunBundleManifestFixture>(
       cwd,
       ".krn/current/run-bundle/manifest.json",
     );
+    const verifyReview = review.records.find((record) => record.reviewer === "verify");
 
     expect(result.code).toBe(0);
     expect(run.status).toBe("verified");
+    expect(run.coreStatus).toBe("verified");
     expect(run.verify).toMatchObject({ mode: "execute", status: "pass", executedCommands: 1 });
+    expect(run.proof).toMatchObject({
+      fixture: "not-indicated",
+      config: "not-indicated",
+      productCode: "verified-local",
+    });
+    expect(run.supportingProjection).toMatchObject({
+      reportVerdict: "warn",
+      reportStepStatus: "ran",
+      releaseCheckStatus: "fail",
+      releaseCheckStepStatus: "ran",
+      releaseCheckBlocking: false,
+      nonBlockingReleaseCheckFailure: true,
+    });
+    expect(verifyReview).toMatchObject({ status: "warn" });
+    expect(verifyReview?.findings).toEqual([
+      "target validation coverage is fast-quality-gate, not full-suite",
+    ]);
     expect(run.steps.releaseCheck).toMatchObject({
       status: "ran",
       summary: "KRN release-check: fail (non-blocking target run)",
     });
     expect(run.blockers).toEqual([]);
     expect(run.warnings.join("\n")).toContain("source release-check is not applicable");
+    const runMarkdown = await readFile(path.join(cwd, ".krn/current/run-result.md"), "utf8");
+    expect(runMarkdown).toContain("Core status: verified");
+    expect(runMarkdown).toContain("Product code: verified-local");
+    expect(runMarkdown).toContain(
+      "Report and release-check are supporting projection evidence, not production release readiness.",
+    );
     expect(releaseCheck.status).toBe("fail");
     expect(manifest).toMatchObject({
       schema: "krn-run-bundle-manifest-v1",

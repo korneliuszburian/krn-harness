@@ -98,6 +98,36 @@ The bundle records the expected validation command set, but it does not execute
 those commands. Operators still need terminal output or CI metadata for command
 results.
 
+## Packaging Kill Switch
+
+Release-check is not a publishing gate. A passing `krn release-check`, run
+bundle, report bundle, local CI workflow, or local validation transcript does
+not authorize package publication, plugin distribution, hosted dashboard work,
+production runner work, or hook enforcement claims.
+
+Packaging and distribution remain blocked until a separate approved goal
+re-audits all of these gates:
+
+- two approved isolated Stage 9 target product-code/test-code repeats;
+- approved Stage 10 same-authority simpler-baseline comparison;
+- governed memory usefulness with an operator-approved usefulness packet;
+- reviewer usefulness beyond deterministic local records;
+- dashboard-lite usefulness after artifact contracts are stable;
+- hook-trust boundary with scoped non-bypass evidence or an explicit decision to
+  keep hook trust out of packaging claims;
+- production-proof boundary, with `productionProof: false` preserved unless a
+  separate proof goal changes it.
+
+Forbidden in the current release-check surface:
+
+- `npm publish`, package-registry publish, or plugin-marketplace publish
+  automation;
+- release GitHub Actions or hosted release jobs;
+- production runner or deployment workflow;
+- hosted dashboard or server startup;
+- hook enforcement/trust claim from templates or manual hook probes;
+- treating local run/report/release bundles as production readiness.
+
 ## Status Semantics
 
 - `pass`: every required local contract is present.

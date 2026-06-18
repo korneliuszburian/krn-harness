@@ -1,4 +1,5 @@
 import type { ContextPackage } from "../../context/src/index.js";
+import type { TaskContract } from "../../task-contract/src/index.js";
 import type { VerifyResult } from "../../verify/src/index.js";
 import { currentArtifactPathsFor, readRepoJson } from "./current-artifacts.js";
 import {
@@ -8,7 +9,7 @@ import {
 } from "./current-state.js";
 import type { OperatorReport } from "./operator-report.js";
 import { runArtifacts, writeRunResult } from "./run-artifacts.js";
-import type { RunResult, StepResult } from "./run-result.js";
+import type { RunProofScopeStatus, RunResult, StepResult } from "./run-result.js";
 import type { CliRuntime } from "./runtime.js";
 
 export interface CommandCapture {
@@ -61,8 +62,19 @@ function deriveRunStatus(input: {
   verifyResult?: VerifyResult | undefined;
   blockers: string[];
   steps: RunResult["steps"];
+  coreOnly?: boolean | undefined;
 }): RunResult["status"] {
-  const allSteps = Object.values(input.steps).filter(Boolean) as StepResult[];
+  const allSteps = (
+    input.coreOnly
+      ? [
+          input.steps.start,
+          input.steps.graph,
+          input.steps.context,
+          input.steps.verify,
+          input.steps.handoff,
+        ]
+      : Object.values(input.steps)
+  ).filter(Boolean) as StepResult[];
 
   if (allSteps.some((step) => step.status === "failed")) {
     return "failed";
@@ -92,6 +104,97 @@ function mergeCaptureWarnings(captures: CommandCapture[]): string[] {
     .flatMap((capture) => capture.stderr.trim().split("\n"))
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function normalizeProofPath(value: string): string {
+  return value.replaceAll("\\", "/").toLowerCase();
+}
+
+function pathLooksLikeConfigProof(filePath: string): boolean {
+  const normalized = normalizeProofPath(filePath);
+  return (
+    normalized === "krn.config.json" ||
+    normalized.endsWith("/krn.config.json") ||
+    normalized === "package.json" ||
+    normalized.endsWith("/package.json") ||
+    normalized === "composer.json" ||
+    normalized.endsWith("/composer.json") ||
+    normalized.startsWith(".codex/") ||
+    normalized.includes("/.codex/") ||
+    normalized === "agents.md" ||
+    normalized.endsWith("/agents.md")
+  );
+}
+
+function pathLooksLikeProductCodeProof(filePath: string): boolean {
+  const normalized = normalizeProofPath(filePath);
+  if (
+    normalized.startsWith("docs/") ||
+    normalized.includes("/docs/") ||
+    normalized.endsWith(".md") ||
+    pathLooksLikeConfigProof(normalized)
+  ) {
+    return false;
+  }
+
+  return (
+    normalized.startsWith("src/") ||
+    normalized.includes("/src/") ||
+    normalized.startsWith("test/") ||
+    normalized.includes("/test/") ||
+    normalized.startsWith("tests/") ||
+    normalized.includes("/tests/") ||
+    normalized.startsWith("tools/") ||
+    normalized.includes("/tools/") ||
+    /\.(cjs|cts|js|jsx|mjs|mts|php|py|ts|tsx)$/.test(normalized)
+  );
+}
+
+function proofScopeStatus(
+  indicated: boolean,
+  coreStatus: RunResult["coreStatus"],
+): RunProofScopeStatus {
+  if (!indicated) {
+    return "not-indicated";
+  }
+  return coreStatus === "verified" ? "verified-local" : "claimed-unverified";
+}
+
+function summarizeProofScope(
+  taskContract: TaskContract | undefined,
+  coreStatus: RunResult["coreStatus"],
+  hookTrustStatus: string,
+): RunResult["proof"] {
+  const expectedTouchedFiles = taskContract?.metadata?.expectedTouchedFiles ?? [];
+  const taskSpecPath = taskContract?.metadata?.taskSpecPath;
+  const fixtureIndicated =
+    (taskSpecPath !== undefined && normalizeProofPath(taskSpecPath).includes("fixtures/")) ||
+    expectedTouchedFiles.some((filePath) => normalizeProofPath(filePath).includes("fixtures/"));
+  const configIndicated = expectedTouchedFiles.some(pathLooksLikeConfigProof);
+  const productCodeIndicated = expectedTouchedFiles.some(pathLooksLikeProductCodeProof);
+  const notes = [
+    "Local proof scope is inferred from task-spec metadata and core verify status.",
+    "It is not production proof, hook trust proof, target-main approval, or CI evidence.",
+  ];
+
+  if (expectedTouchedFiles.length === 0 && !fixtureIndicated) {
+    notes.push(
+      "No expectedTouchedFiles or fixture task-spec path were declared, so proof scope is not indicated.",
+    );
+  } else if (expectedTouchedFiles.length === 0) {
+    notes.push(
+      "No expectedTouchedFiles were declared, so config and product-code proof scopes are not indicated.",
+    );
+  }
+
+  return {
+    productionProof: false as const,
+    hookTrustStatus,
+    fixture: proofScopeStatus(fixtureIndicated, coreStatus),
+    config: proofScopeStatus(configIndicated, coreStatus),
+    productCode: proofScopeStatus(productCodeIndicated, coreStatus),
+    notes,
+  };
 }
 
 export async function buildAndWriteRunResult(
@@ -129,12 +232,9 @@ export async function buildAndWriteRunResult(
   const reportBlockers = operatorReport?.blockers ?? [];
   const releaseCheckBlocks = input.releaseCheckBlocks ?? true;
   const releaseBlockers = releaseCheckBlocks ? (releaseCheck?.blockers ?? []) : [];
-  const blockers = unique([
-    ...explicitBlockers,
-    ...verifyBlockers,
-    ...reportBlockers,
-    ...releaseBlockers,
-  ]);
+  const coreBlockers = unique([...explicitBlockers, ...verifyBlockers]);
+  const supportingBlockers = unique([...reportBlockers, ...releaseBlockers]);
+  const blockers = unique([...coreBlockers, ...supportingBlockers]);
   const warnings = unique([
     ...mergeCaptureWarnings(input.captures),
     input.options.dryRun && input.options.executeVerify
@@ -167,17 +267,31 @@ export async function buildAndWriteRunResult(
     steps: input.steps,
     context: summarizeContext(contextPackage),
     verify: summarizeVerify(verifyResult),
-    proof: {
-      productionProof: false as const,
-      hookTrustStatus: operatorReport?.hookTrust.status ?? "unproven",
+    supportingProjection: {
+      reportVerdict: operatorReport?.verdict,
+      reportStepStatus: input.steps.report.status,
+      releaseCheckStatus: input.options.bundle ? (releaseCheck?.status ?? "missing") : undefined,
+      releaseCheckStepStatus: input.steps.releaseCheck?.status,
+      releaseCheckBlocking: input.options.bundle ? releaseCheckBlocks : false,
+      nonBlockingReleaseCheckFailure:
+        input.options.bundle && !releaseCheckBlocks && releaseCheck?.status === "fail",
     },
     blockers,
     warnings,
     nextActions,
     artifacts: runArtifacts(runtime.cwd, input.options.bundle),
   };
+  const coreStatus = deriveRunStatus({
+    dryRun: input.options.dryRun,
+    executeVerify: input.options.executeVerify && !input.options.dryRun,
+    verifyResult,
+    blockers: coreBlockers,
+    steps: input.steps,
+    coreOnly: true,
+  });
   const result: RunResult = {
     ...resultWithoutStatus,
+    coreStatus,
     status: deriveRunStatus({
       dryRun: input.options.dryRun,
       executeVerify: input.options.executeVerify && !input.options.dryRun,
@@ -185,6 +299,11 @@ export async function buildAndWriteRunResult(
       blockers,
       steps: input.steps,
     }),
+    proof: summarizeProofScope(
+      taskContract,
+      coreStatus,
+      operatorReport?.hookTrust.status ?? "unproven",
+    ),
   };
 
   await writeRunResult(runtime, result);

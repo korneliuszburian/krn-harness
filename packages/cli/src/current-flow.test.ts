@@ -194,6 +194,51 @@ describe("krn CLI current flow artifacts", () => {
           expectedTouchedFiles: ["acf/group_hero.json", "tests/theme.test.js"],
           forbiddenTouchedFiles: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
           requiredDoNotUsePaths: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
+          visualProof: {
+            route: "/",
+            component: "HeroFields",
+            viewports: ["mobile 390x844", "desktop 1440x900"],
+            designConstraints: ["Keep existing hero spacing and CTA hierarchy."],
+            a11yExpectations: ["Hero CTA remains keyboard reachable."],
+            copyStatus: "approved",
+            manualVisualArtifact: "operator-owned hero section note after target verify",
+            targetOwnedVisualCommand: {
+              authority: "target-owned",
+              command: "pnpm preview:hero",
+              reason: "Fixture target owns this visual preview command.",
+              limitations: ["Manual visual inspection only; no generated snapshot proof."],
+            },
+          },
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "node tests/theme.test.js",
+              coverage: "smoke",
+              reason: "Fixture target owns the smoke validation command.",
+              limitations: ["Smoke proof only; not a full release suite."],
+            },
+            rollback: {
+              boundary: "No automatic rollback; operator owns any revert.",
+            },
+            noPush: true,
+            noMerge: true,
+            targetIsolation: {
+              isolated: true,
+              sourceCheckoutRejected: true,
+              isolatedPath: "/tmp/wp-acf-field-mapping",
+              baseCommit: "fixture-base",
+              reason: "Fixture target proof runs outside the source checkout.",
+            },
+            targetApproval: {
+              required: true,
+              approvalRef: "fixture approval",
+            },
+            protectedData: {
+              allowed: false,
+              paths: [".env"],
+              reason: "Protected data is not part of this fixture task.",
+            },
+          },
         },
         null,
         2,
@@ -221,10 +266,72 @@ describe("krn CLI current flow artifacts", () => {
         expectedTouchedFiles: ["acf/group_hero.json", "tests/theme.test.js"],
         forbiddenTouchedFiles: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
         requiredDoNotUsePaths: ["acf/legacy_group.json", "docs/stale-acf-notes.md"],
+        visualProof: {
+          route: "/",
+          component: "HeroFields",
+          viewports: ["mobile 390x844", "desktop 1440x900"],
+          designConstraints: ["Keep existing hero spacing and CTA hierarchy."],
+          a11yExpectations: ["Hero CTA remains keyboard reachable."],
+          copyStatus: "approved",
+          manualVisualArtifact: "operator-owned hero section note after target verify",
+          targetOwnedVisualCommand: {
+            authority: "target-owned",
+            command: "pnpm preview:hero",
+            reason: "Fixture target owns this visual preview command.",
+            limitations: ["Manual visual inspection only; no generated snapshot proof."],
+          },
+        },
+        boundaries: {
+          targetValidation: {
+            authority: "target-owned",
+            command: "node tests/theme.test.js",
+            coverage: "smoke",
+            reason: "Fixture target owns the smoke validation command.",
+            limitations: ["Smoke proof only; not a full release suite."],
+          },
+          rollback: {
+            boundary: "No automatic rollback; operator owns any revert.",
+          },
+          noPush: true,
+          noMerge: true,
+          targetIsolation: {
+            isolated: true,
+            sourceCheckoutRejected: true,
+            isolatedPath: "/tmp/wp-acf-field-mapping",
+            baseCommit: "fixture-base",
+            reason: "Fixture target proof runs outside the source checkout.",
+          },
+          targetApproval: {
+            required: true,
+            approvalRef: "fixture approval",
+          },
+          protectedData: {
+            allowed: false,
+            paths: [".env"],
+            reason: "Protected data is not part of this fixture task.",
+          },
+        },
       },
     });
     expect(markdown).toContain("## Metadata");
     expect(markdown).toContain("Task spec path: fixtures/dogfood/tasks/wp-acf-field-mapping.json");
+    expect(markdown).toContain(
+      "Target validation: node tests/theme.test.js (smoke, authority: target-owned)",
+    );
+    expect(markdown).toContain(
+      "Rollback boundary: No automatic rollback; operator owns any revert.",
+    );
+    expect(markdown).toContain("No push: true");
+    expect(markdown).toContain("No merge: true");
+    expect(markdown).toContain("Target isolated: true");
+    expect(markdown).toContain("Source checkout rejected: true");
+    expect(markdown).toContain("Target approval required: true");
+    expect(markdown).toContain("Protected data allowed: false");
+    expect(markdown).toContain("Visual proof route: /");
+    expect(markdown).toContain("Visual proof component: HeroFields");
+    expect(markdown).toContain("Visual proof viewports: mobile 390x844, desktop 1440x900");
+    expect(markdown).toContain("Visual proof copy status: approved");
+    expect(markdown).toContain("Visual proof target-owned command: pnpm preview:hero");
   });
 
   it("rejects task spec symlinks that resolve outside the repository", async () => {

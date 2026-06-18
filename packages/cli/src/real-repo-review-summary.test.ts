@@ -162,6 +162,254 @@ describe("krn CLI review and operator summary", () => {
     expect((await readTraceEvents(cwd)).map((event) => event.name)).toContain("review.ran");
   }, 20_000);
 
+  it("fails target validation boundaries that do not match verify evidence", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "pass.cjs"), "console.log('pass');\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: ["node pass.cjs"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, "task.json"),
+      JSON.stringify(
+        {
+          prompt: "Validate target boundary mismatch without mutating target state.",
+          expectedTouchedFiles: ["pass.cjs"],
+          forbiddenTouchedFiles: [".env", ".git/**"],
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "node target.test.js",
+              coverage: "full-suite",
+              reason: "The task claims this target validation command is authoritative.",
+            },
+            rollback: {
+              boundary: "No automatic rollback; discard the isolated checkout if invalid.",
+            },
+            noPush: true,
+            noMerge: true,
+            targetIsolation: {
+              isolated: true,
+              sourceCheckoutRejected: true,
+              isolatedPath: "/tmp/target-proof",
+              baseCommit: "fixture-base",
+              reason: "Target proof runs outside the source checkout.",
+            },
+            targetApproval: {
+              required: true,
+              approvalRef: "operator-approved-fixture-run",
+            },
+            protectedData: {
+              allowed: false,
+              paths: [".env"],
+              reason: "Protected data is outside this target proof.",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    for (const args of [
+      ["start", "--task-spec", "task.json"],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const verify = result.reviewers.find((item) => item.reviewer === "verify");
+
+    expect(verify).toMatchObject({
+      status: "fail",
+      summary:
+        "Verify status is pass in execute mode. Task-spec target validation boundary was checked.",
+    });
+    expect(verify?.evidence).toEqual([
+      ".krn/current/verify-result.json",
+      ".krn/current/task-contract.json",
+    ]);
+    expect(verify?.findings).toEqual([
+      "target validation command is not configured: node target.test.js",
+    ]);
+    expect(result.blockers).toContain(
+      "target validation command is not configured: node target.test.js",
+    );
+  }, 20_000);
+
+  it("fails target validation task specs missing target-run boundaries", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "target.test.js"), "console.log('target pass');\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: ["node target.test.js"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, "task.json"),
+      JSON.stringify(
+        {
+          prompt: "Validate target proof boundary completeness.",
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "node target.test.js",
+              coverage: "full-suite",
+              reason: "Target test is the declared validation authority.",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    for (const args of [
+      ["start", "--task-spec", "task.json"],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const verify = result.reviewers.find((item) => item.reviewer === "verify");
+
+    expect(verify).toMatchObject({ status: "fail" });
+    expect(verify?.findings).toEqual([
+      "target validation task spec is missing required target-run boundaries: expected touched files, forbidden touched files, rollback boundary, no-push boundary, no-merge boundary, target approval boundary, target isolation boundary, protected data boundary",
+    ]);
+    expect(result.blockers).toContain(
+      "target validation task spec is missing required target-run boundaries: expected touched files, forbidden touched files, rollback boundary, no-push boundary, no-merge boundary, target approval boundary, target isolation boundary, protected data boundary",
+    );
+  }, 20_000);
+
+  it("fails target validation task specs missing approval references", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await writeFile(path.join(cwd, "target.test.js"), "console.log('target pass');\n", "utf8");
+    await writeFile(
+      path.join(cwd, "krn.config.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          verify: {
+            defaultProfile: "unit",
+            profiles: {
+              unit: {
+                commands: ["node target.test.js"],
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, "task.json"),
+      JSON.stringify(
+        {
+          prompt: "Validate target proof approval reference completeness.",
+          expectedTouchedFiles: ["target.test.js"],
+          forbiddenTouchedFiles: [".env", ".git/**"],
+          boundaries: {
+            targetValidation: {
+              authority: "target-owned",
+              command: "node target.test.js",
+              coverage: "full-suite",
+              reason: "Target test is the declared validation authority.",
+            },
+            rollback: {
+              boundary: "No automatic rollback; discard the isolated checkout if invalid.",
+            },
+            noPush: true,
+            noMerge: true,
+            targetIsolation: {
+              isolated: true,
+              sourceCheckoutRejected: true,
+              isolatedPath: "/tmp/target-proof",
+              baseCommit: "fixture-base",
+              reason: "Target proof runs outside the source checkout.",
+            },
+            targetApproval: {
+              required: true,
+            },
+            protectedData: {
+              allowed: false,
+              paths: [".env"],
+              reason: "Protected data is outside this target proof.",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    for (const args of [
+      ["start", "--task-spec", "task.json"],
+      ["graph"],
+      ["context"],
+      ["verify", "--execute"],
+      ["handoff"],
+    ]) {
+      await expect(runInCwd(cwd, args)).resolves.toMatchObject({ code: 0 });
+    }
+
+    const review = await runInCwd(cwd, ["review", "--json"]);
+    const result = JSON.parse(review.stdout) as ReviewResultFixture;
+    const verify = result.reviewers.find((item) => item.reviewer === "verify");
+
+    expect(verify).toMatchObject({ status: "fail" });
+    expect(verify?.findings).toEqual([
+      "target validation task spec is missing required target-run boundaries: target approval reference",
+    ]);
+    expect(result.blockers).toContain(
+      "target validation task spec is missing required target-run boundaries: target approval reference",
+    );
+  }, 20_000);
+
   it("keeps dogfood reviewer findings focused when historical skips accumulate", async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
 

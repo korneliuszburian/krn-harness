@@ -95,6 +95,7 @@ export function renderOperatorReportMarkdown(report: OperatorReport): string {
     "",
     "- This report reads local artifacts only.",
     "- It does not call Codex, run verify commands, inspect protected data, or claim production proof.",
+    "- Its verdict is local artifact projection, not production release readiness.",
     "- Historical `.krn` caveats are visible but do not automatically become current blockers.",
     "",
   ].join("\n");
@@ -193,7 +194,7 @@ export function renderOperatorReportHtml(report: OperatorReport): string {
   ])}</table></section>
   <section id="actions"><h2>Blockers</h2>${htmlList(report.blockers)}<h2>Warnings</h2>${htmlList(report.warnings)}<h2>Next Actions</h2>${htmlList(report.nextActions)}</section>
   <section id="artifacts"><h2>Historical Caveats</h2><p>Total: ${report.historicalCaveatCount}; omitted from report: ${report.historicalCaveatsOmitted}</p>${htmlList(report.historicalCaveats.map(historicalCaveatText))}<h2>Artifact Paths</h2><p>Total: ${report.artifactPathCount}; omitted from report: ${report.artifactPathsOmitted}</p><table><tr><th>Scope</th><th>Path</th></tr>${artifactRows}</table></section>
-  <p class="note">Local file only. No network, server, external CSS, external JS, or production-proof claim.</p>
+  <p class="note">Local file only. No network, server, external CSS, external JS, production-proof claim, or production release-readiness claim.</p>
 </main>
 </body>
 </html>

@@ -120,10 +120,72 @@ describe("task contract", () => {
       parseTaskSpecInput({
         prompt: "Task spec smoke",
         expectedTouchedFiles: ["src/index.ts"],
+        boundaries: {
+          targetValidation: {
+            authority: "target-owned",
+            command: "node target.test.js",
+            coverage: "fast-quality-gate",
+            reason: "Target repository owns this validation command.",
+            limitations: ["Fast gate, not full release validation."],
+            unsafeIf: ["Dependencies are not installed."],
+          },
+          rollback: {
+            boundary: "No automatic rollback; operator owns any revert.",
+          },
+          noPush: true,
+          noMerge: true,
+          targetIsolation: {
+            isolated: true,
+            sourceCheckoutRejected: true,
+            isolatedPath: "/tmp/target-worktree",
+            baseCommit: "abc1234",
+            reason: "Target proof runs outside the source checkout.",
+          },
+          targetApproval: {
+            required: true,
+            approvalRef: "operator-approved-local-run",
+          },
+          protectedData: {
+            allowed: false,
+            paths: [".env", "private/"],
+            reason: "Protected data is outside task scope.",
+          },
+        },
       }),
     ).toEqual({
       prompt: "Task spec smoke",
       expectedTouchedFiles: ["src/index.ts"],
+      boundaries: {
+        targetValidation: {
+          authority: "target-owned",
+          command: "node target.test.js",
+          coverage: "fast-quality-gate",
+          reason: "Target repository owns this validation command.",
+          limitations: ["Fast gate, not full release validation."],
+          unsafeIf: ["Dependencies are not installed."],
+        },
+        rollback: {
+          boundary: "No automatic rollback; operator owns any revert.",
+        },
+        noPush: true,
+        noMerge: true,
+        targetIsolation: {
+          isolated: true,
+          sourceCheckoutRejected: true,
+          isolatedPath: "/tmp/target-worktree",
+          baseCommit: "abc1234",
+          reason: "Target proof runs outside the source checkout.",
+        },
+        targetApproval: {
+          required: true,
+          approvalRef: "operator-approved-local-run",
+        },
+        protectedData: {
+          allowed: false,
+          paths: [".env", "private/"],
+          reason: "Protected data is outside task scope.",
+        },
+      },
     });
 
     expect(() =>
@@ -132,5 +194,103 @@ describe("task contract", () => {
         expectedTouchedFiles: [""],
       }),
     ).toThrow("must include a prompt; expectedTouchedFiles must be an array of non-empty strings");
+
+    expect(() =>
+      parseTaskSpecInput({
+        prompt: "Task spec smoke",
+        boundaries: {
+          noMerge: false,
+          targetIsolation: {
+            isolated: false,
+            sourceCheckoutRejected: false,
+          },
+        },
+      }),
+    ).toThrow(
+      "boundaries.targetIsolation.isolated must be true; boundaries.targetIsolation.sourceCheckoutRejected must be true; boundaries.noMerge must be true",
+    );
+
+    expect(() =>
+      parseTaskSpecInput({
+        prompt: "Task spec smoke",
+        boundaries: {
+          targetValidation: {
+            authority: "codex-owned",
+            command: "",
+            coverage: "full",
+            reason: "",
+            limitations: [""],
+          },
+        },
+      }),
+    ).toThrow(
+      "boundaries.targetValidation.authority must be target-owned; boundaries.targetValidation.command must be a non-empty string; boundaries.targetValidation.coverage must be full-suite, fast-quality-gate, smoke, or lint-only; boundaries.targetValidation.reason must be a non-empty string; boundaries.targetValidation.limitations must be an array of non-empty strings",
+    );
+  });
+
+  it("parses frontend visual proof task-spec metadata", () => {
+    expect(
+      parseTaskSpecInput({
+        prompt: "Update the responsive hero component.",
+        visualProof: {
+          route: "/landing",
+          component: "HeroSection",
+          viewports: ["mobile 390x844", "desktop 1440x900"],
+          designConstraints: ["Match existing spacing scale."],
+          a11yExpectations: ["CTA contrast remains AA."],
+          copyStatus: "approved",
+          manualVisualArtifact: "operator review note or target-owned visual artifact path",
+          targetOwnedVisualCommand: {
+            authority: "target-owned",
+            command: "pnpm preview:hero",
+            reason: "Target repository owns this visual preview command.",
+            limitations: ["Manual visual inspection only; no generated snapshot proof."],
+            unsafeIf: ["Preview command needs protected environment variables."],
+          },
+        },
+      }),
+    ).toEqual({
+      prompt: "Update the responsive hero component.",
+      visualProof: {
+        route: "/landing",
+        component: "HeroSection",
+        viewports: ["mobile 390x844", "desktop 1440x900"],
+        designConstraints: ["Match existing spacing scale."],
+        a11yExpectations: ["CTA contrast remains AA."],
+        copyStatus: "approved",
+        manualVisualArtifact: "operator review note or target-owned visual artifact path",
+        targetOwnedVisualCommand: {
+          authority: "target-owned",
+          command: "pnpm preview:hero",
+          reason: "Target repository owns this visual preview command.",
+          limitations: ["Manual visual inspection only; no generated snapshot proof."],
+          unsafeIf: ["Preview command needs protected environment variables."],
+        },
+      },
+    });
+
+    expect(() =>
+      parseTaskSpecInput({
+        prompt: "Update the responsive hero component.",
+        visualProof: {},
+      }),
+    ).toThrow("visualProof must declare at least one visual proof field");
+
+    expect(() =>
+      parseTaskSpecInput({
+        prompt: "Update the responsive hero component.",
+        visualProof: {
+          viewports: [""],
+          copyStatus: "final",
+          targetOwnedVisualCommand: {
+            authority: "codex-owned",
+            command: "",
+            reason: "",
+          },
+        },
+      }),
+    ).toThrow(
+      "visualProof.viewports must be an array of non-empty strings; visualProof.copyStatus must be draft, approved, or unknown; visualProof.targetOwnedVisualCommand.authority must be target-owned; visualProof.targetOwnedVisualCommand.command must be a non-empty string; visualProof.targetOwnedVisualCommand.reason must be a non-empty string",
+    );
   });
 });

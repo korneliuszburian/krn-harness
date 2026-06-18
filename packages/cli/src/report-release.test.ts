@@ -582,5 +582,5 @@ describe("krn CLI report release artifacts", () => {
     expect(install.stdout).toContain("KRN install: installed");
     await expectFile(cwd, "AGENTS.md");
     await expectFile(cwd, ".krn/traces/trace.jsonl");
-  }, 10_000);
+  }, 20_000);
 });

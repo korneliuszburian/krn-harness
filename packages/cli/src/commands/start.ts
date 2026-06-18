@@ -6,6 +6,120 @@ import { ensureCurrentStateDir, writeCurrentJson, writeCurrentMarkdown } from ".
 import { emitCliTrace } from "../run-trace.js";
 import type { CliRuntime } from "../runtime.js";
 
+type TaskContractForMarkdown = ReturnType<typeof buildTaskContract>;
+
+function renderMetadataLines(contract: TaskContractForMarkdown): string[] {
+  const metadata = contract.metadata;
+  if (!metadata) {
+    return [];
+  }
+
+  const boundaries = metadata.boundaries;
+  const targetValidation = boundaries?.targetValidation;
+  const visualProof = metadata.visualProof;
+  const targetOwnedVisualCommand = visualProof?.targetOwnedVisualCommand;
+  const lines = [
+    ...(metadata.taskSpecPath ? [`- Task spec path: ${metadata.taskSpecPath}`] : []),
+    ...(metadata.expectedTouchedFiles
+      ? [`- Expected touched files: ${metadata.expectedTouchedFiles.join(", ")}`]
+      : []),
+    ...(metadata.forbiddenTouchedFiles
+      ? [`- Forbidden touched files: ${metadata.forbiddenTouchedFiles.join(", ")}`]
+      : []),
+    ...(metadata.requiredDoNotUsePaths
+      ? [`- Required do-not-use paths: ${metadata.requiredDoNotUsePaths.join(", ")}`]
+      : []),
+    ...(targetValidation
+      ? [
+          `- Target validation: ${targetValidation.command} (${targetValidation.coverage}, authority: ${targetValidation.authority})`,
+          `- Target validation reason: ${targetValidation.reason}`,
+        ]
+      : []),
+    ...(targetValidation?.limitations
+      ? [`- Target validation limitations: ${targetValidation.limitations.join(", ")}`]
+      : []),
+    ...(targetValidation?.unsafeIf
+      ? [`- Target validation unsafe if: ${targetValidation.unsafeIf.join(", ")}`]
+      : []),
+    ...(boundaries?.rollback ? [`- Rollback boundary: ${boundaries.rollback.boundary}`] : []),
+    ...(boundaries?.noPush ? ["- No push: true"] : []),
+    ...(boundaries?.noMerge ? ["- No merge: true"] : []),
+    ...(boundaries?.targetApproval
+      ? [
+          `- Target approval required: ${boundaries.targetApproval.required ? "true" : "false"}`,
+          ...(boundaries.targetApproval.approvalRef
+            ? [`- Target approval reference: ${boundaries.targetApproval.approvalRef}`]
+            : []),
+        ]
+      : []),
+    ...(boundaries?.targetIsolation
+      ? [
+          `- Target isolated: ${boundaries.targetIsolation.isolated ? "true" : "false"}`,
+          `- Source checkout rejected: ${
+            boundaries.targetIsolation.sourceCheckoutRejected ? "true" : "false"
+          }`,
+          ...(boundaries.targetIsolation.isolatedPath
+            ? [`- Target isolated path: ${boundaries.targetIsolation.isolatedPath}`]
+            : []),
+          ...(boundaries.targetIsolation.baseCommit
+            ? [`- Target base commit: ${boundaries.targetIsolation.baseCommit}`]
+            : []),
+          ...(boundaries.targetIsolation.reason
+            ? [`- Target isolation reason: ${boundaries.targetIsolation.reason}`]
+            : []),
+        ]
+      : []),
+    ...(boundaries?.protectedData
+      ? [
+          `- Protected data allowed: ${boundaries.protectedData.allowed ? "true" : "false"}`,
+          ...(boundaries.protectedData.paths
+            ? [`- Protected data paths: ${boundaries.protectedData.paths.join(", ")}`]
+            : []),
+          ...(boundaries.protectedData.reason
+            ? [`- Protected data reason: ${boundaries.protectedData.reason}`]
+            : []),
+        ]
+      : []),
+    ...(visualProof?.route ? [`- Visual proof route: ${visualProof.route}`] : []),
+    ...(visualProof?.component ? [`- Visual proof component: ${visualProof.component}`] : []),
+    ...(visualProof?.viewports
+      ? [`- Visual proof viewports: ${visualProof.viewports.join(", ")}`]
+      : []),
+    ...(visualProof?.designConstraints
+      ? [`- Visual proof design constraints: ${visualProof.designConstraints.join(", ")}`]
+      : []),
+    ...(visualProof?.a11yExpectations
+      ? [`- Visual proof a11y expectations: ${visualProof.a11yExpectations.join(", ")}`]
+      : []),
+    ...(visualProof?.copyStatus ? [`- Visual proof copy status: ${visualProof.copyStatus}`] : []),
+    ...(visualProof?.manualVisualArtifact
+      ? [`- Visual proof manual artifact: ${visualProof.manualVisualArtifact}`]
+      : []),
+    ...(targetOwnedVisualCommand
+      ? [
+          `- Visual proof target-owned command: ${targetOwnedVisualCommand.command} (authority: ${targetOwnedVisualCommand.authority})`,
+          `- Visual proof target-owned command reason: ${targetOwnedVisualCommand.reason}`,
+        ]
+      : []),
+    ...(targetOwnedVisualCommand?.limitations
+      ? [
+          `- Visual proof target-owned command limitations: ${targetOwnedVisualCommand.limitations.join(
+            ", ",
+          )}`,
+        ]
+      : []),
+    ...(targetOwnedVisualCommand?.unsafeIf
+      ? [
+          `- Visual proof target-owned command unsafe if: ${targetOwnedVisualCommand.unsafeIf.join(
+            ", ",
+          )}`,
+        ]
+      : []),
+  ];
+
+  return lines;
+}
+
 function renderContractMarkdown(contract: ReturnType<typeof buildTaskContract>): string {
   const lines = [
     "# KRN Task Contract",
@@ -35,25 +149,7 @@ function renderContractMarkdown(contract: ReturnType<typeof buildTaskContract>):
       ? ["- none"]
       : contract.intentWarnings.map((item) => `- ${item}`)),
     "",
-    ...(contract.metadata
-      ? [
-          "## Metadata",
-          "",
-          ...(contract.metadata.taskSpecPath
-            ? [`- Task spec path: ${contract.metadata.taskSpecPath}`]
-            : []),
-          ...(contract.metadata.expectedTouchedFiles
-            ? [`- Expected touched files: ${contract.metadata.expectedTouchedFiles.join(", ")}`]
-            : []),
-          ...(contract.metadata.forbiddenTouchedFiles
-            ? [`- Forbidden touched files: ${contract.metadata.forbiddenTouchedFiles.join(", ")}`]
-            : []),
-          ...(contract.metadata.requiredDoNotUsePaths
-            ? [`- Required do-not-use paths: ${contract.metadata.requiredDoNotUsePaths.join(", ")}`]
-            : []),
-          "",
-        ]
-      : []),
+    ...(contract.metadata ? ["## Metadata", "", ...renderMetadataLines(contract), ""] : []),
     "## Acceptance",
     "",
     ...contract.acceptance.map((item) => `- ${item}`),
@@ -166,6 +262,8 @@ async function loadTaskSpec(
       ...(parsed.requiredDoNotUsePaths
         ? { requiredDoNotUsePaths: parsed.requiredDoNotUsePaths }
         : {}),
+      ...(parsed.boundaries ? { boundaries: parsed.boundaries } : {}),
+      ...(parsed.visualProof ? { visualProof: parsed.visualProof } : {}),
     },
   };
 }

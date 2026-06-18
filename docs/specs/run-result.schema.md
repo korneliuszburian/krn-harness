@@ -48,6 +48,7 @@ Raw traces, protected-looking paths, external assets, and files outside
 {
   "schema": "krn-run-result-v1",
   "status": "verified",
+  "coreStatus": "verified",
   "generatedAt": "2026-06-15T00:00:00.000Z",
   "dryRun": false,
   "executeVerify": true,
@@ -80,7 +81,22 @@ Raw traces, protected-looking paths, external assets, and files outside
   },
   "proof": {
     "productionProof": false,
-    "hookTrustStatus": "unproven"
+    "hookTrustStatus": "unproven",
+    "fixture": "verified-local",
+    "config": "not-indicated",
+    "productCode": "verified-local",
+    "notes": [
+      "Local proof scope is inferred from task-spec metadata and core verify status.",
+      "It is not production proof, hook trust proof, target-main approval, or CI evidence."
+    ]
+  },
+  "supportingProjection": {
+    "reportVerdict": "warn",
+    "reportStepStatus": "ran",
+    "releaseCheckStatus": "fail",
+    "releaseCheckStepStatus": "ran",
+    "releaseCheckBlocking": false,
+    "nonBlockingReleaseCheckFailure": true
   },
   "blockers": [],
   "warnings": ["Hook trust remains unproven."],
@@ -94,6 +110,16 @@ Raw traces, protected-looking paths, external assets, and files outside
 
 ## Status Rules
 
+- `status`: aggregate local run status after core run steps and supporting
+  projection surfaces are considered. This preserves existing operator behavior:
+  current report or release-check blockers may make the aggregate status
+  `failed` or `blocked`.
+- `coreStatus`: core run status from `start`, `graph`, `context`, `verify`, and
+  `handoff` plus direct task/verify blockers. Review, summary, report, bundle,
+  and release-check projection do not change `coreStatus`.
+- `supportingProjection`: local report/release-check projection metadata. These
+  fields explain why the aggregate status, blockers, or warnings may differ
+  from `coreStatus`.
 - `planned`: dry run completed without blockers.
 - `blocked`: context STOP or verify/profile blockers prevent a usable run.
 - `ran`: workflow artifacts were generated, but verify was record-only or not
@@ -102,6 +128,35 @@ Raw traces, protected-looking paths, external assets, and files outside
 - `failed`: a command step or release gate failed.
 
 Context STOP blocks verify, handoff, review, summary, report, and release-check.
+
+## Proof Scope
+
+`proof.productionProof` remains literal `false`. `proof.hookTrustStatus` is copied
+from local report evidence and must not be promoted by `run-result`.
+
+`proof.fixture`, `proof.config`, and `proof.productCode` are local proof-scope
+signals:
+
+- `not-indicated`: the task spec metadata did not indicate that proof scope.
+- `claimed-unverified`: the task spec metadata indicated that scope, but
+  `coreStatus` is not `verified`.
+- `verified-local`: the task spec metadata indicated that scope and
+  `coreStatus` is `verified`.
+
+The signals are inferred from `taskSpecPath` and `expectedTouchedFiles`; they do
+not inspect diffs and do not prove target-main approval, CI, production behavior,
+hook enforcement, or full-suite coverage. Product-code proof remains separate
+from config adoption proof, fixture proof, production proof, and hook trust.
+
+For downstream target runs, a KRN source `release-check` failure can be recorded
+as non-blocking supporting projection when the target checkout does not contain
+the KRN source release-check inputs. In that case `coreStatus` and `status` may
+remain `verified`, while `supportingProjection.releaseCheckStatus` records the
+failed source release-check and `nonBlockingReleaseCheckFailure: true`.
+
+`report`, `release-check`, and `run-bundle` are local supporting evidence. They
+must not be described as production release readiness, target-main approval,
+hook trust proof, or production proof.
 
 Historical `.krn` caveats may become warnings through the operator report. They
 must not become current run blockers unless the current local artifacts identify

@@ -2,6 +2,8 @@ export type RunStatus = "planned" | "blocked" | "ran" | "verified" | "failed";
 
 export type RunStepStatus = "planned" | "blocked" | "ran" | "verified" | "failed" | "skipped";
 
+export type RunProofScopeStatus = "not-indicated" | "claimed-unverified" | "verified-local";
+
 export interface StepResult {
   status: RunStepStatus;
   summary: string;
@@ -13,6 +15,7 @@ export interface StepResult {
 export interface RunResult {
   schema: "krn-run-result-v1";
   status: RunStatus;
+  coreStatus: RunStatus;
   generatedAt: string;
   dryRun: boolean;
   executeVerify: boolean;
@@ -46,6 +49,18 @@ export interface RunResult {
   proof: {
     productionProof: false;
     hookTrustStatus: string;
+    fixture: RunProofScopeStatus;
+    config: RunProofScopeStatus;
+    productCode: RunProofScopeStatus;
+    notes: string[];
+  };
+  supportingProjection: {
+    reportVerdict?: string | undefined;
+    reportStepStatus: RunStepStatus;
+    releaseCheckStatus?: string | undefined;
+    releaseCheckStepStatus?: RunStepStatus | undefined;
+    releaseCheckBlocking: boolean;
+    nonBlockingReleaseCheckFailure: boolean;
   };
   blockers: string[];
   warnings: string[];
@@ -66,6 +81,7 @@ export function renderRunResultMarkdown(result: RunResult): string {
     "# KRN Run Result",
     "",
     `Status: ${result.status}`,
+    `Core status: ${result.coreStatus}`,
     `Generated at: ${result.generatedAt}`,
     `Dry run: ${String(result.dryRun)}`,
     `Execute verify requested: ${String(result.executeVerify)}`,
@@ -108,6 +124,25 @@ export function renderRunResultMarkdown(result: RunResult): string {
       result.verify.executedCommands ?? "missing"
     }`,
     "",
+    "## Proof Scope",
+    "",
+    `Fixture: ${result.proof.fixture}`,
+    `Config: ${result.proof.config}`,
+    `Product code: ${result.proof.productCode}`,
+    "",
+    ...markdownList(result.proof.notes),
+    "",
+    "## Supporting Projection",
+    "",
+    `Report verdict: ${result.supportingProjection.reportVerdict ?? "missing"}`,
+    `Report step status: ${result.supportingProjection.reportStepStatus}`,
+    `Release-check status: ${result.supportingProjection.releaseCheckStatus ?? "not-run"}`,
+    `Release-check step status: ${result.supportingProjection.releaseCheckStepStatus ?? "not-run"}`,
+    `Release-check blocking: ${String(result.supportingProjection.releaseCheckBlocking)}`,
+    `Non-blocking release-check failure: ${String(
+      result.supportingProjection.nonBlockingReleaseCheckFailure,
+    )}`,
+    "",
     "## Blockers",
     "",
     ...markdownList(result.blockers),
@@ -128,7 +163,10 @@ export function renderRunResultMarkdown(result: RunResult): string {
     "",
     "- This is local operator evidence only.",
     "- It does not execute Codex or claim production proof.",
+    "- Fixture, config, and product-code proof statuses are local proof-scope signals.",
     "- Hook trust is copied from local report evidence and must not be promoted by this artifact.",
+    "- Status is the aggregate local run status; core status is the start/context/verify/handoff outcome.",
+    "- Report and release-check are supporting projection evidence, not production release readiness.",
     "",
   ].join("\n");
 }
