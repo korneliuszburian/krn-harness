@@ -30,7 +30,10 @@ contract. Do not duplicate or weaken those rules inside this ledger.
 
 ## Current Goal State
 
-The active goal is still open.
+The active goal's current source/evidence requirements are satisfied as of
+`dd2c673`. Keep this ledger as the recovery/audit entrypoint; future proof gaps
+below require a new approved goal or new target evidence, not another default
+source-hardening slice in this goal.
 
 Completed or source-hardened extension slices:
 
@@ -52,7 +55,7 @@ Completed or source-hardened extension slices:
 | Stage 10 wrapper safety boundary hardening | Source/code slice complete | `packages/cli/src/commands/review.ts`, `packages/cli/src/real-repo-review-summary.test.ts`, `docs/specs/task-contract.schema.md`, `docs/product/target-adoption-playbook.md` | Python `tools/*.py` target-validation wrappers now fail deterministic review when they omit limitations or unsafe conditions. This keeps wrapper-first adoption explicit without broadening verify allowlists. |
 | Stage 10 wrapper/config overhead visibility | Source/code slice complete | `packages/cli/src/commands/review.ts`, `packages/cli/src/real-repo-review-summary.test.ts`, `docs/specs/task-contract.schema.md`, `docs/product/target-adoption-playbook.md` | When a target-validation task spec declares `krn.config.json` or the Python wrapper script as expected touched files, deterministic review warns that those files are local wrapper/config adoption overhead. |
 
-Still open:
+Future proof gaps outside this goal:
 
 - Stage 10 findings hardening: residual wrapper/config overhead is now visible
   as review evidence when declared in task specs. Future target evidence must
@@ -202,13 +205,13 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 ## Next Safe Slice
 
-Recommended next slice: completion audit, or later target evidence if the
+Recommended next slice: a new approved goal, or later target evidence if the
 operator asks for more proof.
 
 Operator may resume with:
 
 ```text
-APPROVED: completion audit for the audit-consolidation goal only.
+APPROVED: start a new follow-up goal from this completed audit-consolidation state.
 
 Start from current HEAD. Do not rerun Stage 9 or Stage 10 unless a later
 operator prompt explicitly asks for a new target comparison.
@@ -219,11 +222,10 @@ First inspect:
 - docs/product/evidence-matrix.md
 
 Allowed slices:
-1. Audit every completion requirement in
-   `docs/product/audit-consolidation-goal-2026-06-18.md` against current source
-   truth, validation evidence, and pushed commits.
-2. If the audit finds a concrete unclosed source finding, implement only that
-   finding with focused tests.
+1. Choose one future proof gap from `docs/product/evidence-matrix.md`.
+2. Create or approve a narrow follow-up goal before target runs, hook-trust
+   work, memory-outcome proof, verify-profile changes, cockpit/UI work, or
+   publishing work.
 
 Do not add dashboards, MCP, vectors, subagent runtime, browser proof,
 screenshots, appshots, publishing, broad verify allowlists, production proof,
@@ -267,11 +269,12 @@ Residual risk:
   local comparison evidence must not be overclaimed as broad product
   superiority.
 
-## Completion Gate Reminder
+## Completion Gate Result
 
-Do not mark the active goal complete until current evidence proves every
-requirement in the completion audit. Stage 10 local comparison evidence,
-EXT-011 source-side skill hardening, expected-file context high-risk hardening,
-wrapper safety boundary hardening, and wrapper/config overhead visibility
-exist. The next step is an explicit completion audit against the goal document,
-not another source surface by default.
+The completion audit is satisfied for this goal: Stage 9 local target evidence,
+Stage 10 local comparison evidence, EXT-003 governed context recall, EXT-011
+source-side skill hardening, EXT-012 continuation hook support, expected-file
+context hardening, target-run release-check hardening, wrapper safety boundary
+hardening, and wrapper/config overhead visibility all exist with validation.
+Remaining proof gaps are future-goal inputs, not blockers for this completed
+audit-consolidation goal.

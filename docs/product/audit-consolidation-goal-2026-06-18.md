@@ -786,10 +786,11 @@ The repo is in a stronger state when all of the following are true:
 
 ## Current Completion Audit
 
-This audit is a current-state check, not a completion claim. Source-side
-hardening, EXT-003 governed context-recall evidence, Stage 9 target evidence,
-Stage 10 local comparison evidence, EXT-011 skill hardening, and expected-file
-context high-risk hardening have made the goal materially stronger.
+Result: the current audit-consolidation goal is satisfied as local
+source/evidence hardening. Source-side hardening, EXT-003 governed
+context-recall evidence, Stage 9 target evidence, Stage 10 local comparison
+evidence, EXT-011 skill hardening, and expected-file context high-risk
+hardening have made the goal materially stronger.
 Stage 10 shows a narrow auditability/proof-discipline delta, and the first
 follow-up source slices have reduced release-check target-run noise and
 expected-file context over-inclusion noise, and now fail wrapper proof that
@@ -803,17 +804,17 @@ impact.
 | Original external audits are represented by a claim matrix. | Satisfied | Audit Claim Matrix in this document covers `A1` and `A2`. | Keep future raw audit notes out of active canon until distilled. |
 | Later raw audit inputs are bounded before they affect roadmap language. | Satisfied for `docs/audit/new-audit-001.md` and `docs/audit/new-audit-002.md`. | New Audit Intake 2026-06-18 records them as raw strategic audit input, condensed audit data, strict implementation rules, and current-goal extension tasks only. | Do not treat later audit prose as active canon or Stage 9/10 proof without a new classified intake. |
 | New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; Stage 9 target evidence satisfied; Stage 10 local comparison evidence satisfied; first Stage 10 release-check source hardening slice satisfied; EXT-011 source-side skill hardening satisfied; Stage 10 expected-file context high-risk hardening satisfied; Stage 10 wrapper safety boundary hardening satisfied; Stage 10 wrapper/config overhead visibility satisfied. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and local comparison evidence in `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, EXT-011 has build-time skill workflow API hardening in `.agents/skills/*`, `.agents/skills/README.md`, and `docs/specs/build-time-skills.md`, `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records the two approved isolated target runs, `packages/cli/src/commands/release-check.ts` and `packages/cli/src/run-result-builder.ts` now classify approved isolated target runs as source-release not-applicable warning evidence, `packages/context/src/context-graph-selection.ts` now suppresses standalone graph doc-match noise for expected-file target tasks, `packages/cli/src/commands/review.ts` now fails Python wrapper proof missing limitations or unsafe conditions and warns on declared wrapper/config overhead files, and `docs/product/mvp-state.md` carries the north-star wording. | Do not treat source-side visual metadata, memory context recall, Stage 9 local target evidence, Stage 10 local comparison evidence, EXT-011 skill hardening, context high-risk hardening, wrapper safety hardening, or wrapper/config overhead visibility as rendered proof, production proof, hook trust, CI proof, target-main approval, memory outcome proof, or broad code-quality proof. Future target evidence may still show wrapper count is too high. |
-| Active docs no longer contradict the audit classification. | Satisfied for source-side claims. | Stage 0-8 results; `docs/product/evidence-matrix.md`; `docs/product/target-adoption-playbook.md`; `docs/specs/task-contract.schema.md`; `docs/specs/run-result.schema.md`. | Recheck after Stage 9/10 target evidence changes source truth. |
+| Active docs no longer contradict the audit classification. | Satisfied for source-side claims. | Stage 0-8 results; `docs/product/evidence-matrix.md`; `docs/product/target-adoption-playbook.md`; `docs/specs/task-contract.schema.md`; `docs/specs/run-result.schema.md`; Stage 9/10 handoffs. | Recheck only after future target evidence changes source truth. |
 | `grill-with-docs` is resolved. | Satisfied. | Stage 4 result; no active `.agents/skills/grill-with-docs/` directory. | None unless a future goal explicitly creates a new build-time skill through `$skill-creator`. |
-| `$review` has proven closeout value or a narrower documented role. | Satisfied. | `docs/product/reviewers.md`; `.agents/skills/review/SKILL.md`; deterministic review tests. | Re-evaluate usefulness after real target repeats. |
+| `$review` has proven closeout value or a narrower documented role. | Satisfied. | `docs/product/reviewers.md`; `.agents/skills/review/SKILL.md`; deterministic review tests; Stage 9/10 target evidence warnings. | Re-evaluate only after future target repeats add new evidence. |
 | Target validation boundaries are explicit enough to avoid wrapper theater. | Satisfied for source contract, Stage 9 target evidence, Stage 10 local comparison, wrapper safety hardening, and wrapper/config overhead visibility. | `boundaries.targetValidation`; adoption playbook wrapper limits; deterministic review checks; `packages/cli/src/commands/review.ts`; `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`. | Future target evidence may still show wrapper count is too high; do not broaden verify allowlists without a later approved profile decision. |
 | Task specs can carry critical target-proof boundaries. | Satisfied for source contract. | Task-contract schema/docs and review checks for touched files, rollback, no-push, no-merge, target approval, approval reference, target isolation, and protected-data exclusion. | Future additions require a new target finding. |
 | Run-result semantics separate core verdict from supporting projection. | Satisfied. | `coreStatus`, `supportingProjection`, proof-scope fields, and run-command tests. | Keep report/release-check language from becoming production readiness. |
 | At least one later hardening slice is validated with source tests. | Satisfied. | Docs regression plus CLI/task-contract tests for Stages 5-8. | Continue reporting exact validation in handoffs. |
 | Later real target repeats still use `krn run` as the primary workflow. | Satisfied for Stage 9 and for the KRN half of Stage 10. | `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`; target run-results and run-bundle manifests in isolated `.krn/current/*` and `.krn-harness/current/*`. | Do not treat these local runs as production proof, hook trust, CI proof, target-main approval, or broad adoption proof. |
-| Stage 10 measures KRN against a simpler same-authority baseline. | Satisfied as local comparison evidence only. | `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md` records raw baseline, KRN result, validation authority, changed files, retries, warnings, `meaningfulDelta`, and proof boundaries. | Use the findings to harden KRN. Do not upgrade the narrow auditability delta into productivity, code-quality, memory-outcome, production, hook-trust, CI, or market proof. |
+| Stage 10 measures KRN against a simpler same-authority baseline. | Satisfied as local comparison evidence only. | `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md` records raw baseline, KRN result, validation authority, changed files, retries, warnings, `meaningfulDelta`, and proof boundaries. | Stage 10 findings have source follow-up fixes for release-check/report noise, expected-file context noise, wrapper safety metadata, and wrapper/config overhead visibility. Do not upgrade the narrow auditability delta into productivity, code-quality, memory-outcome, production, hook-trust, CI, or market proof. |
 | Production proof and hook trust remain unclaimed. | Satisfied as a boundary. | `productionProof: false`; hook trust unproven in evidence docs and run-result schema. | Do not upgrade either claim without a separate approved proof goal. |
-| Runtime artifacts and protected data are not committed. | Satisfied for the current source slice. | `git ls-files .krn .krn-harness` check; protected-data exclusion boundaries. | Re-run before any closeout or commit. |
+| Runtime artifacts and protected data are not committed. | Satisfied for the current source slice. | `git ls-files .krn .krn-harness` check; protected-data exclusion boundaries. | Re-run before any future closeout or commit. |
 
 ## New Audit Intake 2026-06-18
 
@@ -1098,9 +1099,10 @@ Extension task progress:
   readiness metadata only. No browser automation, Playwright, Figma/MCP
   dependency, generated screenshot/appshot, external visual service, production
   proof, hook-trust claim, or Stage 9/10 evidence was added.
-- 2026-06-18 continuation audit: `docs/product/audit-consolidation-continuation.md`
-  now carries an evidence/state queue for completion audit or future target
-  evidence. Stage 9 is recorded as satisfied
+- 2026-06-18 completion audit: `docs/product/audit-consolidation-continuation.md`
+  now records the current goal's source/evidence requirements as satisfied and
+  routes future proof gaps to new approved goals or future target evidence.
+  Stage 9 is recorded as satisfied
   by `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; Stage 10 is
   recorded as local comparison evidence by
   `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`; EXT-003 is
@@ -1136,12 +1138,12 @@ active canon without condensation and validation.
 ## Next Source Hardening Gate
 
 ```text
-Proceed from Stage 10 findings, not from a new surface idea.
+Do not continue this completed goal by adding a new surface idea.
 
 Recommended order:
-1. Run a completion audit against this goal and current source truth.
-2. Add another source change only if the audit finds a concrete unclosed
-   requirement or a new target finding is explicitly approved.
+1. Start a new approved follow-up goal from one explicit future proof gap.
+2. Add source changes only when the new goal has a concrete finding, owner,
+   acceptance criteria, and proof command.
 
 Forbidden:
 - no broad verify allowlist;
