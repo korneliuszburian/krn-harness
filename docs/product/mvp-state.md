@@ -16,6 +16,16 @@ This document is the canonical concise v0.1 operating truth. The detailed
 surface ledger lives in `docs/product/evidence-matrix.md`; release handoff
 wording lives in `docs/releases/v0.1-local-tool-candidate.md`.
 
+## Product North Star
+
+KRN's product direction is to make Codex work contract-backed, remembered,
+verified, reviewed, and auditable without changing the primary workflow.
+Remembered means governed repo/runtime memory with evidence provenance and
+operator control; it does not mean Codex personal memory or raw chat history is
+KRN project truth. The daily work contract is documented in
+`docs/product/daily-work-model.md` and remains docs-only until a later accepted
+goal adds executable behavior.
+
 ## Primary Workflow
 
 - `krn run` is the primary operator workflow.

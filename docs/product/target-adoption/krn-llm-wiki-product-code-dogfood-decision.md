@@ -37,7 +37,8 @@ A valid product-code proof needs all of the following:
 - an isolated clean worktree, never the dirty active checkout;
 - pinned local KRN identity evidence from `krn doctor cli`;
 - a task spec that names expected touched files, forbidden files, validation,
-  rollback, and no-push boundary;
+  rollback, no-push, no-merge, target approval, approval-reference, and
+  protected-data exclusion boundaries;
 - `krn run --task-spec ... --execute-verify --bundle`;
 - target validation passing after the change;
 - a run-result and run-bundle artifact with `productionProof: false` and

@@ -11,6 +11,11 @@ Do not add product surfaces before these items. Target commit/push remains
 separate from KRN source proof. `productionProof` remains false and `hookTrust`
 remains unproven.
 
+For the 2026-06-18 audit consolidation, the canonical active task list is
+`docs/product/audit-consolidation-goal-2026-06-18.md`. That document owns the
+condensed N1/N2 audit intake, strict anti-slop rules, and EXT-001 through
+EXT-010. Do not duplicate those extension tasks here.
+
 ## Core Skills Priority 1: Make Review Evidence First-Class
 
 Goal: turn `$review` into the default closeout audit for KRN work without
@@ -35,17 +40,22 @@ Acceptance:
 - Preserve instruction-only skill shape.
 - Validate with `$skill-creator` quick validation.
 
-## Core Skills Priority 3: Decide What To Do With `grill-with-docs`
+## Completed: Decide What To Do With `grill-with-docs`
 
-Goal: resolve `SKILL-GAP-003` without copying external workflow assumptions into
-KRN.
+Outcome: removed `grill-with-docs` from active build-time skill discovery.
 
-Acceptance:
+Reason: the untracked skill duplicated `$kanon + $pilnuj + $review`, promoted a
+generic domain-model interview workflow, and referenced missing local support
+formats such as `CONTEXT-FORMAT.md` and `ADR-FORMAT.md`.
 
-- Either rewrite it as a KRN-specific planning grill or mark it as inspiration
-  only.
-- Remove references to missing support files if it remains active.
-- Do not touch the protected path unless the next goal explicitly permits it.
+Accepted replacement:
+
+- Use `$kanon` for research-to-canon/spec/ADR distillation.
+- Use `$pilnuj` for scope pressure and P0/P1/P2/P3 classification.
+- Use `$review` for evidence-closeout checks after work.
+
+This keeps KRN's build-time skill layer small and avoids promoting a fourth
+overlapping ritual skill.
 
 GOAL-8H hardening work is tracked separately in
 `docs/product/goal-8h-roadmap.md`; use that roadmap for schema, trace, hook,
@@ -145,16 +155,23 @@ Acceptance:
 - No bypass-based trust claim.
 - No production proof claim.
 
-## External Audit Triage Candidates
+## Audit Consolidation Extension Tasks
 
-Tracked in `docs/product/external-audit-triage-2026-06-16.md`. The only
-near-term candidates after target repeat are:
+Current source truth lives in
+`docs/product/audit-consolidation-goal-2026-06-18.md`; recovery/progress state
+lives in `docs/product/audit-consolidation-continuation.md`.
 
-- Threat model docs without `krn hook verify`.
-- Run hash evidence without `krn run --compare`.
-- Golden deterministic eval corpus before any LLM judge.
-- Config inheritance only if repeat target evidence shows copy/paste pain.
-- Memory/eval ADR refresh in existing ADRs/specs, not duplicate docs.
+Use that document for:
+
+- original audit claim matrix and New Audit Intake 2026-06-18;
+- official Codex docs implications;
+- strict no-snapshot, no-slop, no-proof-inflation implementation rules;
+- EXT-001 through EXT-010 current-goal extension tasks;
+- Stage 9 and Stage 10 remaining target-evidence gates.
+
+Do not copy the extension task list into this backlog. If one of those tasks is
+implemented, update the current goal and only add a short pointer here if the
+implementation changes backlog priority.
 
 ## Not Before v0.2
 

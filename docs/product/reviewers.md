@@ -6,6 +6,29 @@ Reviewers inspect KRN artifacts and emit review records for operator decisions.
 
 They are not autonomous agents. They do not edit code, commit, push, or approve memory.
 
+## Closeout Value Boundary
+
+`$review` is useful only when it changes a completion decision, catches a real
+missing-evidence or overclaim risk, or records that no added value was observed.
+It must not become a ritual that repeats validation without a finding.
+
+Stage 2 proof, 2026-06-18:
+
+- Source slice reviewed: Stage 1 audit-claim triage in
+  `docs/product/audit-consolidation-goal-2026-06-18.md`.
+- Task evidence: the Stage 1 matrix and contradiction check in that goal doc.
+- Verify evidence: `pnpm lint`,
+  `pnpm --silent vitest run packages/evals/src/docs-regression.test.ts`,
+  `git diff --check`, and
+  `git diff --no-index --check -- /dev/null docs/product/audit-consolidation-goal-2026-06-18.md`.
+- Git evidence: `git status --short --branch`,
+  `git diff --cached --name-only`, and `git diff --name-only`.
+- Runtime artifact evidence: `git ls-files .krn .krn-harness` returned no
+  tracked runtime artifacts.
+- Result: `$review` added value by catching that `git diff --check` alone does
+  not inspect an untracked owned source doc. The slice was `NEEDS_CHANGES`
+  before the direct no-index check and `VERIFIED` after that check passed.
+
 ## Inputs
 
 Allowed reviewer inputs are local artifacts only:
