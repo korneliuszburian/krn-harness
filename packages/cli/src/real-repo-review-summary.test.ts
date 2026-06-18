@@ -531,7 +531,7 @@ describe("krn CLI review and operator summary", () => {
       JSON.stringify(
         {
           prompt: "Validate complete Python wrapper target proof metadata.",
-          expectedTouchedFiles: ["tools/check_quality.py"],
+          expectedTouchedFiles: ["krn.config.json", "tools/check_quality.py"],
           forbiddenTouchedFiles: [".env", ".git/**"],
           boundaries: {
             targetValidation: {
@@ -590,6 +590,7 @@ describe("krn CLI review and operator summary", () => {
     expect(verify).toMatchObject({ status: "warn" });
     expect(verify?.findings).toEqual([
       "target validation coverage is fast-quality-gate, not full-suite",
+      "target validation declares local wrapper/config adoption overhead files: krn.config.json, tools/check_quality.py",
     ]);
     expect(result.blockers).not.toContain(
       "target validation wrapper command is missing limitations: python3 tools/check_quality.py",

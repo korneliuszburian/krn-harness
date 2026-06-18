@@ -50,12 +50,14 @@ Completed or source-hardened extension slices:
 | EXT-012 compaction continuation hook | Source/code slice complete | `packages/cli/src/continuation-state.ts`, `packages/cli/src/commands/hook.ts`, `packages/hooks/src/*`, `docs/specs/hooks-pack.md`, hook fixtures/tests | Official Codex `PreCompact` now writes local continuation state and `SessionStart` surfaces it as a restart anchor, while keeping hook trust unproven and `enforced: false`. |
 | Stage 10 expected-file context hardening | Source/code slice complete | `packages/context/src/context-graph-selection.ts`, `packages/context/src/build-context-package.test.ts`, `docs/specs/context-package.schema.md`, `docs/product/evidence-matrix.md` | Expected-file-focused target tasks now suppress standalone graph doc-match noise while keeping task-contract expected files, explicit task paths, do-not-use paths, package-owned selectors, and base safety context. The Stage 10 isolated target context recheck dropped from 93 items/65 reference-only/high risk to 13 items/1 reference-only/medium risk. |
 | Stage 10 wrapper safety boundary hardening | Source/code slice complete | `packages/cli/src/commands/review.ts`, `packages/cli/src/real-repo-review-summary.test.ts`, `docs/specs/task-contract.schema.md`, `docs/product/target-adoption-playbook.md` | Python `tools/*.py` target-validation wrappers now fail deterministic review when they omit limitations or unsafe conditions. This keeps wrapper-first adoption explicit without broadening verify allowlists. |
+| Stage 10 wrapper/config overhead visibility | Source/code slice complete | `packages/cli/src/commands/review.ts`, `packages/cli/src/real-repo-review-summary.test.ts`, `docs/specs/task-contract.schema.md`, `docs/product/target-adoption-playbook.md` | When a target-validation task spec declares `krn.config.json` or the Python wrapper script as expected touched files, deterministic review warns that those files are local wrapper/config adoption overhead. |
 
 Still open:
 
-- Stage 10 findings hardening: residual wrapper/config overhead remains open.
-  Target-run release-check/report noise, expected-file context over-inclusion,
-  and missing wrapper safety metadata have first source fixes.
+- Stage 10 findings hardening: residual wrapper/config overhead is now visible
+  as review evidence when declared in task specs. Future target evidence must
+  decide whether the wrapper count/noise remains acceptable or justifies a
+  narrow verify-profile change.
 
 ## Evidence Request Queue
 
@@ -125,6 +127,9 @@ Follow-up findings:
 - wrapper commands can become proof theater if they omit limitations or unsafe
   conditions; a follow-up source fix now makes deterministic review fail
   `python3 tools/*.py` target-validation wrappers that omit either field;
+- local wrapper/config files can make KRN adoption look heavier than product
+  value; a follow-up source fix now warns when `krn.config.json` or the Python
+  wrapper script is declared as an expected touched file;
 - no governed memory item appeared in the target context package, so memory
   outcome impact remains unproven.
 
@@ -197,12 +202,13 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 ## Next Safe Slice
 
-Recommended next slice: residual Stage 10 wrapper/config overhead measurement.
+Recommended next slice: completion audit, or later target evidence if the
+operator asks for more proof.
 
 Operator may resume with:
 
 ```text
-APPROVED: source hardening from residual Stage 10 wrapper/config overhead only.
+APPROVED: completion audit for the audit-consolidation goal only.
 
 Start from current HEAD. Do not rerun Stage 9 or Stage 10 unless a later
 operator prompt explicitly asks for a new target comparison.
@@ -213,9 +219,11 @@ First inspect:
 - docs/product/evidence-matrix.md
 
 Allowed slices:
-1. Continue measuring Python wrapper/config overhead before broadening any
-   verify policy. Do not add another source change unless a remaining overhead
-   finding is concrete and testable.
+1. Audit every completion requirement in
+   `docs/product/audit-consolidation-goal-2026-06-18.md` against current source
+   truth, validation evidence, and pushed commits.
+2. If the audit finds a concrete unclosed source finding, implement only that
+   finding with focused tests.
 
 Do not add dashboards, MCP, vectors, subagent runtime, browser proof,
 screenshots, appshots, publishing, broad verify allowlists, production proof,
@@ -241,6 +249,7 @@ Acceptance:
 - Stage 10 expected-file context high-risk over-inclusion has a first source
   fix and isolated target recheck;
 - Stage 10 wrapper safety metadata has a first deterministic review fix;
+- Stage 10 wrapper/config overhead visibility has a deterministic review fix;
 - no generated screenshots, appshots, browser captures, or Codex-managed
   snapshots become proof.
 
@@ -254,14 +263,15 @@ Proof:
 
 Residual risk:
 
-- the next real progress must reduce or explicitly bound residual Stage 10
-  wrapper/config friction; local comparison evidence must not be overclaimed as
-  broad product superiority.
+- future target evidence may still show wrapper/config friction is too high;
+  local comparison evidence must not be overclaimed as broad product
+  superiority.
 
 ## Completion Gate Reminder
 
 Do not mark the active goal complete until current evidence proves every
 requirement in the completion audit. Stage 10 local comparison evidence,
 EXT-011 source-side skill hardening, expected-file context high-risk hardening,
-and wrapper safety boundary hardening exist, but residual Stage 10
-wrapper/config overhead follow-up remains open.
+wrapper safety boundary hardening, and wrapper/config overhead visibility
+exist. The next step is an explicit completion audit against the goal document,
+not another source surface by default.

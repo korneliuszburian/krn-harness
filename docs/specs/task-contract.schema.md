@@ -24,8 +24,11 @@ Runtime validation lives in `packages/task-contract/src/schema.ts`.
   coverage level, reason, limitations, and unsafe conditions. Deterministic
   review checks that the declared command is configured and executed in verify
   evidence, fails when target-run boundaries are incomplete, fails Python
-  `tools/*.py` wrappers that omit limitations or unsafe conditions, and warns
-  when coverage is narrower than `full-suite`. Target-run proof must also carry
+  `tools/*.py` wrappers that omit limitations or unsafe conditions, warns when
+  coverage is narrower than `full-suite`, and warns when otherwise complete
+  wrapper proof declares expected touched files that include local wrapper/config
+  adoption overhead such as `krn.config.json` or the Python wrapper script.
+  Target-run proof must also carry
   `boundaries.targetApproval.required: true`, an `approvalRef`, and
   `boundaries.targetIsolation.isolated: true`,
   `boundaries.targetIsolation.sourceCheckoutRejected: true`, and

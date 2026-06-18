@@ -123,11 +123,26 @@ function protectedLookingPath(filePath: string): boolean {
   );
 }
 
-function isPythonToolsWrapperCommand(command: string): boolean {
+function pythonToolsWrapperScript(command: string): string | undefined {
   const [binary, script] = command.trim().split(/\s+/);
-  return (
-    binary === "python3" && script !== undefined && /^tools\/[A-Za-z0-9._/-]+\.py$/.test(script)
-  );
+  if (binary !== "python3" || script === undefined) return undefined;
+  return /^tools\/[A-Za-z0-9._/-]+\.py$/.test(script) ? script : undefined;
+}
+
+function isPythonToolsWrapperCommand(command: string): boolean {
+  return pythonToolsWrapperScript(command) !== undefined;
+}
+
+function targetValidationAdoptionOverheadFiles(
+  command: string,
+  expectedTouchedFiles: string[] | undefined,
+): string[] {
+  const expectedFiles = new Set(expectedTouchedFiles ?? []);
+  const wrapperScript = pythonToolsWrapperScript(command);
+  return unique([
+    ...(expectedFiles.has("krn.config.json") ? ["krn.config.json"] : []),
+    ...(wrapperScript !== undefined && expectedFiles.has(wrapperScript) ? [wrapperScript] : []),
+  ]);
 }
 
 function hasNonEmptyValues(values: string[] | undefined): boolean {
@@ -318,6 +333,10 @@ function targetValidationBoundaryReview(
   const commandConfigured = verify.configuredCommands.includes(boundary.command);
   const metadata = taskContract?.metadata;
   const targetApproval = metadata?.boundaries?.targetApproval;
+  const adoptionOverheadFiles = targetValidationAdoptionOverheadFiles(
+    boundary.command,
+    metadata?.expectedTouchedFiles,
+  );
   const missingTargetRunBoundaries = [
     ...(metadata?.expectedTouchedFiles && metadata.expectedTouchedFiles.length > 0
       ? []
@@ -364,6 +383,13 @@ function targetValidationBoundaryReview(
   if (boundary.coverage !== "full-suite") {
     warningFindings.push(`target validation coverage is ${boundary.coverage}, not full-suite`);
   }
+  if (failFindings.length === 0 && adoptionOverheadFiles.length > 0) {
+    warningFindings.push(
+      `target validation declares local wrapper/config adoption overhead files: ${adoptionOverheadFiles.join(
+        ", ",
+      )}`,
+    );
+  }
 
   const status: ReviewStatus =
     failFindings.length > 0 ? "fail" : warningFindings.length > 0 ? "warn" : "pass";
@@ -374,6 +400,7 @@ function targetValidationBoundaryReview(
           "Align task-spec target validation boundaries with configured and executed verify evidence.",
           "Add expected touched files, forbidden touched files, rollback, no-push, no-merge, target approval, target approval reference, target isolation, and protected data boundaries before target-run proof.",
           "Add targetValidation limitations and unsafeIf entries before using Python tools wrappers as target proof.",
+          "Treat declared wrapper/config files as adoption overhead, not product-feature value.",
           "Do not claim full-suite target validation unless task-spec coverage is full-suite.",
         ];
 
