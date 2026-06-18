@@ -613,6 +613,10 @@ Current Stage 10 audit:
   - KRN needed wrapper/config overhead because verify policy correctly rejects
     broad Python module commands and shell chains.
   - KRN review surfaced fast-quality-gate and context over-inclusion caveats.
+    A follow-up source slice now suppresses standalone graph doc-match noise for
+    expected-file target tasks and reduced the Stage 10 isolated target context
+    recheck from 93 items/65 reference-only/high risk to 13 items/1
+    reference-only/medium risk.
   - KRN release-check/report output was noisy in non-source target runs because
     source-release checks were reported as target failures even when `krn run`
     treated them as non-blocking. A follow-up source slice now classifies
@@ -662,10 +666,10 @@ Hard overnight sequence:
 3. Treat Stage 10 as completed local comparison evidence. Do not rerun it unless
    a later operator prompt explicitly approves a new target comparison.
 4. Start from the Stage 10 handoff and choose the next code/schema/test
-   hardening slice from its remaining findings: context over-inclusion risk,
-   or wrapper/config overhead. Target-run release-check/report noise and
-   EXT-011 skill quality already have first source fixes; only revisit either
-   if a new run or source audit proves the current wording is still misleading.
+   hardening slice from its remaining finding: wrapper/config overhead.
+   Target-run release-check/report noise, expected-file context over-inclusion,
+   and EXT-011 skill quality already have first source fixes; only revisit them
+   if a new run or source audit proves the current behavior is still misleading.
 5. If the Stage 10 findings do not justify the next source change, do not invent
    a feature.
 6. Preserve the Stage 10 result as `meaningfulDelta: true` only for
@@ -774,18 +778,18 @@ The repo is in a stronger state when all of the following are true:
 
 This audit is a current-state check, not a completion claim. Source-side
 hardening, EXT-003 governed context-recall evidence, Stage 9 target evidence,
-Stage 10 local comparison evidence, and EXT-011 skill hardening have made the
-goal materially stronger.
+Stage 10 local comparison evidence, EXT-011 skill hardening, and expected-file
+context high-risk hardening have made the goal materially stronger.
 Stage 10 shows a narrow auditability/proof-discipline delta, and the first
-follow-up source slice has reduced release-check target-run noise. Remaining
-findings are wrapper/config overhead, context over-inclusion risk, and no
-measured memory outcome impact.
+follow-up source slices have reduced release-check target-run noise and
+expected-file context over-inclusion noise. Remaining findings are
+wrapper/config overhead and no measured memory outcome impact.
 
 | Requirement | Current status | Evidence | Remaining work |
 | --- | --- | --- | --- |
 | Original external audits are represented by a claim matrix. | Satisfied | Audit Claim Matrix in this document covers `A1` and `A2`. | Keep future raw audit notes out of active canon until distilled. |
 | Later raw audit inputs are bounded before they affect roadmap language. | Satisfied for `docs/audit/new-audit-001.md` and `docs/audit/new-audit-002.md`. | New Audit Intake 2026-06-18 records them as raw strategic audit input, condensed audit data, strict implementation rules, and current-goal extension tasks only. | Do not treat later audit prose as active canon or Stage 9/10 proof without a new classified intake. |
-| New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; Stage 9 target evidence satisfied; Stage 10 local comparison evidence satisfied; first Stage 10 source hardening slice satisfied; EXT-011 source-side skill hardening satisfied. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and local comparison evidence in `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, EXT-011 has build-time skill workflow API hardening in `.agents/skills/*`, `.agents/skills/README.md`, and `docs/specs/build-time-skills.md`, `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records the two approved isolated target runs, `packages/cli/src/commands/release-check.ts` and `packages/cli/src/run-result-builder.ts` now classify approved isolated target runs as source-release not-applicable warning evidence, and `docs/product/mvp-state.md` carries the north-star wording. | Harden remaining Stage 10 findings without treating source-side visual metadata, memory context recall, Stage 9 local target evidence, Stage 10 local comparison evidence, or EXT-011 skill hardening as rendered proof, production proof, hook trust, CI proof, target-main approval, memory outcome proof, or broad code-quality proof. |
+| New audit extension tasks are executed under strict anti-slop rules. | Source-side extension work satisfied; EXT-003 first evidence packet satisfied; Stage 9 target evidence satisfied; Stage 10 local comparison evidence satisfied; first Stage 10 release-check source hardening slice satisfied; EXT-011 source-side skill hardening satisfied; Stage 10 expected-file context high-risk hardening satisfied. | EXT-001 and EXT-002 have a docs-only slice in `docs/product/daily-work-model.md`, EXT-003 has `memory-9ea13b133ba2` usefulness proof in `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md`, EXT-004 has a daily-ledger projection in `docs/product/operator-console.md`, EXT-005 has Stage 10 comparison packet hardening in `docs/product/target-adoption-playbook.md` and local comparison evidence in `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`, EXT-006 has a delegation/worktree protocol in `docs/product/subagent-contracts.md`, EXT-007 has static cockpit readiness preconditions in `docs/product/operator-console.md`, EXT-008 has a canonical contract map in `docs/product/audit-consolidation-continuation.md`, EXT-009 has a packaging/distribution kill switch in `docs/specs/release-check.schema.md`, EXT-010 has frontend visual proof metadata in task-contract schema/start output, EXT-011 has build-time skill workflow API hardening in `.agents/skills/*`, `.agents/skills/README.md`, and `docs/specs/build-time-skills.md`, `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records the two approved isolated target runs, `packages/cli/src/commands/release-check.ts` and `packages/cli/src/run-result-builder.ts` now classify approved isolated target runs as source-release not-applicable warning evidence, `packages/context/src/context-graph-selection.ts` now suppresses standalone graph doc-match noise for expected-file target tasks, and `docs/product/mvp-state.md` carries the north-star wording. | Harden remaining Stage 10 wrapper/config overhead without treating source-side visual metadata, memory context recall, Stage 9 local target evidence, Stage 10 local comparison evidence, EXT-011 skill hardening, or context high-risk hardening as rendered proof, production proof, hook trust, CI proof, target-main approval, memory outcome proof, or broad code-quality proof. |
 | Active docs no longer contradict the audit classification. | Satisfied for source-side claims. | Stage 0-8 results; `docs/product/evidence-matrix.md`; `docs/product/target-adoption-playbook.md`; `docs/specs/task-contract.schema.md`; `docs/specs/run-result.schema.md`. | Recheck after Stage 9/10 target evidence changes source truth. |
 | `grill-with-docs` is resolved. | Satisfied. | Stage 4 result; no active `.agents/skills/grill-with-docs/` directory. | None unless a future goal explicitly creates a new build-time skill through `$skill-creator`. |
 | `$review` has proven closeout value or a narrower documented role. | Satisfied. | `docs/product/reviewers.md`; `.agents/skills/review/SKILL.md`; deterministic review tests. | Re-evaluate usefulness after real target repeats. |
@@ -1000,6 +1004,17 @@ Extension task progress:
   add a new build-time skill, copy an external skill pack, add a giant skill
   router, change runtime/downstream skill templates, or introduce XML/tagged
   contracts.
+- 2026-06-18 Stage 10 expected-file context hardening:
+  `packages/context/src/context-graph-selection.ts` now suppresses standalone
+  graph `doc-match`, `deprecated-doc-status`, and
+  `context-poisoning-suspect-doc` noise when a task contract already declares
+  `expectedTouchedFiles`. Task-contract expected files, explicit task paths,
+  required do-not-use paths, package-owned graph selectors, and base safety
+  context still apply. Focused context tests cover the rule, and the Stage 10
+  isolated target recheck moved from 93 total items, 65 reference-only items,
+  and high over-inclusion risk to 13 total items, 1 reference-only item, and
+  medium over-inclusion risk. This is not semantic retrieval, embeddings,
+  AST/callgraph/dataflow, or full-repo understanding.
 - 2026-06-18 EXT-003 source and evidence slice:
   `docs/specs/memory.schema.md` defines memory usefulness evidence and separates
   KRN `.krn/memory/*` from Codex personal memory, `~/.codex/MEMORY.md`, AGENTS
@@ -1060,8 +1075,8 @@ Extension task progress:
   proof, hook-trust claim, or Stage 9/10 evidence was added.
 - 2026-06-18 continuation audit: `docs/product/audit-consolidation-continuation.md`
   now carries an evidence/state queue for the remaining current-goal work:
-  remaining Stage 10 context/wrapper hardening. Stage 9 is recorded as satisfied by
-  `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; Stage 10 is
+  remaining Stage 10 wrapper/config hardening. Stage 9 is recorded as satisfied
+  by `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`; Stage 10 is
   recorded as local comparison evidence by
   `docs/handoffs/2026-06-18-stage10-raw-vs-krn-comparison.md`; EXT-003 is
   recorded as satisfied for first governed context-recall proof; EXT-011 is
@@ -1099,9 +1114,7 @@ active canon without condensation and validation.
 Proceed from Stage 10 findings, not from a new surface idea.
 
 Recommended order:
-1. Re-audit context over-inclusion from the Stage 10 KRN target context package
-   before adding graph/context scope.
-2. Continue measuring Python wrapper/config overhead before broadening any
+1. Continue measuring Python wrapper/config overhead before broadening any
    verify policy.
 
 Forbidden:

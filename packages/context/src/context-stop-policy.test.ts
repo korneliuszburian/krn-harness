@@ -366,7 +366,7 @@ describe("context package stop and safety policy", () => {
         selector: "explicit-task-path",
       }),
     );
-    expect(referenceOnlyPaths).toEqual(["docs/specs/context-package.schema.md", "README.md"]);
+    expect(referenceOnlyPaths).toEqual(["docs/specs/context-package.schema.md"]);
     expect(referenceOnlyPaths).not.toEqual(
       expect.arrayContaining([
         "docs/r2c-update-page-post-apply-validation-contract.md",
@@ -388,7 +388,7 @@ describe("context package stop and safety policy", () => {
     );
     expect(pkg.overInclusion).toMatchObject({
       activeItems: 5,
-      referenceOnlyItems: 2,
+      referenceOnlyItems: 1,
       risk: "low",
     });
     expect(pkg.stop).toBe(false);

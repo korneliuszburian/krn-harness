@@ -48,11 +48,13 @@ Completed or source-hardened extension slices:
 | Stage 9 target evidence | Local target evidence complete | `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` | Two approved, isolated, non-protected target product-code/test-code runs reached local verified/core verified through `krn run --task-spec ... --execute-verify --bundle`. This is not production proof, hook trust, CI proof, target-main approval, or Stage 10 comparison evidence. |
 | EXT-011 build-time skill quality hardening | Source-side skill/docs slice complete | `.agents/skills/*`, `.agents/skills/README.md`, `docs/specs/build-time-skills.md` | Build-time skills now expose trigger/input/output/escalation/proof/condensation contracts as small workflow APIs grounded in official Codex skills guidance and condensed Matt Pocock skill patterns; no new skill, copied skill pack, giant router, runtime template, or XML cargo cult was added. |
 | EXT-012 compaction continuation hook | Source/code slice complete | `packages/cli/src/continuation-state.ts`, `packages/cli/src/commands/hook.ts`, `packages/hooks/src/*`, `docs/specs/hooks-pack.md`, hook fixtures/tests | Official Codex `PreCompact` now writes local continuation state and `SessionStart` surfaces it as a restart anchor, while keeping hook trust unproven and `enforced: false`. |
+| Stage 10 expected-file context hardening | Source/code slice complete | `packages/context/src/context-graph-selection.ts`, `packages/context/src/build-context-package.test.ts`, `docs/specs/context-package.schema.md`, `docs/product/evidence-matrix.md` | Expected-file-focused target tasks now suppress standalone graph doc-match noise while keeping task-contract expected files, explicit task paths, do-not-use paths, package-owned selectors, and base safety context. The Stage 10 isolated target context recheck dropped from 93 items/65 reference-only/high risk to 13 items/1 reference-only/medium risk. |
 
 Still open:
 
-- Stage 10 findings hardening: context over-inclusion risk and wrapper/config
-  overhead. Target-run release-check/report noise has a first source fix.
+- Stage 10 findings hardening: wrapper/config overhead remains open.
+  Target-run release-check/report noise and expected-file context
+  over-inclusion have first source fixes.
 
 ## Evidence Request Queue
 
@@ -113,7 +115,9 @@ Follow-up findings:
 
 - current verify policy creates wrapper/config overhead for Python targets;
 - review correctly warned on fast-quality-gate rather than full-suite coverage;
-- context package over-inclusion risk was high;
+- context package over-inclusion risk was high; a follow-up source fix now
+  suppresses standalone graph doc-match noise for expected-file target tasks and
+  reduced the Stage 10 isolated target context recheck from high to medium risk;
 - release-check/report output was noisy in non-source target runs; a follow-up
   source fix now classifies approved isolated target runs as source-release
   not-applicable warning evidence instead of source-release blockers;
@@ -189,12 +193,12 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 ## Next Safe Slice
 
-Recommended next slice: remaining Stage 10 context/wrapper hardening.
+Recommended next slice: remaining Stage 10 wrapper/config overhead hardening.
 
 Operator may resume with:
 
 ```text
-APPROVED: source hardening from remaining Stage 10 findings only.
+APPROVED: source hardening from remaining Stage 10 wrapper/config overhead only.
 
 Start from current HEAD. Do not rerun Stage 9 or Stage 10 unless a later
 operator prompt explicitly asks for a new target comparison.
@@ -205,9 +209,7 @@ First inspect:
 - docs/product/evidence-matrix.md
 
 Allowed slices:
-1. Re-audit context over-inclusion from the Stage 10 KRN target context package
-   before adding graph/context scope.
-2. Continue measuring Python wrapper/config overhead before broadening any
+1. Continue measuring Python wrapper/config overhead before broadening any
    verify policy.
 
 Do not add dashboards, MCP, vectors, subagent runtime, browser proof,
@@ -231,6 +233,8 @@ Acceptance:
 - EXT-003 source and first governed context-recall evidence are complete;
 - Stage 9 local target evidence is complete;
 - Stage 10 local comparison evidence is complete;
+- Stage 10 expected-file context high-risk over-inclusion has a first source
+  fix and isolated target recheck;
 - no generated screenshots, appshots, browser captures, or Codex-managed
   snapshots become proof.
 
@@ -244,12 +248,14 @@ Proof:
 
 Residual risk:
 
-- the next real progress must reduce remaining Stage 10 friction; local
-  comparison evidence must not be overclaimed as broad product superiority.
+- the next real progress must reduce remaining Stage 10 wrapper/config friction;
+  local comparison evidence must not be overclaimed as broad product
+  superiority.
 
 ## Completion Gate Reminder
 
 Do not mark the active goal complete until current evidence proves every
-requirement in the completion audit. Stage 10 local comparison evidence and
-EXT-011 source-side skill hardening exist, but remaining Stage 10 context and
-wrapper/config follow-up hardening is still open.
+requirement in the completion audit. Stage 10 local comparison evidence,
+EXT-011 source-side skill hardening, and expected-file context high-risk
+hardening exist, but remaining Stage 10 wrapper/config follow-up hardening is
+still open.

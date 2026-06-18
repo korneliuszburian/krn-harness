@@ -74,6 +74,21 @@ function shouldSuppressVerifyProfileDocMatch(
   return matchedTerms.every((term) => broadVerifyProfileDocTerms.has(term));
 }
 
+function shouldSuppressExpectedFileDocMatch(hints: ContextSelectionHints): boolean {
+  return hints.expectedTouchedPaths.size > 0;
+}
+
+function shouldSuppressStandaloneDocMatch(
+  evidencePath: string,
+  matchedTerms: string[],
+  hints: ContextSelectionHints,
+): boolean {
+  return (
+    shouldSuppressVerifyProfileDocMatch(evidencePath, matchedTerms, hints) ||
+    shouldSuppressExpectedFileDocMatch(hints)
+  );
+}
+
 function contextPoisoningSuspectDocItem(
   evidencePath: string,
   matchedTerms: string[],
@@ -552,7 +567,7 @@ export function graphItemsForTask(
       node.status === "available" &&
       matchedTerms.length > 0 &&
       !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
-      !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
+      !shouldSuppressStandaloneDocMatch(node.evidencePath, matchedTerms, hints)
     ) {
       items.push(
         contextItem(
@@ -576,7 +591,7 @@ export function graphItemsForTask(
       node.status === "deprecated" &&
       matchedTerms.length > 0 &&
       !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
-      !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
+      !shouldSuppressStandaloneDocMatch(node.evidencePath, matchedTerms, hints)
     ) {
       items.push(
         contextItem(
@@ -600,7 +615,7 @@ export function graphItemsForTask(
       node.status === "context-poisoning-suspect" &&
       matchedTerms.length > 0 &&
       !isOutsideSelectedPackage(node.evidencePath, selectedSourcePackageTerms) &&
-      !shouldSuppressVerifyProfileDocMatch(node.evidencePath, matchedTerms, hints)
+      !shouldSuppressStandaloneDocMatch(node.evidencePath, matchedTerms, hints)
     ) {
       items.push(
         contextPoisoningSuspectDocItem(

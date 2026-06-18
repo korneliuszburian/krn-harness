@@ -86,6 +86,17 @@ approved target runs still require clean isolated worktrees and preflight before
 
 Verify-profile-focused tasks narrow graph doc-match noise. When a task is focused on `krn verify --execute`, a verify profile, a readonly profile, or `check_all_readonly`, broad graph doc matches such as README/path/repo/source/validation/readonly/tooling/wiki/governance terms are suppressed unless the file is expected to be touched or explicitly named in the task text. The suppression applies to deprecated docs as well as available docs. This is a P1 hardening rule for measured real-repo over-inclusion, not semantic retrieval.
 
+Expected-file-focused target tasks suppress standalone graph doc-match noise.
+When a task contract declares `expectedTouchedFiles`, those files already enter
+`mustRead` through task-contract metadata and explicitly named repo paths enter
+`shouldRead` through task policy. Standalone graph `doc-match`,
+`deprecated-doc-status`, and `context-poisoning-suspect-doc` items are
+therefore suppressed for that package. Package-owned graph selectors, paired
+tests, explicit task paths, required do-not-use paths, and base safety context
+remain active. This is a deterministic Stage 10 hardening rule from a measured
+target context package with high reference-only over-inclusion; it is not
+semantic ranking, embeddings, AST, callgraph/dataflow, or broader graph scope.
+
 Package-owned graph selectors use deterministic graph-lite ownership edges. Matching package-owned source files become `must-read`, package-owned tests and config files become `should-read`, package-owned available docs become `reference-only`, and package-owned deprecated or `context-poisoning-suspect` docs become `do-not-use`. When a `tests-source` path-convention edge points to an already selected package-owned source, the paired test may be ranked as `tests-source-for-owned-source` support. This context promotion remains path-convention-only and must not become AST, Tree-sitter, callgraph/dataflow, runtime dependency inference, embeddings, or semantic retrieval in P0.
 
 Approved memory may appear only in `referenceOnly` context. It is selected only when the task explicitly asks for memory or the approved memory summary/evidence path matches at least two non-broad task terms. Explicit opt-out phrases such as `without approved memory`, `no memory`, `do not use prior decisions`, `bez pamięci`, `nie używaj pamięci`, `nie używaj poprzednich decyzji`, or `bez wcześniejszych ustaleń` suppress memory context even when terms match. Pending and deprecated memory must not appear in context.

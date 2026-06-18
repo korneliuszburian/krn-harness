@@ -303,6 +303,88 @@ describe("context package graph selection", () => {
     ]);
   });
 
+  it("suppresses standalone graph doc-match noise for expected-file target tasks", () => {
+    const contract = buildTaskContract(
+      [
+        "Add template recommended action metadata to brief templates.",
+        "Validate with krn.config.json and tools/stage10_krn_quality_gate.py.",
+      ].join(" "),
+      {
+        metadata: {
+          expectedTouchedFiles: [
+            "src/marketing_intelligence/core/brief_templates.py",
+            "tests/test_brief_templates.py",
+            "tools/stage10_krn_quality_gate.py",
+            "krn.config.json",
+          ],
+        },
+      },
+    );
+    const graph = {
+      nodes: [
+        {
+          id: "doc:docs/brief-template-policy.md",
+          kind: "doc",
+          label: "Brief template recommended action policy",
+          evidencePath: "docs/brief-template-policy.md",
+          status: "available",
+        },
+        {
+          id: "doc:docs/stale-template-action.md",
+          kind: "doc",
+          label: "Stale template action notes",
+          evidencePath: "docs/stale-template-action.md",
+          status: "deprecated",
+        },
+        {
+          id: "doc:docs/unsafe-template-action.md",
+          kind: "doc",
+          label: "Unsafe template action instructions",
+          evidencePath: "docs/unsafe-template-action.md",
+          status: "context-poisoning-suspect",
+        },
+        {
+          id: "doc:apps/studio/README.md",
+          kind: "doc",
+          label: "Studio README brief template action",
+          evidencePath: "apps/studio/README.md",
+          status: "available",
+        },
+      ],
+      edges: [],
+    } satisfies GraphLite;
+
+    const pkg = buildContextPackage(contract, graph);
+    const mustReadPaths = pkg.buckets.mustRead.map((item) => item.path);
+    const referenceOnlyPaths = pkg.buckets.referenceOnly.map((item) => item.path);
+    const doNotUsePaths = pkg.buckets.doNotUse.map((item) => item.path);
+
+    expect(mustReadPaths).toEqual([
+      "AGENTS.md",
+      "krn.config.json",
+      "src/marketing_intelligence/core/brief_templates.py",
+      "tests/test_brief_templates.py",
+      "tools/stage10_krn_quality_gate.py",
+    ]);
+    expect(referenceOnlyPaths).toEqual(["docs/specs/context-package.schema.md"]);
+    expect(referenceOnlyPaths).not.toEqual(
+      expect.arrayContaining([
+        "apps/studio/README.md",
+        "docs/brief-template-policy.md",
+        "docs/stale-template-action.md",
+        "docs/unsafe-template-action.md",
+      ]),
+    );
+    expect(doNotUsePaths).not.toEqual(
+      expect.arrayContaining(["docs/stale-template-action.md", "docs/unsafe-template-action.md"]),
+    );
+    expect(pkg.overInclusion).toMatchObject({
+      activeItems: 6,
+      referenceOnlyItems: 1,
+      risk: "low",
+    });
+  });
+
   it("selects WordPress ACF hero context without promoting the whole fixture", async () => {
     const contract = buildTaskContract("Update hero field mapping in WordPress ACF theme");
     const graph = await buildGraph(repoRoot);
