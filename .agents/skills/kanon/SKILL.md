@@ -31,6 +31,36 @@ Do not use when:
 Stop when evidence is missing, the decision needs an ADR but none is owned, or
 the proposed truth would expand beyond documented P0/P1 scope.
 
+## Workflow API
+
+Inputs:
+- raw audit/research/prior-discussion material;
+- current canonical docs, specs, ADRs, and evidence artifacts;
+- official docs, research, established methodology, or accepted ADR rationale
+  for any non-trivial claim.
+
+Output:
+- concise active-truth edits with source basis, tradeoffs, uncertainty, and ADR
+  follow-up status;
+- no raw research dump and no unsupported architecture claim.
+
+Escalation:
+- use `$pilnuj` when the distilled decision changes product scope, runtime
+  model, package boundaries, hooks, graph, memory, evals, MCP, dashboard, or
+  multi-agent behavior;
+- use `$wycinek` only after the canon/spec/ADR decision is clear enough to
+  implement;
+- use `$review` when the question is whether existing evidence proves a claim.
+
+Proof:
+- cite the canonical file path, official URL, research source, recorded target
+  finding, or ADR that supports each major decision;
+- mark weak evidence as uncertainty instead of canon.
+
+Condensation:
+- merge or supersede duplicate wording in the canonical owner where practical;
+- leave raw inputs historical until a concise decision has been written.
+
 ## Workflow
 
 1. Separate raw research from active truth.

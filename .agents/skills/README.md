@@ -27,3 +27,29 @@ two layers.
 - `grill-with-docs` was removed from active build-time skill discovery because
   it duplicated `$kanon + $pilnuj + $review` and carried generic
   domain-model references outside KRN's source truth.
+
+## Quality Contract
+
+KRN build-time skills are workflow APIs, not broad prompt packs.
+
+Every active skill must keep these fields discoverable in `SKILL.md`:
+
+- Trigger: the work that should invoke the skill.
+- Inputs: repo artifacts or decisions the skill must inspect before acting.
+- Output: the concrete artifact, judgment, or slice the skill should produce.
+- Escalation: which neighboring skill owns work outside this skill's job.
+- Proof: command, evidence path, or review basis needed before claims.
+- Condensation: how the skill avoids duplicating active truth.
+
+Source basis:
+
+- Official Codex skills guidance: keep each skill focused on one job, write
+  trigger descriptions for implicit matching, use imperative steps with explicit
+  inputs and outputs, and prefer instructions over scripts unless deterministic
+  tooling is needed.
+- Matt Pocock skill pattern, condensed for KRN only: small composable workflows,
+  repo-specific facts outside reusable skill bodies, and handoffs that reference
+  existing artifacts instead of copying them.
+
+Do not add XML or tagged block structures unless a specific KRN skill needs a
+stable machine-readable input/output contract and the format stays readable.

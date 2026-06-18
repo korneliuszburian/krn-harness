@@ -33,6 +33,34 @@ Do not use when:
 Stop when the slice requires forbidden P0 scope, lacks ADR/spec rationale for an
 architecture change, or cannot be narrowed without user approval.
 
+## Workflow API
+
+Inputs:
+- proposed task or implementation slice;
+- current goal, AGENTS guidance, relevant specs/ADRs, and P0/P1/P2/P3
+  boundaries;
+- known target findings and proof constraints when the slice comes from
+  evidence.
+
+Output:
+- a scope classification: P0, P1, P2, P3, or rejected;
+- hidden complexity and maintenance-cost notes;
+- the narrowest accepted slice or the exact approval needed to continue.
+
+Escalation:
+- use `$kanon` when the accepted boundary needs canon/spec/ADR wording;
+- use `$wycinek` only after the slice is narrow and implementable;
+- use `$review` if the work is already complete and needs evidence judgment
+  instead of scope classification.
+
+Proof:
+- every accepted architecture-affecting decision must point to official docs,
+  research evidence, recorded target findings, existing specs, or ADR rationale.
+
+Condensation:
+- prefer narrowing, deleting, or reusing an existing surface over adding a new
+  command, package, schema family, dashboard, MCP, vector, or runtime skill.
+
 ## Workflow
 
 1. Classify the requested work as P0, P1, P2, P3, or rejected.

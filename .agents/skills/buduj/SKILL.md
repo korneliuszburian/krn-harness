@@ -30,6 +30,37 @@ Do not use when:
 Stop when the request lacks success criteria, requires unaccepted architecture,
 or would broaden P0/P1 scope without an explicit goal.
 
+## Workflow API
+
+Inputs:
+- current git state and active goal/task;
+- relevant docs, specs, ADRs, package scripts, and current runtime artifacts;
+- operator constraints, proof expectations, and forbidden scope.
+
+Output:
+- one or more small implementation beads with owned files, acceptance, proof,
+  and residual risk;
+- a clear handoff to `$wycinek`, `$kanon`, `$pilnuj`, `$review`, or `$handoff`
+  when the work needs a narrower owner.
+
+Escalation:
+- use `$pilnuj` when architecture scope or P0/P1/P2/P3 classification is
+  uncertain;
+- use `$kanon` when raw research, audits, or external docs must become active
+  project truth;
+- use `$wycinek` for the actual focused implementation bead;
+- use `$review` when completed work needs an evidence judgment;
+- use `$handoff` before final closeout or context transfer.
+
+Proof:
+- do not claim delivery until the bead-specific validation commands and artifact
+  checks have run or a blocker is explicit.
+
+Condensation:
+- reference existing goal/spec/ADR paths instead of restating them;
+- if new docs are needed, update the canonical owner and avoid parallel roadmap
+  prose.
+
 ## Workflow
 
 1. Frame the outcome as acceptance criteria and proof level.

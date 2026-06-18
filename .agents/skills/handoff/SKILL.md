@@ -33,6 +33,36 @@ Do not use when:
 Stop when validation evidence is missing, changed files are unclear, or the
 handoff would imply production proof or hook trust from local evidence.
 
+## Workflow API
+
+Inputs:
+- completed or paused task state;
+- changed files, validation commands/results, artifact pointers, current git
+  status, and known gaps;
+- the next concrete action or recovery entrypoint.
+
+Output:
+- a concise review-ready closeout or continuation summary;
+- exact changed files, validation, proof status, P0 scope status, residual risk,
+  and next `/goal` or next safe slice.
+
+Escalation:
+- use `$review` instead when a pass/fail evidence judgment is needed;
+- use `$kanon` if the handoff would introduce new active truth rather than
+  summarize completed work;
+- use `$pilnuj` if the next action requires scope classification.
+
+Proof:
+- include only validation that actually ran or explicitly state why it did not
+  run;
+- never convert local evidence into production proof, hook trust, CI proof, or
+  target-main approval.
+
+Condensation:
+- reference existing PRDs, plans, ADRs, commits, diffs, runtime artifacts, or
+  handoffs by path or URL instead of duplicating them;
+- redact sensitive data and avoid raw chat-history dumps.
+
 ## Workflow
 
 1. Summarize what changed and why.

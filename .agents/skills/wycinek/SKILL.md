@@ -32,6 +32,34 @@ Do not use when:
 Stop when the slice expands beyond the owned files, needs an unaccepted
 dependency or surface, or cannot be verified with focused local evidence.
 
+## Workflow API
+
+Inputs:
+- one accepted bead with owned files or package area;
+- acceptance criteria, proof commands, forbidden scope, and residual risk;
+- current local patterns and helper APIs for the touched package.
+
+Output:
+- the smallest working source/docs/test change that satisfies the bead;
+- focused tests or checks aligned to the changed behavior;
+- no unrelated cleanup and no hidden architecture expansion.
+
+Escalation:
+- use `$pilnuj` if implementation exposes new scope, dependency, surface, or
+  architecture risk;
+- use `$kanon` if a source change needs active spec/ADR/canon wording first;
+- use `$review` after the slice is complete and evidence needs independent
+  judgment.
+
+Proof:
+- run the bead-specific focused test or command before broader gates;
+- for code/schema/parser/generated-artifact changes, also run relevant typecheck
+  and test coverage before claiming completion.
+
+Condensation:
+- reuse existing helpers and schemas before adding abstractions;
+- remove or supersede duplicated wording only inside owned files.
+
 ## Workflow
 
 1. Define one small outcome.

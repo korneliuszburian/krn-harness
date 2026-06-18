@@ -32,6 +32,37 @@ Do not use when:
 Stop when required evidence is unavailable, an approval gate is missing, or the
 only honest result is `NEEDS_CHANGES` or `BLOCKED`.
 
+## Workflow API
+
+Inputs:
+- active task/spec/goal and current git state;
+- changed and staged file lists, including untracked owned files when present;
+- validation outputs, runtime artifact pointers, target approval packets, and
+  proof-boundary docs relevant to the task.
+
+Output:
+- exactly one judgment: `VERIFIED`, `NEEDS_CHANGES`, or `BLOCKED`;
+- findings first, grounded in file paths, commands, artifact paths, or missing
+  approvals;
+- no implementation changes and no replacement for human PR approval.
+
+Escalation:
+- use `$wycinek` only after a `NEEDS_CHANGES` finding is accepted for fixes;
+- use `$pilnuj` if the finding is scope drift or unaccepted architecture;
+- use `$handoff` after review when the next agent needs concise continuation
+  context.
+
+Proof:
+- a `VERIFIED` judgment requires direct current evidence for task alignment,
+  validation, artifact hygiene, proof claims, protected paths, and target
+  boundaries;
+- absence of obvious failure is not enough.
+
+Condensation:
+- report only findings that change the operator decision or clarify residual
+  risk;
+- reference artifacts by path instead of copying generated evidence.
+
 ## Workflow
 
 1. Read the active task/spec/goal and summarize the requested outcome.

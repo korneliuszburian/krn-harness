@@ -26,6 +26,35 @@ each skill and the expected output shape. Explicit invocation is the preferred
 operator path when the workflow matters; implicit invocation remains available
 through each skill's description.
 
+## Quality Contract
+
+Build-time skills are KRN workflow APIs. They are not prompt-pack surface area
+and they are not downstream runtime skills.
+
+Every active build-time skill must keep these fields explicit enough for a new
+Codex session to use without chat history:
+
+- trigger and non-trigger scope;
+- input artifacts or decisions to inspect;
+- concrete output shape;
+- escalation path to another KRN skill when the work is outside its job;
+- proof or evidence needed before claims;
+- condensation rule to avoid duplicating active truth.
+
+The current quality bar is sourced from:
+
+- official Codex skills guidance: focused one-job skills, front-loaded
+  descriptions for implicit matching, imperative steps with explicit inputs and
+  outputs, and instruction-only skills unless deterministic scripts are needed;
+- Matt Pocock's public skills pattern, condensed only as external inspiration:
+  small composable workflows, repo-specific configuration outside reusable skill
+  bodies, and handoffs that point to existing artifacts rather than duplicating
+  them.
+
+Do not copy external skill bodies wholesale. Do not add a global skill router,
+new build-time skills, runtime/downstream skill templates, or XML/tagged
+contracts without a specific accepted KRN need.
+
 ## Creation Method
 
 These skills were initialized with the built-in `$skill-creator` helper script and then edited as instruction-only repo skills.
