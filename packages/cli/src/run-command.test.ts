@@ -612,10 +612,10 @@ describe("krn CLI run command", () => {
     expect(run.supportingProjection).toMatchObject({
       reportVerdict: "warn",
       reportStepStatus: "ran",
-      releaseCheckStatus: "fail",
+      releaseCheckStatus: "warn",
       releaseCheckStepStatus: "ran",
       releaseCheckBlocking: false,
-      nonBlockingReleaseCheckFailure: true,
+      nonBlockingReleaseCheckFailure: false,
     });
     expect(verifyReview).toMatchObject({ status: "warn" });
     expect(verifyReview?.findings).toEqual([
@@ -623,17 +623,21 @@ describe("krn CLI run command", () => {
     ]);
     expect(run.steps.releaseCheck).toMatchObject({
       status: "ran",
-      summary: "KRN release-check: fail (non-blocking target run)",
+      summary: "KRN release-check: warn",
     });
     expect(run.blockers).toEqual([]);
-    expect(run.warnings.join("\n")).toContain("source release-check is not applicable");
+    expect(run.warnings.join("\n")).toContain("Source release-check is not applicable");
     const runMarkdown = await readFile(path.join(cwd, ".krn/current/run-result.md"), "utf8");
     expect(runMarkdown).toContain("Core status: verified");
     expect(runMarkdown).toContain("Product code: verified-local");
     expect(runMarkdown).toContain(
       "Report and release-check are supporting projection evidence, not production release readiness.",
     );
-    expect(releaseCheck.status).toBe("fail");
+    expect(releaseCheck.status).toBe("warn");
+    expect(releaseCheck.blockers).toEqual([]);
+    expect(releaseCheck.warnings).toEqual([
+      "source-release-scope: Source release-check is not applicable to this approved isolated target run.",
+    ]);
     expect(manifest).toMatchObject({
       schema: "krn-run-bundle-manifest-v1",
       runStatus: "verified",

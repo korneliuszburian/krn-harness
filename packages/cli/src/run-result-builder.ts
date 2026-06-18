@@ -246,6 +246,9 @@ export async function buildAndWriteRunResult(
     verifyResult?.status === "warn" ? "verify produced warnings" : undefined,
     ...(operatorReport?.warnings ?? []),
     ...(releaseCheckBlocks ? (releaseCheck?.warnings ?? []) : []),
+    ...(!releaseCheckBlocks && releaseCheck?.status === "warn"
+      ? (releaseCheck.warnings ?? []).map((warning) => `release-check: ${warning}`)
+      : []),
     !releaseCheckBlocks && releaseCheck?.status === "fail"
       ? "release-check: KRN source release-check is not applicable to downstream target run; included in bundle as non-blocking evidence."
       : undefined,

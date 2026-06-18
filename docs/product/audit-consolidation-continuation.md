@@ -51,8 +51,8 @@ Completed or source-hardened extension slices:
 
 Still open:
 
-- Stage 10 findings hardening: target-run release-check/report noise, context
-  over-inclusion risk, and wrapper/config overhead.
+- Stage 10 findings hardening: context over-inclusion risk and wrapper/config
+  overhead. Target-run release-check/report noise has a first source fix.
 - EXT-011: build-time skill quality hardening.
 
 ## Evidence Request Queue
@@ -115,7 +115,9 @@ Follow-up findings:
 - current verify policy creates wrapper/config overhead for Python targets;
 - review correctly warned on fast-quality-gate rather than full-suite coverage;
 - context package over-inclusion risk was high;
-- release-check/report output is noisy in non-source target runs;
+- release-check/report output was noisy in non-source target runs; a follow-up
+  source fix now classifies approved isolated target runs as source-release
+  not-applicable warning evidence instead of source-release blockers;
 - no governed memory item appeared in the target context package, so memory
   outcome impact remains unproven.
 
@@ -188,8 +190,8 @@ Use this table to avoid growing duplicate truth while this goal is active.
 
 ## Next Safe Slice
 
-Recommended next slice: source hardening from Stage 10 findings, then EXT-011
-skill quality hardening.
+Recommended next slice: EXT-011 skill quality hardening, then remaining Stage 10
+context/wrapper hardening.
 
 Operator may resume with:
 
@@ -206,13 +208,13 @@ First inspect:
 - .agents/skills/*
 
 Allowed slices:
-1. Harden target-run release-check/report noise so non-source target runs do
-   not look like source release failures while preserving proof boundaries.
-2. Improve build-time skills as small, composable, proof-oriented workflow APIs
+1. Improve build-time skills as small, composable, proof-oriented workflow APIs
    using official Codex skills guidance and condensed Matt Pocock skill
    patterns.
-3. Re-audit context over-inclusion from the Stage 10 KRN target context package
+2. Re-audit context over-inclusion from the Stage 10 KRN target context package
    before adding graph/context scope.
+3. Continue measuring Python wrapper/config overhead before broadening any
+   verify policy.
 
 Do not add dashboards, MCP, vectors, subagent runtime, browser proof,
 screenshots, appshots, publishing, broad verify allowlists, production proof,
@@ -248,9 +250,9 @@ Proof:
 
 Residual risk:
 
-- the next real progress must reduce Stage 10 friction or improve skill
-  quality; local comparison evidence must not be overclaimed as broad product
-  superiority.
+- the next real progress must reduce remaining Stage 10 friction or improve
+  skill quality; local comparison evidence must not be overclaimed as broad
+  product superiority.
 
 ## Completion Gate Reminder
 

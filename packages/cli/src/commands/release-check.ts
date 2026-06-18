@@ -1,6 +1,10 @@
 import { getRuntimeLayout, runtimePath } from "../../../core/src/index.js";
 import { currentArtifactPathsFor, readRepoJson, repoPathExists } from "../current-artifacts.js";
-import { writeCurrentJson, writeCurrentMarkdown } from "../current-state.js";
+import {
+  readCurrentTaskContract,
+  writeCurrentJson,
+  writeCurrentMarkdown,
+} from "../current-state.js";
 import { writeReleaseBundle } from "../release-check-bundle.js";
 import type { CliRuntime } from "../runtime.js";
 
@@ -182,114 +186,155 @@ async function forbiddenLayersCheck(cwd: string): Promise<ReleaseCheckRecord> {
   };
 }
 
+async function sourceReleaseCheckApplies(cwd: string): Promise<boolean> {
+  const sourceReleaseCheckPaths = [
+    "packages/cli/src/commands/run.ts",
+    "docs/specs/run-result.schema.md",
+  ];
+  const present = await Promise.all(
+    sourceReleaseCheckPaths.map((relativePath) => repoPathExists(cwd, relativePath)),
+  );
+
+  return present.every(Boolean);
+}
+
+async function targetRunScopeCheck(cwd: string): Promise<ReleaseCheckRecord | undefined> {
+  const taskContract = await readCurrentTaskContract(cwd);
+  const boundaries = taskContract?.metadata?.boundaries;
+  const targetRun =
+    boundaries?.targetValidation?.authority === "target-owned" &&
+    boundaries.targetIsolation?.isolated === true &&
+    boundaries.targetIsolation.sourceCheckoutRejected === true;
+
+  if (!targetRun || (await sourceReleaseCheckApplies(cwd))) {
+    return undefined;
+  }
+
+  return {
+    id: "source-release-scope",
+    status: "warn",
+    summary: "Source release-check is not applicable to this approved isolated target run.",
+    evidence: [currentArtifactPathsFor(cwd).taskContract],
+    nextAction:
+      "Use target-owned verify, run-result, review, and run-bundle as target evidence; run source release-check only in the KRN source checkout.",
+  };
+}
+
 async function buildReleaseCheck(cwd: string, generatedAt: string): Promise<ReleaseCheckResult> {
+  const targetScopeCheck = await targetRunScopeCheck(cwd);
+  const sourceChecks = targetScopeCheck
+    ? []
+    : [
+        packageScriptsCheck(cwd),
+        fileCheck(
+          cwd,
+          "run-command",
+          "packages/cli/src/commands/run.ts",
+          "Condensed run command exists.",
+          "Add `krn run` before release.",
+        ),
+        fileCheck(
+          cwd,
+          "report-command",
+          "packages/cli/src/commands/report.ts",
+          "Operator report command exists.",
+          "Add `krn report` before release.",
+        ),
+        fileCheck(
+          cwd,
+          "artifacts-command",
+          "packages/cli/src/commands/artifacts.ts",
+          "Artifact lifecycle command exists.",
+          "Add artifact lifecycle command before release.",
+        ),
+        fileCheck(
+          cwd,
+          "uninstall-command",
+          "packages/cli/src/commands/uninstall.ts",
+          "Safe uninstall command exists.",
+          "Add `krn uninstall --dry-run` before beta release.",
+        ),
+        fileCheck(
+          cwd,
+          "config-command",
+          "packages/cli/src/commands/config.ts",
+          "Config doctor/init command exists.",
+          "Add `krn config doctor` before beta release.",
+        ),
+        fileCheck(
+          cwd,
+          "install-result-schema",
+          "docs/specs/install-result.schema.md",
+          "Install result schema exists.",
+          "Document install result schema before release.",
+        ),
+        fileCheck(
+          cwd,
+          "uninstall-result-schema",
+          "docs/specs/uninstall-result.schema.md",
+          "Uninstall result schema exists.",
+          "Document uninstall result schema before release.",
+        ),
+        fileCheck(
+          cwd,
+          "config-doctor-schema",
+          "docs/specs/config-doctor.schema.md",
+          "Config doctor schema exists.",
+          "Document config doctor schema before release.",
+        ),
+        fileCheck(
+          cwd,
+          "run-result-schema",
+          "docs/specs/run-result.schema.md",
+          "Run result schema exists.",
+          "Document run result schema before release.",
+        ),
+        fileCheck(
+          cwd,
+          "operator-report-schema",
+          "docs/specs/operator-report.schema.md",
+          "Operator report schema exists.",
+          "Document operator report schema before release.",
+        ),
+        fileCheck(
+          cwd,
+          "release-check-schema",
+          "docs/specs/release-check.schema.md",
+          "Release-check schema exists.",
+          "Document release-check schema before release.",
+        ),
+        fileCheck(
+          cwd,
+          "evidence-matrix",
+          "docs/product/evidence-matrix.md",
+          "Evidence matrix exists.",
+          "Update evidence matrix before release.",
+        ),
+        fileCheck(
+          cwd,
+          "mvp-state",
+          "docs/product/mvp-state.md",
+          "MVP state document exists.",
+          "Add docs/product/mvp-state.md before release.",
+        ),
+        fileCheck(
+          cwd,
+          "ci-workflow",
+          ".github/workflows/verify.yml",
+          "Verification workflow exists.",
+          "Add minimal verification workflow before release.",
+        ),
+        fileCheck(
+          cwd,
+          "verify-policy",
+          "packages/verify/src/command-policy.ts",
+          "Verify execution policy source exists.",
+          "Restore verify execution policy before release.",
+        ),
+      ];
   const checks = await Promise.all([
-    packageScriptsCheck(cwd),
-    fileCheck(
-      cwd,
-      "run-command",
-      "packages/cli/src/commands/run.ts",
-      "Condensed run command exists.",
-      "Add `krn run` before release.",
-    ),
-    fileCheck(
-      cwd,
-      "report-command",
-      "packages/cli/src/commands/report.ts",
-      "Operator report command exists.",
-      "Add `krn report` before release.",
-    ),
-    fileCheck(
-      cwd,
-      "artifacts-command",
-      "packages/cli/src/commands/artifacts.ts",
-      "Artifact lifecycle command exists.",
-      "Add artifact lifecycle command before release.",
-    ),
-    fileCheck(
-      cwd,
-      "uninstall-command",
-      "packages/cli/src/commands/uninstall.ts",
-      "Safe uninstall command exists.",
-      "Add `krn uninstall --dry-run` before beta release.",
-    ),
-    fileCheck(
-      cwd,
-      "config-command",
-      "packages/cli/src/commands/config.ts",
-      "Config doctor/init command exists.",
-      "Add `krn config doctor` before beta release.",
-    ),
-    fileCheck(
-      cwd,
-      "install-result-schema",
-      "docs/specs/install-result.schema.md",
-      "Install result schema exists.",
-      "Document install result schema before release.",
-    ),
-    fileCheck(
-      cwd,
-      "uninstall-result-schema",
-      "docs/specs/uninstall-result.schema.md",
-      "Uninstall result schema exists.",
-      "Document uninstall result schema before release.",
-    ),
-    fileCheck(
-      cwd,
-      "config-doctor-schema",
-      "docs/specs/config-doctor.schema.md",
-      "Config doctor schema exists.",
-      "Document config doctor schema before release.",
-    ),
-    fileCheck(
-      cwd,
-      "run-result-schema",
-      "docs/specs/run-result.schema.md",
-      "Run result schema exists.",
-      "Document run result schema before release.",
-    ),
-    fileCheck(
-      cwd,
-      "operator-report-schema",
-      "docs/specs/operator-report.schema.md",
-      "Operator report schema exists.",
-      "Document operator report schema before release.",
-    ),
-    fileCheck(
-      cwd,
-      "release-check-schema",
-      "docs/specs/release-check.schema.md",
-      "Release-check schema exists.",
-      "Document release-check schema before release.",
-    ),
-    fileCheck(
-      cwd,
-      "evidence-matrix",
-      "docs/product/evidence-matrix.md",
-      "Evidence matrix exists.",
-      "Update evidence matrix before release.",
-    ),
-    fileCheck(
-      cwd,
-      "mvp-state",
-      "docs/product/mvp-state.md",
-      "MVP state document exists.",
-      "Add docs/product/mvp-state.md before release.",
-    ),
-    fileCheck(
-      cwd,
-      "ci-workflow",
-      ".github/workflows/verify.yml",
-      "Verification workflow exists.",
-      "Add minimal verification workflow before release.",
-    ),
-    fileCheck(
-      cwd,
-      "verify-policy",
-      "packages/verify/src/command-policy.ts",
-      "Verify execution policy source exists.",
-      "Restore verify execution policy before release.",
-    ),
+    ...(targetScopeCheck ? [targetScopeCheck] : []),
+    ...sourceChecks,
     reportArtifactsCheck(cwd),
     reportBundleCheck(cwd),
     forbiddenLayersCheck(cwd),
