@@ -71,6 +71,25 @@ P0 records `warn` decisions for:
 - task/context-owned test/docs/fixture proof paths outside active context;
 - final `Stop` when context STOP was already captured in verify/handoff artifacts.
 
+P0 records `info` findings for:
+
+- `PreCompact` after `.krn/current/continuation-state.json` and
+  `.krn/current/continuation-state.md` have been written by the hook command.
+
+`SessionStart` records a `warn` decision when a current continuation state
+artifact exists. The warning tells Codex/operator to read
+`.krn/current/continuation-state.md` before starting new work. This is a
+restart anchor only. It does not prove Codex hook trust, does not own Codex
+session state, and does not replace checked-in `AGENTS.md`, goal, ledger, or
+handoff truth.
+
+Continuation state contains only current artifact pointers, minimal task/context
+status, conservative git status, next-action guidance, source-basis links, and
+proof boundaries (`productionProof: false`, `hookTrustStatus: unproven`). It
+must not copy raw chat history, protected data, generated screenshots, appshots,
+browser captures, dashboards, vectors, MCP outputs, publishing artifacts, or
+target repository artifacts.
+
 P0 proof paths are recognized as docs, fixture, README, test, or spec files. Recognition alone is not enough to bypass scope. A proof path produces `proof-path-exception` only when it matches a deterministic ownership hint derived from the current task/context. Unowned proof paths remain `out-of-scope-edit` blocks. Paths marked `do-not-use` still block.
 
 The P0 ownership model is deliberately shallow. It maps current context paths under `packages/<name>/...` to the exact `packages/<name>` proof hint. Task signals such as `config`, `context`, `task contract`, `graph`, `memory`, `verify`, `handoff`, `doctor`, `eval`, `hook`, `trace`, and `adapter` map only to narrow spec or fixture hints. Root config signals map only to exact files such as `biome.json`, `tsconfig.json`, `package.json`, `pnpm-workspace.yaml`, `vitest.config.ts`, or `.github/workflows/verify.yml`. Task words alone do not unlock package proof paths. Broad hints such as `docs`, `fixtures`, `tests`, or `packages` are not valid ownership hints. This is not semantic retrieval, repo intelligence, or a full policy engine.
@@ -79,7 +98,7 @@ To keep trace payloads small, `ownedProofPathHints` contains only the compact hi
 
 Hook trace payloads include `tracePayloadMode`: `full` when the compact writer payload fits under 1024 bytes, or `compacted` when the writer replaces oversized detail/event/hint strings with deterministic compact values before writing. Compacted payloads must keep decision, status, finding codes, and remediation codes intact.
 
-P0 remediation codes are intentionally small and action-oriented. Examples include `run-krn-start`, `run-krn-context`, `scope-path`, `review-owned-proof-path`, `avoid-do-not-use-path`, `resolve-context-stop`, `run-krn-verify`, and `run-krn-handoff`. The deterministic taxonomy fixture is `fixtures/hooks/remediation-taxonomy.json`.
+P0 remediation codes are intentionally small and action-oriented. Examples include `run-krn-start`, `run-krn-context`, `scope-path`, `review-owned-proof-path`, `avoid-do-not-use-path`, `resolve-context-stop`, `run-krn-verify`, `run-krn-handoff`, and `read-continuation-state`. The deterministic taxonomy fixture is `fixtures/hooks/remediation-taxonomy.json`.
 
 P0 payload parsing is shallow and deterministic. It recognizes JSON stdin, common tool name fields, path fields, and simple patch file headers. It is not a full Codex policy engine.
 

@@ -35,7 +35,8 @@ export type HookRemediationCode =
   | "run-krn-report"
   | "run-krn-verify"
   | "run-krn-handoff"
-  | "resolve-verify-block";
+  | "resolve-verify-block"
+  | "read-continuation-state";
 export type HookGuardrailFindingCode =
   | "invalid-hook-payload"
   | "missing-task-contract"
@@ -46,6 +47,8 @@ export type HookGuardrailFindingCode =
   | "proof-path-exception"
   | "pre-compact-run-result-missing"
   | "pre-compact-report-missing"
+  | "pre-compact-continuation-state-written"
+  | "session-continuation-state-present"
   | "post-compact-context-refresh-needed"
   | "final-verify-missing"
   | "final-verify-blocked"
@@ -82,6 +85,10 @@ export interface HookCurrentState {
   handoffPresent: boolean;
   runResultPresent?: boolean | undefined;
   reportPresent?: boolean | undefined;
+  continuationStatePresent?: boolean | undefined;
+  continuationStatePath?: string | undefined;
+  continuationStateCreatedAt?: string | undefined;
+  continuationStateTriggerEvent?: string | undefined;
   taskId?: string | undefined;
   taskText?: string | undefined;
   contextStopReason?: string | undefined;
@@ -159,6 +166,7 @@ export const hookRemediationCodeTaxonomy: HookRemediationCode[] = [
   "run-krn-verify",
   "run-krn-handoff",
   "resolve-verify-block",
+  "read-continuation-state",
 ];
 
 export const hookRemediationHintCatalog: Record<HookRemediationCode, HookLocalizedText> = {
@@ -209,6 +217,10 @@ export const hookRemediationHintCatalog: Record<HookRemediationCode, HookLocaliz
   "resolve-verify-block": {
     en: "Fix the blocked verify result or preserve an active context STOP.",
     pl: "Napraw zablokowany wynik verify albo zachowaj aktywny STOP kontekstu.",
+  },
+  "read-continuation-state": {
+    en: "Read `.krn/current/continuation-state.md` before continuing after compaction.",
+    pl: "Przeczytaj `.krn/current/continuation-state.md` przed kontynuacją po kompakcji.",
   },
 };
 

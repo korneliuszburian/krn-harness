@@ -47,6 +47,13 @@ function remediationCodesForFinding(code: HookGuardrailFindingCode): HookRemedia
     return ["run-krn-report"];
   }
 
+  if (
+    code === "pre-compact-continuation-state-written" ||
+    code === "session-continuation-state-present"
+  ) {
+    return ["read-continuation-state"];
+  }
+
   if (code === "post-compact-context-refresh-needed") {
     return ["run-krn-context"];
   }
@@ -113,6 +120,23 @@ function operatorMessageFor(
   }
 
   const codes = findingCodesSet(findings);
+
+  if (
+    findings.every((finding) => finding.severity === "info") &&
+    codes.has("pre-compact-continuation-state-written")
+  ) {
+    return {
+      en: "Continuation state was recorded for resume. Continue.",
+      pl: "Stan kontynuacji został zapisany na potrzeby resume. Możesz kontynuować.",
+    };
+  }
+
+  if (codes.has("session-continuation-state-present")) {
+    return {
+      en: "Continuation state exists. Read `.krn/current/continuation-state.md` before starting new work.",
+      pl: "Istnieje stan kontynuacji. Przeczytaj `.krn/current/continuation-state.md` przed rozpoczęciem nowej pracy.",
+    };
+  }
 
   if (codes.has("final-verify-missing") || codes.has("final-handoff-missing")) {
     return {

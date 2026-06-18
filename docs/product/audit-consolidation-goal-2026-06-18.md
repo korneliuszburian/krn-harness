@@ -17,9 +17,12 @@ to actual repo truth or recorded target-adoption friction.
 ## Current Baseline
 
 - Original consolidation baseline inspected: `b8ee7e1` on `main`.
-- Worktree is dirty. Source-owned audit consolidation changes currently span
-  build-time skills, product docs, specs, CLI/task-contract code, and docs
-  regression tests.
+- Current resume baseline is no longer the dirty Stage 0 state. Re-check
+  `git status --short --branch` and current `HEAD` before acting; do not treat
+  the historical `b8ee7e1` baseline as current source state.
+- Source-owned audit consolidation work is committed on `main` through source
+  hardening, EXT-003 governed memory usefulness, Stage 9 local target evidence,
+  and Stage 10 resume preparation.
 - Root `GOAL.md` is a pointer only. Historical root-level inputs are quarantined
   in `docs/audit/raw/`.
 - `docs/audits/*`, `docs/audit/new-audit-*.md`, and `docs/audit/raw/*` are raw
@@ -32,6 +35,10 @@ to actual repo truth or recorded target-adoption friction.
   production proof system.
 - Current proof state remains local only: `productionProof` is false and hook
   trust remains unproven.
+- Stage 9 local target evidence is satisfied by
+  `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`.
+- Stage 10 same-authority Raw Codex vs Codex+KRN target comparison remains the
+  next open evidence gate.
 
 ## Non-Negotiable Rules
 
@@ -55,6 +62,24 @@ to actual repo truth or recorded target-adoption friction.
   historical raw input under `docs/audit/raw/` only after explicit approval.
 - Prefer docs/spec/tests around existing workflows before any runtime code.
 - Every accepted change must have a validation command and a residual-risk note.
+- Move toward the finished product shape from `docs/audit/new-audit-001.md` and
+  `docs/audit/new-audit-002.md`: KRN as a local Codex Work OS that makes Codex
+  work contract-backed, remembered, verified, reviewed, auditable, and resumable.
+  Do this through existing artifacts and contracts, not through dashboard-first
+  or agent-framework-first surface.
+- Every non-trivial product or architecture claim must cite one of: official
+  Codex docs, accepted ADR/spec, current repo artifact, recorded target finding,
+  or a research source already captured in
+  `docs/product/research-backed-architecture.md`. Unsourced claims remain
+  hypotheses.
+- Overnight resume must prefer real engineering hardening over prose: finish the
+  current evidence gate, then change code/schema/tests only for a concrete
+  comparison finding, target friction, missing boundary, or overclaim risk.
+- Condense before adding. If a slice adds instructions, docs, schemas, or
+  artifact fields, remove, merge, supersede, or point to the canonical owner
+  where practical.
+- Commit and push after each meaningful verified slice so an interrupted
+  overnight run can resume from remote truth.
 
 ## Audit Claim Matrix
 
@@ -625,6 +650,91 @@ Stage 10 resume packet:
 - If that comparison shows no meaningful delta, product scope should narrow
   instead of adding surfaces.
 
+## Overnight Engineering Resume Contract
+
+This section condenses `docs/audit/new-audit-001.md` and
+`docs/audit/new-audit-002.md` into the operating contract for a long unattended
+resume. It is meant to move the product forward without producing slop,
+placeholder artifacts, or duplicate roadmap prose.
+
+Finished product direction:
+
+```text
+Codex executes and explores.
+KRN contracts, scopes, records, verifies, reviews, remembers, and resumes.
+Dashboard/cockpit renders artifacts later; it does not create truth.
+```
+
+Source basis:
+
+- Official Codex docs: `AGENTS.md` for durable repo guidance; skills for focused
+  workflows; worktrees for isolated background work; memories as helpful local
+  recall but not required team truth; appshots/snapshots as context, not KRN
+  proof.
+- KRN ADR/spec basis: ADR-0017 verify execute policy, ADR-0023 context
+  poisoning defense, ADR-0007 trace-based evals, task-contract schema,
+  run-result schema, memory schema, and target-adoption playbook.
+- Research basis: `docs/product/research-backed-architecture.md` source table,
+  especially agent-computer interface, SWE-bench, simple agent workflows before
+  autonomy, retrieval evaluation before vector DB, governed memory, and
+  prompt-injection/trust-boundary work.
+
+Hard overnight sequence:
+
+1. Re-anchor on current `HEAD`, `git status --short --branch`, `AGENTS.md`, this
+   goal, and the continuation ledger.
+2. Do not generate screenshots, appshots, browser captures, Codex-managed
+   snapshots, dashboards, vectors, MCP surfaces, publishing artifacts, or
+   placeholder evidence.
+3. Finish Stage 10 first unless the current prompt explicitly revokes it.
+   Stage 10 is the current evidence gate because Stage 9 is already satisfied
+   and the audits identify Raw Codex vs Codex+KRN comparison as the breakthrough
+   test.
+4. Use the Stage 10 resume packet below: two fresh isolated
+   `marketing-intelligence-studio` clones from the same current remote `main`
+   base commit, pre-registered sibling non-UI tasks, Raw Codex baseline first,
+   Codex+KRN run second, same target-owned validation authority, no target
+   push/merge/PR/main mutation, no protected data, no proof inflation.
+5. Record a Stage 10 comparison handoff. It must decide
+   `meaningfulDelta: true | false | unclear` and list exact dimensions where
+   KRN helped, hurt, or added noise.
+6. Only after the Stage 10 handoff exists, choose the next code/schema/test
+   hardening slice from the comparison findings. If Stage 10 does not reveal a
+   concrete gap, do not invent a feature.
+7. Prefer executable hardening over more prose:
+   - task-contract/review hardening when a required boundary was missing or
+     ambiguous;
+   - context/graph hardening when target evidence shows over-inclusion,
+     under-selection, stale-doc leakage, or poisoning-risk leakage;
+   - memory/context hardening when approved memory was missing, noisy,
+     overactive, or not measurably useful;
+   - run-result/operator-summary hardening when artifacts did not let a reviewer
+     understand outcome, caveats, or proof scope without chat context;
+   - docs updates only when source truth changed and needs condensation.
+8. For every hardening slice, state the bead before editing: owned files,
+   acceptance, proof commands, forbidden scope, residual risk, and source
+   rationale.
+9. Tests scale with risk. Docs-only changes use `rg`, `git diff --check`,
+   `git ls-files .krn .krn-harness`, and `pnpm lint`. Code/schema/parser or
+   generated-artifact changes require focused tests plus `pnpm typecheck` and
+   relevant `pnpm test` coverage.
+10. Commit and push every meaningful verified slice. Never leave an unattended
+    resume with useful uncommitted source changes unless a command is still
+    running and must be finished first.
+
+Morning success state:
+
+- Stage 10 comparison evidence exists, or the exact blocker is recorded without
+  pretending the goal is complete.
+- Any post-Stage-10 implementation changes are directly traceable to a Stage 10
+  finding, recorded target friction, accepted ADR/spec, official Codex docs
+  implication, or research-backed architecture source.
+- `productionProof` remains false and hook trust remains unproven.
+- No runtime artifacts, target artifacts, generated visual proof, protected
+  data, or placeholder evidence are committed.
+- `main` is pushed, validation is reported, and the continuation ledger can be
+  used to resume without reading chat history.
+
 ## Repository-Wide Operating Principles
 
 1. Repo truth beats audit truth.
@@ -658,6 +768,22 @@ Stage 10 resume packet:
 24. If validation fails, report it exactly and stop overclaiming.
 25. If a proposed improvement does not strengthen real target evidence,
     boundary clarity, or operator decision quality, do not build it now.
+26. `docs/audit/new-audit-001.md` and `docs/audit/new-audit-002.md` define the
+    product direction only after condensation; they are not direct execution
+    instructions and not proof.
+27. The finished product direction is KRN Work OS: accountable, cumulative,
+    reviewable, reusable Codex work with governed memory and artifact-backed
+    continuation.
+28. Dashboard/cockpit is a later read-only artifact view. It must not become the
+    source of truth, execution layer, memory approval layer, or proof engine.
+29. Raw Codex vs Codex+KRN same-authority comparison is the next real product
+    truth test; if KRN shows no meaningful delta, narrow scope instead of adding
+    surface.
+30. After target evidence, prefer code/schema/test condensation over more docs.
+    Write docs only to keep active truth aligned.
+31. If no current target finding, ADR/spec rationale, official docs implication,
+    or research-backed source justifies an implementation slice, do not build it.
+32. A night-long resume must leave a pushed, validated, restartable state.
 
 ## Completion Standard
 
@@ -789,7 +915,8 @@ Strict implementation rules for the extended current goal:
 5. No proof inflation: every output must keep fixture, config, product-code,
    local target, hook trust, CI, and production proof claims separate.
 6. No target mutation without explicit operator approval and target selection.
-   Stage 9 and Stage 10 remain incomplete until approved target evidence exists.
+   Stage 9 local target evidence is already recorded; Stage 10 remains
+   incomplete until approved same-authority comparison evidence exists.
 7. Every task must name owned files, acceptance, proof command, forbidden scope,
    and residual risk before implementation.
 8. If a task depends on current Codex behavior, hooks, skills, subagents,
@@ -808,9 +935,18 @@ Strict implementation rules for the extended current goal:
     finding, or research URL. Unsourced patterns stay as hypotheses.
 12. Defer rendered frontend visual proof until the core operating model is
     proven: task/daily contracts, governed-memory usefulness, ledger projection,
-    delegation/worktree protocol, Stage 9 target repeats, and Stage 10
-    same-authority comparison come first. Contract metadata for future visual
-    proof may exist, but it is readiness only.
+    delegation/worktree protocol, Stage 9 target repeats, Stage 10
+    same-authority comparison, and continuation reliability come first.
+    Contract metadata for future visual proof may exist, but it is readiness
+    only.
+13. Build-time skills are product workflow APIs for agents. Improve them through
+    official Codex skills guidance, small composable real-engineering patterns,
+    and local proof from KRN usage. Do not copy external skill packs wholesale,
+    do not create a giant skill taxonomy, and do not add XML/tagged structures
+    unless they improve a stable input/output contract.
+14. If compaction/session-resume behavior is changed, use official Codex hook
+    docs as the source of truth, keep hook trust unproven, and write restart
+    state into local `.krn/current/*` artifacts rather than chat memory.
 
 Current-goal extension tasks from `N1` and `N2`, ordered by execution priority:
 
@@ -826,6 +962,8 @@ Current-goal extension tasks from `N1` and `N2`, ordered by execution priority:
 | EXT-008 Codebase condensation pass | Reduce ritual and duplicate truth before adding product layers. | Current docs/specs touched by this goal. | Each new contract points to one canonical doc/spec; stale duplicate wording is removed, superseded, or explicitly left as historical evidence. | `rg` evidence; `git diff --check`; `pnpm lint`. | No broad cleanup outside owned files; no rewriting scratch files; no deleting raw audits. Risk: condensation can become unbounded refactor. |
 | EXT-009 Packaging/distribution kill switch | Prevent premature publishing or product-readiness drift. | Goal doc, release-check docs if needed. | Packaging remains blocked until Stage 9/10, memory usefulness, review usefulness, dashboard-lite usefulness, and hook-trust boundaries are explicitly re-audited. | `rg` evidence; `git diff --check`; `pnpm lint`. | No publish automation, hosted dashboard, production runner, or hook enforcement claim. Risk: stale kill-switch if later proof changes. |
 | EXT-010 Frontend visual proof contract | Final source-side extension only: add a first-class contract lane for frontend/product UI work without building a visual engine. | Task-contract schema/start rendering, task-contract tests, target-adoption docs if target-owned visual gates are involved. | Contract can express route/component, viewports, design constraints, a11y expectations, copy status, manual visual artifact, and target-owned visual command when present. | Focused task-contract/current-flow tests when schema/code changes; docs proof uses `rg`, `git diff --check`, and lint. | No mandatory browser automation, Playwright, Figma/MCP dependency, external visual service, generated screenshot/appshot, or visual proof from build alone. Risk: manual visual notes are weaker than rendered proof. |
+| EXT-011 Build-time skill quality hardening | Improve repo skills as senior agent-engineering workflows instead of loose prompts. | `.agents/skills/*`, `.agents/skills/README.md`, and only supporting docs if needed. | Skills have sharp trigger descriptions, scope/stop conditions, owned output shape, proof loop, escalation rules, and condensation discipline. External inspiration is condensed from official Codex skills docs and Matt Pocock's small/composable skill patterns; XML/tagged blocks are allowed only when they create a stable machine-readable contract and remain readable. | `rg` evidence; `git diff --check`; `pnpm lint`; focused tests only if scripts/code are added. | No global skill sprawl, no copying external skills wholesale, no branding-heavy names, no giant router skill, no runtime/downstream template changes unless separately justified. Risk: skill polishing can become prompt gardening unless tied to observed KRN failure modes. |
+| EXT-012 Compaction continuation hook | Make context loss recoverable through a real Codex hook path without pretending hook trust is proven. | Hook CLI/current-state code, hook package findings/remediations, hook fixtures/tests, concise spec/ledger updates. | `PreCompact` writes `.krn/current/continuation-state.json` and `.krn/current/continuation-state.md`; `SessionStart` surfaces that state as the restart anchor with remediation; traces record the hook event; outputs keep `enforced: false`, `productionProof: false`, and `hookTrustStatus: unproven`. | Focused hook/CLI tests; `pnpm typecheck`; `pnpm lint`; `git diff --check`; `git ls-files .krn .krn-harness`. | No security-enforcement claim, no Codex snapshot/appshot proof, no external DB/vector/MCP/dashboard, no reliance on chat memory. Risk: actual Codex execution still depends on the operator trusting repo-local hooks per official docs. |
 
 Extension task progress:
 
@@ -851,8 +989,8 @@ Extension task progress:
   parallel edits in one checkout, automatic memory approval, target push,
   target merge, canon mutation, Codex-managed snapshot proof, subagent
   self-report proof, production proof, CI proof, hook trust, and target-main
-  approval claims. EXT-003 context-recall proof is recorded; Stage 9/10 target
-  evidence remains open.
+  approval claims. EXT-003 context-recall proof is recorded; Stage 9 local
+  target evidence is recorded; Stage 10 comparison evidence remains open.
 - 2026-06-18 EXT-005 source slice: `docs/product/target-adoption-playbook.md`
   and `docs/product/evidence-matrix.md` now define the Stage 10 comparison
   packet and outcome dimensions: success/failure, verify pass/fail,
@@ -889,8 +1027,8 @@ Extension task progress:
   dashboard-lite as contract-only readiness with no UI implementation. This adds
   no framework, server, hosted UI, database, external assets, mutation path,
   browser proof, screenshot proof, production proof, hook-trust claim, or
-  target-main approval claim. EXT-003 context-recall proof is recorded; Stage
-  9/10 target evidence remains open.
+  target-main approval claim. EXT-003 context-recall proof is recorded; Stage 9
+  local target evidence is recorded; Stage 10 comparison evidence remains open.
 - 2026-06-18 EXT-008 source slice:
   `docs/product/audit-consolidation-continuation.md` now contains the canonical
   contract map for this goal. It points each active contract to one owner,
@@ -898,7 +1036,8 @@ Extension task progress:
   to this goal, and prevents cockpit, memory, delegation, Stage 9/10, and daily
   flow wording from becoming duplicate truth across docs. This does not delete
   raw audits or rewrite scratch files. EXT-003 context-recall proof is
-  recorded; Stage 9/10 target evidence remains open.
+  recorded; Stage 9 local target evidence is recorded; Stage 10 comparison
+  evidence remains open.
 - 2026-06-18 EXT-009 source slice: `docs/specs/release-check.schema.md`
   now defines release-check as a packaging kill-switch boundary: passing
   release-check, run bundles, report bundles, local CI, or local validation
@@ -907,8 +1046,8 @@ Extension task progress:
   `docs/product/evidence-matrix.md` records Publishing as absent with this kill
   switch documented. No publish automation, release action, hosted service,
   production runner, package-registry command, or hook enforcement claim was
-  added. EXT-003 context-recall proof is recorded; Stage 9/10 target evidence
-  remains open.
+  added. EXT-003 context-recall proof is recorded; Stage 9 local target evidence
+  is recorded; Stage 10 comparison evidence remains open.
 - 2026-06-18 EXT-010 source slice: `packages/task-contract/src/schema.ts` and
   `packages/cli/src/commands/start.ts` now carry optional `metadata.visualProof`
   from task specs into task-contract JSON and markdown. `docs/specs/task-contract.schema.md`,
@@ -921,29 +1060,48 @@ Extension task progress:
   proof, hook-trust claim, or Stage 9/10 evidence was added.
 - 2026-06-18 continuation audit: `docs/product/audit-consolidation-continuation.md`
   now carries an evidence request queue for the remaining approval-gated work:
-  Stage 9 target repeats and Stage 10 same-authority comparison. EXT-003 is
+  Stage 10 same-authority comparison. Stage 9 is recorded as satisfied by
+  `docs/handoffs/2026-06-18-stage9-target-evidence-result.md`. EXT-003 is
   recorded as satisfied for first governed context-recall proof. The queue adds
   no target mutation, generated visual proof, dashboard, command,
   production-proof claim, hook-trust claim, or completion claim.
+- 2026-06-18 overnight preparation slice: this goal now records strict
+  unattended-resume rules, Stage 10 as the next evidence gate, EXT-011 for
+  build-time skill quality hardening, and EXT-012 for a Codex
+  `PreCompact`/`SessionStart` continuation hook. These tasks are grounded in
+  official Codex docs for `AGENTS.md`, skills, hooks, and best practices plus
+  condensed external skill-engineering patterns from Matt Pocock's public skills
+  repo. This preparation does not close Stage 10, does not prove hook trust, and
+  does not authorize screenshots, appshots, snapshots, dashboards, vectors, MCP,
+  publishing, or target-main mutation.
+- 2026-06-18 EXT-012 source/code slice: `krn hook codex PreCompact` now writes
+  `.krn/current/continuation-state.json` and
+  `.krn/current/continuation-state.md`; `SessionStart` surfaces an existing
+  continuation state as a warning with `read-continuation-state` remediation.
+  The artifact stores current pointers, task/context/verify status, conservative
+  git status, source-basis links, and proof boundaries only. It does not copy
+  raw chat history, protected data, target artifacts, screenshots, appshots, or
+  generated visual proof. Hook results still return `enforced: false`; this is
+  restart discipline, not hook-trust proof or security enforcement.
 
-This intake extends the current goal's task list. It does not close Stage 9 or
-Stage 10, does not authorize target mutation, and does not permit raw audit
-prose to become active canon without condensation and validation.
+This intake extends the current goal's task list. It records Stage 9 as local
+target evidence only, keeps Stage 10 open, does not authorize target mutation,
+and does not permit raw audit prose to become active canon without condensation
+and validation.
 
 ## Next Target-Evidence Gate
 
 ```text
-Execute Stage 9 from docs/product/audit-consolidation-goal-2026-06-18.md only
-after explicit operator approval for two non-protected isolated target repos.
-Run two tiny product-code/test-code tasks through
-krn run --task-spec ... --execute-verify --bundle with expected touched files,
-forbidden paths, target validation, rollback, no-push, no-merge,
-target-isolation boundaries, approval-reference boundaries, and protected-data
-exclusion boundaries. Do not push, merge, touch protected data, claim
-production proof, or claim hook trust. First fill the Stage 9/10 pre-run
-approval packet template; treat it as readiness evidence only until the
-approved run records exact run-result, bundle, validation, and residual-risk
-evidence. Use the Stage 9 Evidence Request Packet in
-docs/product/audit-consolidation-continuation.md as the operator approval
-request shape; it is not approval and not target evidence by itself.
+Execute Stage 10 from docs/product/audit-consolidation-goal-2026-06-18.md only
+after re-anchoring current HEAD/status and pre-registering both sibling tasks.
+Use korneliuszburian/marketing-intelligence-studio with two fresh isolated
+clones from the same current remote main base commit. Run Raw Codex baseline
+first without KRN artifacts, then Codex+KRN through
+krn run --task-spec ... --execute-verify --bundle with the same target-owned
+validation authority. Do not push, merge, open PRs, mutate target main, touch
+protected data, broaden verify allowlists, claim production proof, claim hook
+trust, claim CI proof, or create screenshots, appshots, browser captures,
+dashboards, vectors, MCP surfaces, subagent runs, publishing artifacts, or
+placeholder evidence. Close with a comparison packet and
+meaningfulDelta: true | false | unclear.
 ```

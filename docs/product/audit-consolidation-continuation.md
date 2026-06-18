@@ -45,10 +45,12 @@ Completed or source-hardened extension slices:
 | EXT-008 codebase condensation pass | Source-side docs slice complete | This ledger | Canonical contract map points each new contract to one owner and marks raw audits/backlog references as secondary or historical. |
 | EXT-009 packaging/distribution kill switch | Source-side docs slice complete | `docs/specs/release-check.schema.md`, `docs/product/evidence-matrix.md`, this ledger | Release-check, bundles, local CI, and local validation cannot authorize publishing, distribution, hosted dashboard, production runner, or hook enforcement claims. |
 | EXT-010 frontend visual proof contract | Source-side schema/docs slice complete | `packages/task-contract/src/schema.ts`, `packages/cli/src/commands/start.ts`, `docs/specs/task-contract.schema.md`, `docs/product/target-adoption-playbook.md`, `docs/product/evidence-matrix.md` | UI-facing task specs can declare route/component, viewports, design constraints, a11y expectations, copy status, manual visual artifact, and target-owned visual command without creating browser/Figma/snapshot proof. |
+| Stage 9 target evidence | Local target evidence complete | `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` | Two approved, isolated, non-protected target product-code/test-code runs reached local verified/core verified through `krn run --task-spec ... --execute-verify --bundle`. This is not production proof, hook trust, CI proof, target-main approval, or Stage 10 comparison evidence. |
+| EXT-011 build-time skill quality hardening | Planned current-goal task | `.agents/skills/*`, active goal | Improve repo skills as small, composable workflow APIs using official Codex skills docs and condensed Matt Pocock skill patterns; no wholesale copied skill pack, giant router, global skill sprawl, or XML cargo cult. |
+| EXT-012 compaction continuation hook | Source/code slice complete | `packages/cli/src/continuation-state.ts`, `packages/cli/src/commands/hook.ts`, `packages/hooks/src/*`, `docs/specs/hooks-pack.md`, hook fixtures/tests | Official Codex `PreCompact` now writes local continuation state and `SessionStart` surfaces it as a restart anchor, while keeping hook trust unproven and `enforced: false`. |
 
 Still open:
 
-- Stage 9: two approved isolated target product-code/test-code repeats.
 - Stage 10: same-authority simpler-baseline comparison on an approved target.
 
 ## Evidence Request Queue
@@ -60,74 +62,29 @@ tests, dashboards, browser proof, memory artifacts, or target runs.
 | Gate | Required operator input before action | Canonical contract | Evidence that can close it | Do not do |
 | --- | --- | --- | --- | --- |
 | EXT-003 governed memory usefulness | Satisfied by 2026-06-18 operator approval for `memory-9ea13b133ba2`. | `docs/specs/memory.schema.md` | `docs/handoffs/2026-06-18-ext003-memory-usefulness-proof.md` records id, evidence path, pending-to-approved transition, relevant reference-only context, opt-out suppression, and `useful` decision for context recall. | Do not upgrade this to Stage 9/10 target outcome proof, production proof, hook trust, auto-approved memory, or semantic/vector memory. |
-| Stage 9 target repeats | Explicit target selection and approval for two tiny isolated non-protected product-code/test-code tasks. | `docs/product/target-adoption-playbook.md` | Two approved `krn run --task-spec ... --execute-verify --bundle` target runs with expected/forbidden touched files, target validation, rollback, no-push, no-merge, target isolation, target approval reference, protected-data exclusion, run-result, bundle manifest, changed files, and residual risk. | Do not mutate target repos, push, merge, touch protected data, claim production proof, claim hook trust, or count readiness packets as Stage 9 evidence. |
+| Stage 9 target repeats | Satisfied by 2026-06-18 operator-approved isolated target runs. | `docs/product/target-adoption-playbook.md` | `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` records both target runs, task specs, validation, changed files, proof boundaries, residual risks, and local-only status. | Do not upgrade Stage 9 to Stage 10 comparison evidence, production proof, hook trust, CI proof, target-main approval, or general adoption proof. |
 | Stage 10 same-authority comparison | Explicit approval for a comparable simpler-baseline target run and a KRN run on the same task class/validation authority. | `docs/product/target-adoption-playbook.md` | A comparison packet with baseline actor/result/interventions/changed files, KRN run-result/bundle/review paths, memory references if any, outcome dimensions, `meaningfulDelta`, and any scope-narrowing decision. | Do not use fixture-only benchmarks, dashboards, marketing claims, CI-only signals, target-main approval, production proof, or hook trust as Stage 10 evidence. |
 
 If none of these operator inputs exists in the current turn, keep the goal
 active and report the exact missing approvals. Do not mark the goal complete,
 and do not create placeholder evidence.
 
-## Stage 9 Evidence Request Packet
+## Stage 9 Result
 
-This packet is an operator request template, not approval and not evidence.
-Do not fill target-specific task specs or mutate target repositories until the
-operator supplies the missing target names, isolated paths, and approval refs.
+Stage 9 is closed only as local target evidence. The canonical closeout is
+`docs/handoffs/2026-06-18-stage9-target-evidence-result.md`.
 
-Recommended approval text:
+Recorded targets:
 
-```text
-APPROVED: Stage 9 target-evidence preparation and execution for exactly two
-non-protected isolated target product-code/test-code tasks.
+- `korneliuszburian/krn-llm-wiki` in isolated `/tmp` clone with
+  `python3 tools/check_all_readonly.py` as target-owned full-suite validation.
+- `korneliuszburian/marketing-intelligence-studio` in isolated `/tmp` clone
+  with `python3 tools/krn_stage9_check_brief_templates.py` as target-owned
+  fast-quality-gate validation.
 
-You may prepare one Stage 9/10 pre-run approval packet per target using
-docs/product/target-adoption-playbook.md, then run each approved task through
-krn run --task-spec ... --execute-verify --bundle.
-
-Approved targets:
-1. <target repo>, isolated path <path>, base commit <sha>,
-   approvalRef <operator-provided-ref>.
-2. <target repo>, isolated path <path>, base commit <sha>,
-   approvalRef <operator-provided-ref>.
-
-Constraints:
-- Do not use the active source checkout as a target checkout.
-- Do not touch protected data or protected-looking paths.
-- Do not push, merge, open PRs, or mutate target main.
-- Do not run Stage 10.
-- Do not claim production proof, hook trust, CI proof, or target-main approval.
-- Do not broaden verify allowlists.
-- Do not generate screenshots, appshots, browser captures, dashboards, vectors,
-  MCP surfaces, subagent runs, publishing artifacts, or placeholder evidence.
-- Use `memory-9ea13b133ba2` only as reference-only context when task-relevant.
-- Use target-owned validation wrappers only when authority, coverage,
-  limitations, and unsafe conditions are explicit.
-
-Required closeout:
-- Show each target approval packet.
-- Show each task spec path.
-- Show changed target files and forbidden-path check.
-- Show target validation authority and command.
-- Show run-result and run-bundle manifest paths.
-- Show `productionProof` remains false.
-- Show `hookTrustStatus` remains unproven unless separately approved and proven.
-- Show no pending/deprecated memory became active context.
-- Show exact target rollback or discard plan.
-- Run `git diff --check` and `pnpm lint` in KRN Harness after source doc updates.
-```
-
-Minimum target data required before execution:
-
-- two target repos and isolated checkout/worktree paths;
-- base commit for each isolated target checkout;
-- one tiny product-code/test-code task prompt per target;
-- expected touched files and forbidden touched files for each task;
-- protected-data exclusions with `protectedData.allowed: false`;
-- target-owned validation command, authority, coverage, limitations, and unsafe
-  conditions;
-- exact `approvalRef` values for each target run.
-
-If any minimum target data is missing, the next move is to request that data,
-not to invent targets or run a weaker proof.
+This proves two approved local target runs only. It does not prove production
+readiness, hook trust, CI, target-main approval, general adoption, memory
+outcome impact, or Raw Codex vs Codex+KRN delta.
 
 ## Non-Negotiable Proof Boundaries
 
@@ -159,6 +116,14 @@ Use official Codex docs for Codex behavior:
 - https://developers.openai.com/codex/appshots
 - https://developers.openai.com/codex/hooks
 - https://developers.openai.com/codex/noninteractive
+- https://developers.openai.com/codex/learn/best-practices
+- https://developers.openai.com/codex/use-cases/reusable-codex-skills
+
+Use external skill-engineering references only after condensation. Current
+inspiration for EXT-011 is Matt Pocock's public skills repo, especially its
+small/composable workflow shape and user-invoked versus model-invoked split:
+https://github.com/mattpocock/skills. Do not copy those skills wholesale and do
+not add XML/tagged structures unless they make a KRN skill contract clearer.
 
 Use repo docs/specs/ADRs or recorded target findings for KRN behavior. Raw audit
 text in `docs/audit/` and `docs/audits/` is input, not active truth, until it is
@@ -178,9 +143,11 @@ Use this table to avoid growing duplicate truth while this goal is active.
 | Stage 9/10 target adoption and comparison | `docs/product/target-adoption-playbook.md` | `docs/product/evidence-matrix.md` for proof status; `docs/handoffs/2026-06-18-stage9-target-evidence-result.md` | Stage 9 approved target artifacts exist; Stage 10 approval packets remain readiness only until same-authority baseline artifacts exist. |
 | Frontend visual proof metadata | `docs/specs/task-contract.schema.md`; `packages/task-contract/src/schema.ts` | `docs/product/target-adoption-playbook.md` for target-owned visual gates; `docs/product/evidence-matrix.md` for proof status | Visual metadata is contract/readiness only; never promote it to rendered proof, screenshot proof, Stage 9/10 evidence, or production proof without approved target artifacts. |
 | Delegation/worktree protocol | `docs/product/subagent-contracts.md` | Official Codex subagent/worktree docs | Delegation remains human-approved isolated work, not a KRN swarm. |
+| Build-time skills | `.agents/skills/*`; `.agents/skills/README.md` | Official Codex skills docs; Matt Pocock skills repo as historical/external inspiration only | Keep skills small, triggerable, scoped, and proof-oriented. Improve them from observed KRN failure modes, not broad taste. |
+| Compaction continuation | `packages/cli/src/continuation-state.ts`; `packages/cli/src/commands/hook.ts`; `packages/hooks/src/*`; `docs/specs/hooks-pack.md`; hook fixtures/tests; this ledger | Official Codex hooks docs for `PreCompact` and `SessionStart`; `.krn/current/continuation-state.*` as runtime-local artifact | Persist restart state before compaction and surface it on session start without claiming hook trust or security enforcement. |
 | Evidence status | `docs/product/evidence-matrix.md` | Handoffs and raw run artifacts | Matrix records current proof status; do not promote local evidence to production proof. |
 | Release-check and packaging boundary | `docs/specs/release-check.schema.md` | README and release-check artifacts | Release-check is local handoff evidence only, not package publication, plugin distribution, production readiness, or hook enforcement approval. |
-| Extension backlog during this goal | This ledger; `docs/product/audit-consolidation-goal-2026-06-18.md` | `docs/product/next-implementation-backlog.md` | Keep EXT-001 through EXT-010 out of the general backlog until this goal closes. |
+| Extension backlog during this goal | This ledger; `docs/product/audit-consolidation-goal-2026-06-18.md` | `docs/product/next-implementation-backlog.md` | Keep EXT-001 through EXT-012 out of the general backlog until this goal closes. |
 
 ## Next Safe Slice
 

@@ -103,6 +103,65 @@ describe("Codex hook entry lifecycle guardrails", () => {
     });
   });
 
+  it("records continuation-state info before compaction without upgrading enforcement", () => {
+    const result = handleCodexHook("PreCompact", {
+      state: {
+        ...readyState,
+        runResultPresent: true,
+        reportPresent: true,
+        continuationStatePresent: true,
+        continuationStatePath: ".krn/current/continuation-state.md",
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "ok",
+      decision: "allow",
+      enforced: false,
+      detail: "P0 hook guardrail info: pre-compact-continuation-state-written",
+      remediationCodes: ["read-continuation-state"],
+      userFacingMessage: {
+        en: "Continuation state was recorded for resume. Continue.",
+        pl: "Stan kontynuacji został zapisany na potrzeby resume. Możesz kontynuować.",
+      },
+    });
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        code: "pre-compact-continuation-state-written",
+        severity: "info",
+      }),
+    ]);
+  });
+
+  it("warns on session start when continuation state is present", () => {
+    const result = handleCodexHook("SessionStart", {
+      state: {
+        ...readyState,
+        continuationStatePresent: true,
+        continuationStatePath: ".krn/current/continuation-state.md",
+        continuationStateCreatedAt: "2026-06-03T00:00:00.000Z",
+        continuationStateTriggerEvent: "PreCompact",
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "warn",
+      decision: "warn",
+      enforced: false,
+      remediationCodes: ["read-continuation-state"],
+      userFacingMessage: {
+        en: "Continuation state exists. Read `.krn/current/continuation-state.md` before starting new work.",
+        pl: "Istnieje stan kontynuacji. Przeczytaj `.krn/current/continuation-state.md` przed rozpoczęciem nowej pracy.",
+      },
+    });
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        code: "session-continuation-state-present",
+        severity: "warn",
+      }),
+    ]);
+  });
+
   it("warns after compaction when context should be refreshed", () => {
     const result = handleCodexHook("PostCompact", {
       state: {

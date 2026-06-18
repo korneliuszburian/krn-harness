@@ -5,7 +5,8 @@ import {
   parseCodexHookPayload,
 } from "../../../hooks/src/index.js";
 import { createTraceEvent, defaultTracePath, writeTraceEvent } from "../../../trace/src/index.js";
-import { currentArtifactPaths, repoPathExists } from "../current-artifacts.js";
+import { type ContinuationState, writeContinuationState } from "../continuation-state.js";
+import { currentArtifactPathsFor, readRepoJson, repoPathExists } from "../current-artifacts.js";
 import {
   readCurrentContextPackage,
   readCurrentTaskContract,
@@ -14,6 +15,7 @@ import {
 import type { CliRuntime } from "../runtime.js";
 
 async function currentHookState(cwd: string): Promise<HookCurrentState> {
+  const currentArtifactPaths = currentArtifactPathsFor(cwd);
   const [
     taskContract,
     contextPackage,
@@ -21,6 +23,8 @@ async function currentHookState(cwd: string): Promise<HookCurrentState> {
     handoffPresent,
     runResultPresent,
     reportPresent,
+    continuationState,
+    continuationStateMarkdownPresent,
   ] = await Promise.all([
     readCurrentTaskContract(cwd),
     readCurrentContextPackage(cwd),
@@ -28,6 +32,11 @@ async function currentHookState(cwd: string): Promise<HookCurrentState> {
     repoPathExists(cwd, currentArtifactPaths.handoff),
     repoPathExists(cwd, currentArtifactPaths.runResultJson),
     repoPathExists(cwd, currentArtifactPaths.operatorReportJson),
+    readRepoJson<Pick<ContinuationState, "createdAt" | "triggerEvent">>(
+      cwd,
+      currentArtifactPaths.continuationStateJson,
+    ),
+    repoPathExists(cwd, currentArtifactPaths.continuationStateMarkdown),
   ]);
 
   return {
@@ -38,6 +47,12 @@ async function currentHookState(cwd: string): Promise<HookCurrentState> {
     handoffPresent,
     runResultPresent,
     reportPresent,
+    continuationStatePresent: Boolean(continuationState),
+    continuationStatePath: continuationStateMarkdownPresent
+      ? currentArtifactPaths.continuationStateMarkdown
+      : currentArtifactPaths.continuationStateJson,
+    continuationStateCreatedAt: continuationState?.createdAt,
+    continuationStateTriggerEvent: continuationState?.triggerEvent,
     taskId: taskContract?.id ?? contextPackage?.taskId ?? verifyResult?.taskId,
     taskText: taskContract?.task,
     contextStopReason: contextPackage?.stopReason,
@@ -60,6 +75,13 @@ export async function hookCommand(args: string[], runtime: CliRuntime): Promise<
   }
 
   const payload = parseCodexHookPayload(await runtime.stdin?.());
+  if (event === "PreCompact") {
+    await writeContinuationState({
+      cwd: runtime.cwd,
+      triggerEvent: "PreCompact",
+      now: runtime.now?.(),
+    });
+  }
   const result = handleCodexHook(event, {
     payload,
     state: await currentHookState(runtime.cwd),

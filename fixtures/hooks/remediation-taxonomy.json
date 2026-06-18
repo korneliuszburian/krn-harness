@@ -60,6 +60,11 @@
       "code": "resolve-verify-block",
       "en": "Fix the blocked verify result or preserve an active context STOP.",
       "pl": "Napraw zablokowany wynik verify albo zachowaj aktywny STOP kontekstu."
+    },
+    {
+      "code": "read-continuation-state",
+      "en": "Read `.krn/current/continuation-state.md` before continuing after compaction.",
+      "pl": "Przeczytaj `.krn/current/continuation-state.md` przed kontynuacją po kompakcji."
     }
   ],
   "findingMappings": [
@@ -98,6 +103,14 @@
     {
       "findingCode": "pre-compact-report-missing",
       "remediationCodes": ["run-krn-report"]
+    },
+    {
+      "findingCode": "pre-compact-continuation-state-written",
+      "remediationCodes": ["read-continuation-state"]
+    },
+    {
+      "findingCode": "session-continuation-state-present",
+      "remediationCodes": ["read-continuation-state"]
     },
     {
       "findingCode": "post-compact-context-refresh-needed",

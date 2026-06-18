@@ -51,6 +51,8 @@ export function artifactPathsForLayout(layout: RuntimeLayout) {
     releaseCheckMarkdown: runtimePath(layout.currentDir, "release-check.md"),
     runResultJson: runtimePath(layout.currentDir, "run-result.json"),
     runResultMarkdown: runtimePath(layout.currentDir, "run-result.md"),
+    continuationStateJson: runtimePath(layout.currentDir, "continuation-state.json"),
+    continuationStateMarkdown: runtimePath(layout.currentDir, "continuation-state.md"),
     runBundleManifest: runtimePath(layout.runBundleDir, "manifest.json"),
     trace: runtimePath(layout.tracesDir, "trace.jsonl"),
     memoryPending: runtimePath(layout.memoryDir, "pending.json"),

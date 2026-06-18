@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -124,6 +124,139 @@ describe("krn CLI hook guardrails", () => {
           operatorMessageVersion: "hook-operator-message-v1",
           remediationCodes: [],
           tracePayloadMode: "full",
+        },
+      },
+    ]);
+  });
+
+  it("writes continuation state on PreCompact and surfaces it on SessionStart", async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), "krn-harness-"));
+    await mkdir(path.join(cwd, ".krn", "current"), { recursive: true });
+    await writeFile(
+      path.join(cwd, ".krn", "current", "task-contract.json"),
+      taskContractJson("task-hook", "Continue after compaction"),
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "context-package.json"),
+      `${JSON.stringify(
+        {
+          taskId: "task-hook",
+          items: [],
+          buckets: {
+            mustRead: [
+              {
+                path: "packages/hooks/src/codex-hook-entry.ts",
+                reason: "Hook entry",
+                priority: 10,
+                bucket: "must-read",
+                status: "available",
+              },
+            ],
+            shouldRead: [],
+            referenceOnly: [],
+            doNotUse: [],
+            missingContext: [],
+          },
+          coverage: { required: 1, present: 1, missing: 0, confidence: "high" },
+          stop: false,
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "verify-result.json"),
+      `${JSON.stringify({ taskId: "task-hook", status: "pass" }, null, 2)}\n`,
+      "utf8",
+    );
+    await writeFile(path.join(cwd, ".krn", "current", "handoff.md"), "# Handoff\n", "utf8");
+    await writeFile(
+      path.join(cwd, ".krn", "current", "run-result.json"),
+      `${JSON.stringify({ schema: "krn.run-result.v1", status: "verified" }, null, 2)}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(cwd, ".krn", "current", "operator-report.json"),
+      `${JSON.stringify({ schema: "krn.operator-report.v1", verdict: "pass" }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const preCompact = await runInCwd(cwd, ["hook", "codex", "PreCompact"]);
+    expect(preCompact.code).toBe(0);
+    expect(JSON.parse(preCompact.stdout)).toMatchObject({
+      event: "PreCompact",
+      status: "ok",
+      decision: "allow",
+      enforced: false,
+      findings: [
+        expect.objectContaining({
+          code: "pre-compact-continuation-state-written",
+          severity: "info",
+        }),
+      ],
+      remediationCodes: ["read-continuation-state"],
+    });
+
+    const continuationState = JSON.parse(
+      await readFile(path.join(cwd, ".krn", "current", "continuation-state.json"), "utf8"),
+    ) as {
+      schema: string;
+      createdAt: string;
+      triggerEvent: string;
+      task: { id: string | null };
+      proof: { productionProof: boolean; hookTrustStatus: string };
+    };
+    expect(continuationState).toMatchObject({
+      schema: "krn.continuation-state.v1",
+      createdAt: "2026-06-03T00:00:00.000Z",
+      triggerEvent: "PreCompact",
+      task: { id: "task-hook" },
+      proof: {
+        productionProof: false,
+        hookTrustStatus: "unproven",
+      },
+    });
+    await expect(
+      readFile(path.join(cwd, ".krn", "current", "continuation-state.md"), "utf8"),
+    ).resolves.toContain("Read the continuation handoff and continue");
+
+    const sessionStart = await runInCwd(cwd, ["hook", "codex", "SessionStart"]);
+    expect(sessionStart.code).toBe(0);
+    expect(JSON.parse(sessionStart.stdout)).toMatchObject({
+      event: "SessionStart",
+      status: "warn",
+      decision: "warn",
+      enforced: false,
+      findings: [
+        expect.objectContaining({
+          code: "session-continuation-state-present",
+          severity: "warn",
+        }),
+      ],
+      remediationCodes: ["read-continuation-state"],
+    });
+
+    await expect(readTraceEvents(cwd)).resolves.toMatchObject([
+      {
+        name: "hook.received",
+        data: {
+          event: "PreCompact",
+          status: "ok",
+          decision: "allow",
+          findingCodes: ["pre-compact-continuation-state-written"],
+          remediationCodes: ["read-continuation-state"],
+        },
+      },
+      {
+        name: "hook.received",
+        data: {
+          event: "SessionStart",
+          status: "warn",
+          decision: "warn",
+          findingCodes: ["session-continuation-state-present"],
+          remediationCodes: ["read-continuation-state"],
         },
       },
     ]);

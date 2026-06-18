@@ -46,6 +46,10 @@ function findingDecision(findings: HookGuardrailFinding[]): HookDecision {
   return "allow";
 }
 
+function hasOnlyInfoFindings(findings: HookGuardrailFinding[]): boolean {
+  return findings.length > 0 && findings.every((finding) => finding.severity === "info");
+}
+
 function addCurrentStateFindings(
   event: CodexHookEvent,
   payload: HookPayload,
@@ -102,6 +106,16 @@ function addCurrentStateFindings(
     return "warn";
   };
 
+  if (event === "SessionStart" && state.continuationStatePresent) {
+    findings.push({
+      code: "session-continuation-state-present",
+      severity: "warn",
+      detail:
+        `Continuation state exists at ${state.continuationStatePath ?? ".krn/current/continuation-state.md"}` +
+        "; read it before starting new work",
+    });
+  }
+
   if (taskRequiredEvents.includes(event) && !state.taskPresent) {
     findings.push({
       code: "missing-task-contract",
@@ -127,6 +141,14 @@ function addCurrentStateFindings(
   }
 
   if (event === "PreCompact" && state.taskPresent && state.contextPresent) {
+    if (state.continuationStatePresent) {
+      findings.push({
+        code: "pre-compact-continuation-state-written",
+        severity: "info",
+        detail: `PreCompact wrote continuation state at ${state.continuationStatePath ?? ".krn/current/continuation-state.md"}`,
+      });
+    }
+
     if (!state.runResultPresent) {
       findings.push({
         code: "pre-compact-run-result-missing",
@@ -303,7 +325,9 @@ export function handleCodexHook(
   const detail =
     findings.length === 0
       ? "P0 hook guardrails passed; hooks remain guardrails and trace points, not a sandbox"
-      : `P0 hook guardrail ${decision}: ${findings.map((finding) => finding.code).join(", ")}`;
+      : hasOnlyInfoFindings(findings)
+        ? `P0 hook guardrail info: ${findings.map((finding) => finding.code).join(", ")}`
+        : `P0 hook guardrail ${decision}: ${findings.map((finding) => finding.code).join(", ")}`;
   const guidance = operatorGuidanceFor(decision, supported, findings);
 
   return {
