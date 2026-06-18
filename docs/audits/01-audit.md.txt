@@ -1,0 +1,572 @@
+Poniżej traktuję **repo jako źródło faktów**, a Twoje opisy jako kontekst operatorski. Nie uruchamiałem lokalnie `pnpm verify:local` ani targetowych `krn run`, nie widziałem niecommitowanych raw JSONL/stderr z Codex exec, nie audytowałem niezależnie target repo po stronie produkcji. To jest więc **zewnętrzny audit architektury i product-infra na podstawie publicznego repo, dokumentów, kodu i deklarowanych dowodów**, nie certyfikacja działania w produkcji.
+
+## 1. Executive verdict
+
+**Czy aktualna infra jest zdrowa?**
+**Tak, ale tylko w klasie “v0.1 local proof / control layer”, nie “production runtime”.** Najzdrowsze jest to, że projekt ma rzadką w agentic engineeringu cechę: **jawnie rozróżnia lokalny dowód, fixture proof, config adoption proof, product-code proof, Codex exec proof i brak production proof**. README, `mvp-state`, `p0-p1-decision`, `p1-entry-contract` i evidence matrix konsekwentnie powtarzają, że `productionProof` zostaje `false`, a hook trust jest `unproven`. To nie jest marketingowy drobiazg; to jest centralna właściwość bezpieczeństwa produktu.
+
+**Czy product center jest dobrze wybrany?**
+**Tak.** Product center nie powinien być dashboardem, MCP, vector DB, “multi-agent swarm”, skill packiem ani publishingiem. Najbardziej wartościowym centrum jest aktualnie **dowód wykonania lokalnego operator loop**: task → context → verify → review → bundle. To dobrze pasuje do praktyki agentic SWE: najważniejsze nie jest “agent robi dużo”, tylko czy system umie zachować intencję, dobrać kontekst, ograniczyć narzędzia, zebrać ślad i zweryfikować wynik. Anthropic wprost zaleca zaczynać od prostych, przewidywalnych workflow i zwiększać złożoność tylko wtedy, gdy daje mierzalny efekt; KRN idzie raczej w tę stronę niż w hype “więcej agentów”. ([Anthropic][1])
+
+**Czy `krn run -> run-result -> run-bundle` powinien zostać centrum?**
+**Tak — i powinien zostać zamrożony jako centrum przez kilka iteracji.** Kod `run.ts` faktycznie orkiestruje `start -> graph -> context -> verify -> handoff -> review -> summary -> report -> release-check`, obsługuje STOP z context package i kończy na `run-result`; `run-result-builder.ts` ustawia status `verified` dopiero przy `executeVerify` + `verify.mode: execute` + `verify.status: pass`, oraz zapisuje `productionProof:false` i `hookTrustStatus` jako `unproven`/z raportu. To jest realna implementacja, nie tylko narracja docs.
+
+**Czy idziecie w stronę przełomu, czy slopu?**
+Moja ocena: **to nie jest przełom modelowy i jeszcze nie jest przełom produktowy. Jest to potencjalnie wartościowy, wąski control layer dla Codex-first engineeringu.** Nie jest slopem, dopóki kolejne iteracje wzmacniają real target validation, task-spec, verify contract, context noise i review closeout. Stanie się slopem, jeśli projekt zacznie produkować coraz ładniejsze reporty, dashboardy, MCP, vector retrieval, subagent contracts i skills, zanim powtórzy twarde product-code proof na kilku różnych repozytoriach.
+
+---
+
+## 2. Mental model
+
+**Fakt:** KRN definiuje się jako “Codex-first local agentic engineering runtime/control layer”, nie jako prompt pack, dashboard-first produkt, generic multi-agent framework, production MCP server, vector database, publisher, hook trust proof ani production proof system. Jego deklarowana zasada to `contract -> context -> graph -> hooks -> trace -> verify -> governed memory`.
+
+**Moje rozumienie:** KRN to nie “agent”. KRN to **lokalna warstwa kontroli i dowodu wokół Codex/a coding agenta**, która ma wymusić, żeby praca agenta nie była luźnym promptowaniem, tylko powtarzalnym cyklem:
+
+```text
+Operator / Codex task
+  |
+  v
+Task spec / task text
+  |
+  v
+Task contract
+  - intent
+  - classification
+  - expected touched files
+  - forbidden touched files
+  - do-not-use paths
+  - proof expectations
+  |
+  v
+Graph-lite
+  - filesystem
+  - imports as literal specifiers
+  - package/docs conventions
+  - selected WP/ACF-ish detectors
+  |
+  v
+Context package
+  - must-read
+  - should-read
+  - reference-only
+  - do-not-use
+  - missing-context
+  - STOP if unsafe/incomplete
+  |
+  v
+Hooks / trace
+  - useful as trace points and templates
+  - not proof of hook trust
+  |
+  v
+Verify
+  - record-only by default
+  - execute only with explicit flag
+  - allowlisted commands
+  - scrubbed env
+  - shell:false
+  - redacted compact output
+  |
+  v
+Handoff / review / summary / report
+  - local evidence projection
+  - closeout audit
+  - not production proof
+  |
+  v
+Run-result
+  - status
+  - blockers
+  - warnings
+  - verify summary
+  - productionProof:false
+  - hookTrustStatus
+  |
+  v
+Run-bundle
+  - portable evidence packet
+  - report/release-check as supporting evidence
+  |
+  v
+Governed memory
+  - pending/approved/deprecated primitives
+  - no auto-approved memory
+```
+
+Najważniejsza warstwa produktu to **artifact-backed engineering discipline**. To jest bliższe “harness / ACI / workflow runtime” niż “framework agentowy”. SWE-agent pokazał, że agent-computer interface silnie wpływa na skuteczność agentów kodujących; Anthropic także podkreśla, że narzędzia i ich dokumentacja są równie ważne jak prompt. KRN jest właśnie próbą takiego ACI/control-plane, tylko lokalnego i Codex-first. ([arXiv][2]) ([Anthropic][1])
+
+---
+
+## 3. Strongest patterns
+
+### 3.1. Contract-first
+
+**Fakt:** Task contract ma jawny schemat: raw intent, task, classification, mode, acceptance, proof, evidence requirements, stop conditions i metadata dla expected/forbidden/do-not-use paths. Task spec na wejściu jest wąski, ale istnieje i jest źródłem struktury.
+
+**Interpretacja:** To jest właściwy kierunek. Agentic SWE bez kontraktu szybko zamienia się w “LLM zrobił coś sensownego”. Kontrakt daje możliwość porównania: co miało być zrobione, co zostało dotknięte, co było zakazane, czym wynik ma być udowodniony.
+
+### 3.2. Jedno centrum workflow: `krn run`
+
+**Fakt:** README i `mvp-state` mówią, że normalna ścieżka to `krn run --task-spec ... --execute-verify --bundle`, a plumbing commands zostają diagnostyką. Kod `run.ts` rzeczywiście scala kroki i zapisuje centralny wynik.
+
+**Interpretacja:** To jest bardzo dobre. Większość agent toolingów ginie przez rozrost powierzchni: osobny planner, reviewer, memory, dashboard, eval, trace viewer, workflow builder. KRN ma dużo komend, ale produktowo nadal mówi: centrum to `run-result` i `run-bundle`. Tego trzeba pilnować agresywnie.
+
+### 3.3. Evidence taxonomy i explicit proof flags
+
+**Fakt:** Repo wielokrotnie mówi, że evidence matrix jest lokalnym ledgerem, nie production proof. `run-result-builder.ts` ustawia `proof.productionProof:false`, a `hookTrustStatus` bierze z raportu albo zostawia `unproven`.
+
+**Interpretacja:** To jest najmocniejszy anti-slop mechanizm. Projekt nie tylko generuje artefakty; on próbuje ograniczyć semantykę tych artefaktów. To rzadkie i warte ochrony.
+
+### 3.4. Verify jako least-privilege local execution
+
+**Fakt:** Verify jest record-only domyślnie, execute wymaga flagi, a command policy blokuje shell syntax, `rm`, `scp`, `git reset --hard`, `git clean`, `curl`, `wget`; dopuszcza tylko wąskie `pnpm`, `npm`, bezpieczne `node` i `python3 tools/*.py`. Runtime używa `spawn(..., shell:false)`, scrubbed env, timeoutów i redakcji outputu.
+
+**Interpretacja:** To jest dobra inżynieria bezpieczeństwa. Ma koszt adopcyjny, ale model zagrożeń jest właściwy: najpierw ograniczyć egzekucję, potem dopiero świadomie poszerzać profile.
+
+### 3.5. Runtime dir escape hatch
+
+**Fakt:** Config schema wspiera `runtime.dir`, waliduje repo-relative dot-directory i odrzuca ścieżki typu `src`, `docs`, `tools`, `packages`. CLI sprawdza, czy runtime dir jest tracked by git; jeśli tak, blokuje zapis i sugeruje `.krn-harness`.
+
+**Interpretacja:** To jest przykład dobrego hardeningu z realnej friction, nie spekulacyjna architektura. Tak powinien wyglądać P1: pojedynczy ból adopcyjny → mały fix → proof.
+
+### 3.6. Isolated worktrees i no-push boundary
+
+**Fakt:** P0/P1 decision mówi, że real target runs mają iść przez approved isolated target worktree, a target commit/push zostaje osobnym, jawnie zatwierdzanym krokiem.
+
+**Interpretacja:** To jest zdrowe operacyjnie. KRN nie powinien automatycznie stawać się “CI botem” ani “merge botem”.
+
+### 3.7. Docs/ADR/spec jako active truth, research jako non-active
+
+**Fakt:** AGENTS.md mówi: repo truth beats chat truth; non-trivial decisions potrzebują docs/research/ADR; raw research nie jest active truth, dopóki nie jest zdestylowany do canon/spec/ADR.
+
+**Interpretacja:** To chroni przed typowym agentowym bałaganem: model przeczytał 20 rzeczy, ale projekt nie ma decyzji. Bardzo dobry wzorzec.
+
+### 3.8. Build-time skills vs runtime/downstream skill templates
+
+**Fakt:** AGENTS.md wyraźnie oddziela `.agents/skills/*` jako build-time skills od `packages/codex-adapter/src/templates/skills/*` jako runtime/downstream skill templates.
+
+**Interpretacja:** To jest zgodne z aktualnym kierunkiem Codex Skills: skills są reusable workflow instructions z progressive disclosure i wymagają jasnych opisów/scope boundaries. KRN dobrze wyczuwa, że skills mają pomagać agentowi pracować konsekwentnie, a nie być “dużym skill packiem”. ([OpenAI Developers][3])
+
+### 3.9. Adoption-friction-driven hardening
+
+**Fakt:** Adoption friction register mówi, że jest inputem do przyszłej pracy, ale nie zgodą na dodawanie features. Zawiera konkretne realne tarcia: `.krn/` hygiene, relative task-spec paths, Python wrappers, `.krn` collision, protected-looking paths, target quality gate vs full suite.
+
+**Interpretacja:** To jest dokładnie właściwy backlog. Nie “build MCP because trend”, tylko “Python target potrzebował wrappera; co z tym robimy?”.
+
+---
+
+## 4. Weakest patterns
+
+### 4.1. Artefakty mogą zacząć udawać wartość
+
+**Fakt:** `krn run` generuje wiele artefaktów: handoff, review, summary, report, release-check, run-result, bundle. Evidence matrix sama ostrzega, że report warnings mogą być overread jako production proof, a review/summary usefulness jest jeszcze nieudowodnione poza pierwszymi rekordami.
+
+**Failure mode:** Operator widzi dużo JSON/MD/HTML i czuje, że system “działa”, mimo że real target proof jest płytki. To jest najbliższa droga do slopu: nie przez brak architektury, tylko przez **nadmiar przekonujących artefaktów**.
+
+### 4.2. Task spec jest za wąski względem realnych boundary conditions
+
+**Fakt:** `TaskSpecInputSchema` ma tylko `prompt`, `expectedTouchedFiles`, `forbiddenTouchedFiles`, `requiredDoNotUsePaths`. Adoption friction register mówi, że validation, rollback, no-push i no-merge boundaries nadal żyją częściowo w task text/prose.
+
+**Failure mode:** Run może przejść jako `verified`, ale część najważniejszych invariantów była tylko w opisie, nie w maszynowo sprawdzalnym kontrakcie.
+
+### 4.3. Verify allowlist jest bezpieczny, ale może tworzyć wrapper theater
+
+**Fakt:** Command policy dopuszcza `python3` tylko dla bezpiecznych relatywnych plików pod `tools/*.py`; adoption register potwierdza, że `marketing-intelligence-studio` potrzebowało lokalnego wrappera `tools/krn_check_quality_gate.py`, bo target-native commands były zbyt szerokie.
+
+**Failure mode:** KRN zaczyna w praktyce weryfikować wrapper, a nie rzeczywisty target quality gate. Wrappery są akceptowalne jako przejściowy safety valve, ale nie jako długoterminowy model adopcji dla Python repos.
+
+### 4.4. Graph-lite jest uczciwie nazwany, ale może być overread
+
+**Fakt:** Graph-lite używa detectorów typu filesystem, module imports, docs links, package JSON, Composer, CSS, ACF JSON, WordPress/Bedrock; docs mówią wprost, że nie ma AST/callgraph/dataflow/runtime dependency inference.
+
+**Failure mode:** Na dużych repo context package może wyglądać autorytatywnie, ale pomijać dynamiczne zależności, framework magic, test fixtures i runtime coupling. To nie jest problem, jeśli output jest traktowany jako “context shortlist”; to jest problem, jeśli ktoś zacznie go traktować jako “repo understanding”.
+
+### 4.5. Hook layer istnieje, ale hook trust nie jest dowiedziony
+
+**Fakt:** KRN ma hook guardrails/templates/trace receiver, ale repo wielokrotnie mówi, że real Codex hook loading/trust pozostaje unproven. Oficjalne docs Codex mówią, że non-managed command hooks muszą być reviewed/trusted, repo-local hooks działają tylko przy trusted project `.codex/`, a bypass hook trust istnieje jako osobny tryb.   ([OpenAI Developers][4]) ([OpenAI Developers][4]) ([OpenAI Developers][4])
+
+**Failure mode:** Użytkownik myśli, że hooks egzekwują bezpieczeństwo, podczas gdy są tylko template/trace/spec. Repo obecnie tego nie overclaimuje, ale nazwa “hooks” naturalnie kusi do nadinterpretacji.
+
+### 4.6. Release-check ma ryzyko mylącej semantyki
+
+**Fakt:** `run.ts` ma logikę, która dla downstream target run może traktować source release-check failure jako non-blocking evidence. Adoption register też mówi, że downstream source release-check ma pozostać non-blocking.
+
+**Failure mode:** Jeśli wording w bundle nie jest bardzo wyraźny, operator może nie odróżnić “target validation passed” od “source release-check failed but irrelevant”.
+
+### 4.7. Dokumentacja jest dojrzalsza niż adopcja
+
+**Fakt:** Docs są bardzo rozbudowane: P0/P1, evidence matrix, stage scorecard, ADR lanes, adoption friction register. Real target product-code proof jest jednak nadal ograniczony do lokalnych isolated runs i config adoption.
+
+**Failure mode:** Projekt może wyglądać jak system o dużej dojrzałości produktowej, podczas gdy w praktyce ma jeszcze niewiele powtórzeń na heterogenicznych targetach. To nie jest fałsz; to jest **asymetria dojrzałości docs vs adoption**.
+
+---
+
+## 5. Evidence audit
+
+| Dowód                                                                                                  |                                   Klasa | Co realnie dowodzi                                                                                           | Czego nie dowodzi                                                                                                |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------: | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Tiny downstream fixture, product-code fixture, synthetic WP/ACF fixture                                |                           fixture proof | Regresja lokalnych mechanizmów, schematów, CLI i podstawowego loopa                                          | Real repo behavior, production readiness, real WP/ACF behavior                                                   |
+| `krn-llm-wiki` product-code/checker mutation przez `krn run --task-spec ... --execute-verify --bundle` | local target proof + product-code proof | KRN potrafi wykonać lokalny target mutation workflow w izolowanym worktree i dojść do `verified`             | Produkcji, hook trust, trwałej adopcji na main, jakości poza zakresem zadania                                    |
+| PR #78 w `krn-llm-wiki`, zmiana tylko `krn.config.json`                                                |                   config adoption proof | Target main zaakceptował minimalny config                                                                    | Product-code adoption, produkcyjnej wartości, hook trust                                                         |
+| `marketing-intelligence-studio` isolated repeat z Python wrapperem                                     |                      local target proof | Drugi real repo repeat działał lokalnie przez target-owned fast quality gate                                 | Commit/push/PR, generalnej obsługi Python bez friction, production proof                                         |
+| `krn-ai-os` z `runtime.dir: ".krn-harness"`                                                            |             runtime-dir collision proof | Escape hatch działa i nie dotyka tracked product-owned `.krn/`                                               | Wartości agentic workflow, produkcji                                                                             |
+| Codex exec evidence packs                                                                              |                        Codex exec proof | Jakiś realny downstream `codex exec --json` behavior, metadata parse fix, runtime skill auto-discovery smoke | Hook trust, trwałe zachowanie na wielu targetach, pełna reprodukowalność, bo raw JSONL/stderr nie są commitowane |
+| Minimal local CI workflow                                                                              |                        readiness signal | Istnieje minimalny no-model/local-validation lane                                                            | Production signal, hosted runner correctness, deployment readiness                                               |
+| `run-result` / `run-bundle`                                                                            |                   local evidence packet | Koherentny lokalny przebieg i statusy kroków                                                                 | Nie jest samoistną prawdą o jakości kodu ani produkcji                                                           |
+
+Repo samo klasyfikuje większość tych ograniczeń poprawnie: evidence matrix mówi, że to local evidence only, nie production proof; `mvp-state` powtarza, że real target proof jest isolated/local, PR #78 jest config adoption, a productionProof i hookTrust pozostają false/unproven.
+
+**Gdzie najłatwiej o overclaim:**
+
+1. **“Verified”** może zostać przeczytane jako “działa w produkcji”. W KRN powinno znaczyć tylko: lokalny verify przeszedł zgodnie z allowlisted profile.
+2. **Config adoption** może zostać sprzedane jako “target adopted KRN”. Uczciwie: target przyjął config.
+3. **Codex exec smoke** może zostać sprzedany jako “Codex integration proven”. Uczciwie: jeden lub kilka smoke packs pokazały określone zachowanie.
+4. **Hook templates** mogą zostać sprzedane jako “hook enforcement”. Uczciwie: hook trust jest unproven.
+5. **Report/release-check** mogą zostać sprzedane jako “release readiness”. Uczciwie: są supporting evidence, nie gate produkcyjny.
+6. **Graph/context artifacts** mogą zostać sprzedane jako “repo understanding”. Uczciwie: shallow deterministic context assistance.
+
+---
+
+## 6. Architecture risks
+
+### Największe ryzyka techniczne
+
+**1. Powierzchnia CLI jest większa niż product center.**
+Help text pokazuje `run`, ale też `status`, `start`, `graph`, `context`, `verify`, `handoff`, `doctor`, `eval`, `install`, `uninstall`, `config`, `summary`, `review`, `report`, `release-check`, `artifacts`, `memory`, `hook`. To jest OK jako plumbing, ale ryzyko polega na tym, że użytkownik zacznie traktować KRN jako suite narzędzi, a nie jako jeden workflow.
+
+**2. Context/graph mogą nie skalować jakościowo.**
+Context package ma dobre bucketowanie, coverage, over-inclusion metrics i budget, ale graph jest shallow. Na dużych repo problemem będzie false confidence: dużo kontekstu, ale niekoniecznie właściwy. Badania nad context management dla long-horizon SWE agents pokazują, że append-only lub pasywna kompresja prowadzą do context explosion i semantic drift; KRN ma dobry początek, ale nie ma jeszcze dowodu na noisy large repos.   ([arXiv][5])
+
+**3. Verify profile policy jest zbyt binarny.**
+Bezpieczny allowlist jest dobry, ale target validation w realnych repo jest bogatszy niż `pnpm test` albo `python3 tools/*.py`. Jeśli nie powstanie lepszy target validation contract, wrappery będą się mnożyć.
+
+**4. Review deterministic może być zbyt płytki.**
+`review.ts` sprawdza obecność artefaktów, context STOP, verify status, protected-looking paths, handoff sections i local validation script. To przydatne, ale to nie jest review jakości zmiany.
+
+**5. Raw evidence retention vs privacy.**
+Niecommitowanie raw JSONL/stderr jest rozsądne privacy-wise, ale obniża reprodukowalność Codex exec proof. To trzeba jasno oznaczać w każdym bundle.
+
+### Największe ryzyka produktowe
+
+**1. “Artifact machine” zamiast “engineering runtime”.**
+To największe ryzyko. Jeżeli wartość KRN będzie mierzona liczbą wygenerowanych MD/JSON/HTML, projekt przegrywa.
+
+**2. Zbyt wąski target user.**
+KRN wygląda jak narzędzie dla operatora, który już rozumie Codex, worktrees, verify gates, target hygiene, ADRs i proof taxonomy. To może być świetne dla Ciebie i podobnych power users, ale trudne jako produkt.
+
+**3. “Codex-first” jest siłą i ryzykiem.**
+Siłą, bo scope jest konkretny. Ryzykiem, bo Codex hooks, skills, AGENTS.md, non-interactive mode i worktree behavior są moving targetem. KRN musi aktualizować się względem oficjalnych Codex docs, nie względem własnych założeń.
+
+**4. Brak mierzalnej adopcyjnej metryki.**
+Na razie threshold jest “local proof crossed”. Następny poziom powinien mieć metrykę typu: ile targetów, ile powtórzeń, ile failure modes, ile wrapperów, ile false positives review, ile razy bundle pomógł operatorowi podjąć decyzję.
+
+### Największe ryzyka operacyjne
+
+**1. Protected data.**
+KRN dobrze zakazuje `.env`, dumps, uploads/media, credentials, corpora itd., ale agentic workflow z repo tools + context + egress to klasyczny obszar prompt injection/data exfiltration. Willisonowska “lethal trifecta” — private data, untrusted content, external communication — jest dokładnie tym, czego KRN ma unikać przez local-only/no protected data/no network gates. ([Wikipedia][6])
+
+**2. Target worktree hygiene.**
+`.krn/` artifacts, tracked product-owned `.krn/`, `.gitignore`, isolated clones — to nie są detale. To są warunki wiarygodności dowodu.
+
+**3. Manual approval boundaries.**
+No-push/no-merge boundaries żyją jeszcze częściowo w prose. To powinno wejść do task-spec/contract albo review, inaczej będzie zależeć od operatora i prompt discipline.
+
+---
+
+## 7. Scope creep audit
+
+**Czy projekt nadal broni się przed dashboard/MCP/vector/subagents/publishing?**
+**Tak — dokumentacyjnie bardzo dobrze, implementacyjnie wystarczająco dobrze na v0.1.** README, AGENTS.md, P0/P1 decision i P1 entry contract konsekwentnie mówią: no dashboard-first, no MCP server, no vector DB, no autonomous swarm, no publishing, no production claims. ADR/contract-only lanes są oznaczone jako eksperymenty albo future lanes.
+
+**Największe pokusy złamania scope:**
+
+1. **Dashboard-lite / report HTML.**
+   Najbardziej niebezpieczne, bo już jest report artifact i HTML projection. Łatwo uznać, że “warto tylko dodać viewer”. Nie warto teraz.
+
+2. **MCP.**
+   MCP jest obecnie rynkowo atrakcyjne, ale dla KRN byłoby przedwczesne. KRN nie ma jeszcze wystarczająco stabilnego resource contract i proof taxonomy w realnych adopcjach.
+
+3. **Vector / embeddings.**
+   Context noise będzie bolał, więc pokusa będzie duża. Ale obecny problem nie brzmi “brakuje embeddings”; brzmi “nie mamy wystarczającego real-repo context noise audit”.
+
+4. **Subagents.**
+   `review` i `summary` mogą naturalnie ewoluować w “reviewer agents”. Nie teraz. Deterministic reviewers first to dobra decyzja.
+
+5. **Publishing.**
+   Użytkownicy będą chcieć `npm install -g`. To obniży friction, ale też rozmyje proof: global `krn` fallback jest już uznany za invalid dogfood. Na razie pinned/source checkout ma sens.
+
+6. **Hook enforcement.**
+   Najbardziej zdradliwe: skoro hooks istnieją, łatwo powiedzieć, że KRN “pilnuje” Codex. Nie pilnuje, dopóki non-bypass hook trust probe nie jest udowodniony.
+
+---
+
+## 8. Adoption friction audit
+
+### Realnie najważniejsze frictions
+
+**1. Verify allowlist vs target-native validation.**
+To jest najważniejsze. Python wrappery są sensownym stopgapem, ale długoterminowo będą obciążać adopcję i zniekształcać dowód. Adoption register potwierdza to na realnym target run.
+
+**2. Runtime namespace collision.**
+To już zostało dobrze zaadresowane przez `runtime.dir`, ale powinno wejść do adoption playbook jako standardowy preflight question: czy target posiada tracked `.krn/`?
+
+**3. Task-spec boundaries poza schema.**
+No-push, no-merge, rollback, authoritative validation command, target approval — to są krytyczne operational invariants. Jeśli są tylko w prompt text, nie są wystarczająco kontrolowalne.
+
+**4. Protected-looking do-not-use paths.**
+To było realne i częściowo naprawione. Warto utrzymać distinction: “declared exclusion” nie jest “active protected context”.
+
+**5. Full suite failure vs target-owned fast quality gate.**
+To jest realny problem komunikacji dowodu. KRN nie powinien wymagać pełnego target suite zawsze, ale musi bardzo jasno zapisać: “ten target uznaje ten gate za authoritative dla tej klasy zmiany”.
+
+### Co jest bardziej noise
+
+**1. `--task-spec` relative path rule.**
+To jest friction, ale raczej dokumentacyjna/ergonomiczna. Nie powinna prowadzić do dużej architektury.
+
+**2. `.gitignore` dla `.krn/`.**
+Ważne hygiene, ale proste. Nie budowałbym wokół tego dużego feature.
+
+**3. Downstream source release-check non-blocking.**
+To jest bardziej problem wording/status semantics niż core architecture.
+
+### Co hardened jako pierwsze
+
+Pierwsze hardening powinno dotknąć **target validation contract**: jak target deklaruje authoritative validation, jak KRN decyduje allowed/blocked, jak `review` i `run-result` opisują semantykę tej walidacji, i kiedy wrapper jest dopuszczalny. Nie zaczynałbym od poszerzania allowlist do shell scripts. Zacząłbym od jawnego modelu:
+
+```text
+targetValidation:
+  authority: "target-owned"
+  command: ...
+  reason: ...
+  coverage: "fast-quality-gate|full-suite|smoke|lint-only"
+  limitations: [...]
+  unsafeIf: [...]
+```
+
+Nawet jeśli to najpierw będzie docs/spec + fixture, a nie runtime code, to uporządkuje największą adopcyjną niejasność.
+
+---
+
+## 9. Skill/workflow audit
+
+### `$buduj`
+
+**Ocena:** Dobry default dla non-trivial work. Wymusza outcome, acceptance, proof, risk, read reality first i vertical beads. To jest zgodne z dobrymi praktykami agentic coding: małe, weryfikowalne kroki, a nie luźne “zrób projekt”.
+
+**Ryzyko:** Jeśli będzie używany przy każdej drobnostce, stanie się rytuałem.
+
+### `$kanon`
+
+**Ocena:** Bardzo potrzebny. Chroni repo przed raw research dumping i rozdziela evidence od active truth.
+
+**Ryzyko:** Może produkować zbyt dużo docs. Musi kończyć decyzją, nie notatką.
+
+### `$pilnuj`
+
+**Ocena:** Jeden z najważniejszych workflow. KRN ma dużo pokus scope creep, więc guardian skill ma sens.
+
+**Ryzyko:** Jeśli `$pilnuj` tylko powtarza “nie buduj MCP/dashboard/vector”, a nie zawęża konkretny slice, traci wartość.
+
+### `$wycinek`
+
+**Ocena:** Najzdrowszy skill implementacyjny. “One small measurable TypeScript/docs testable slice” to dokładnie wzorzec, który chroni przed agentowym rozlewaniem zmian.
+
+**Ryzyko:** Minimalne. Chronić.
+
+### `$handoff`
+
+**Ocena:** Przydatny przy długich sesjach i review.
+
+**Ryzyko:** Nakłada się z `summary`, `report`, `run-result`. Jeżeli te artefakty duplikują te same sekcje, handoff powinien być albo downstream-friendly closeout, albo zostać skrócony.
+
+### `$review`
+
+**Ocena:** Słusznie powinien stać się first-class closeout audit. Jego scope jest dobrze zdefiniowany: evidence-first audit, no implementation, no replacing human PR review, no production/hook trust claims.
+
+**Ryzyko:** Musi emitować konkretne `VERIFIED / NEEDS_CHANGES / BLOCKED` z paths/commands, nie esej. Jako esej stanie się slopem; jako deterministic closeout gate będzie wartościowy.
+
+### `grill-with-docs`
+
+**Fakt:** Nie znalazłem go jako aktualnego build-time skill w `.agents/skills`; obecne skills to `buduj`, `handoff`, `kanon`, `pilnuj`, `review`, `wycinek`. Repo backlog pyta, co z nim zrobić.
+
+**Ocena:** Nie promowałbym `grill-with-docs` do core skill, dopóki nie ma różnicy względem `$review + $kanon + $pilnuj`. Najlepsze decyzje są trzy:
+
+1. **Merge into `$review`** jako “adversarial docs-consistency checks”.
+2. **Quarantine as research/non-core** jeśli był użyteczny tylko w eksploracji.
+3. **Delete** jeśli tylko wzmacnia rytuał.
+
+Nie dodawałbym kolejnego skill tylko dlatego, że ma dobry vibe. Oficjalne Codex Skills polegają na jasnym scope i progressive disclosure; zbyt wiele overlapping skills pogarsza selection i zabiera context budget. ([OpenAI Developers][3])
+
+**Czy operating layer pomaga Codexowi?**
+Tak, jeśli skills są **wejściem do konkretnej decyzji lub artefaktu**. Nie, jeśli stają się nazwami faz. Aktualnie bliżej im do wartości niż rytuału, ale liczba artefaktów wokół closeout już jest na granicy.
+
+---
+
+## 10. Next 5 goals
+
+### `/goal 1: $review jako first-class closeout audit`
+
+**Cel:**
+Zrobić z `$review` i `krn review --write` kanoniczny closeout audit dla każdego znaczącego `krn run`.
+
+**Minimalny zakres:**
+Bez nowych modeli, bez nowych CLI surfaces. Doprecyzować statusy, wejścia, wyjścia i failure modes. Review ma sprawdzać: task alignment, verify evidence, protected paths, proof claims, scope creep, target push/merge boundary, runtime artifact hygiene.
+
+**Acceptance criteria:**
+`review-result.json` / `review-summary.json` zawiera jednoznaczny status: `VERIFIED`, `NEEDS_CHANGES` albo `BLOCKED`; każdy blocker ma exact artifact path albo command name; `run-result`/bundle referencjonuje review result; review failuje przy production/hook-trust overclaim.
+
+**Proof command/artifact:**
+`pnpm test` oraz `pnpm --silent krn run --task-spec <fixture-task.json> --execute-verify --bundle`; artefakty: `<runtime-dir>/current/review-result.json`, `<runtime-dir>/current/run-result.json`, `<runtime-dir>/current/run-bundle/manifest.json`.
+
+**Czego nie wolno robić:**
+Nie zastępować human PR review. Nie dodawać model-based review. Nie dodawać dashboardu. Nie zmieniać review w auto-fixer.
+
+---
+
+### `/goal 2: Doprecyzować negative scope core skills`
+
+**Cel:**
+Zmniejszyć ryzyko, że skills będą aktywować się przy złych zadaniach albo dublować się semantycznie.
+
+**Minimalny zakres:**
+Przejrzeć `buduj`, `kanon`, `pilnuj`, `wycinek`, `handoff`, `review`. Dodać krótkie “use when / do not use when” i jasne output contract. Nie pisać długich instrukcji.
+
+**Acceptance criteria:**
+Każdy skill ma: jedno główne zastosowanie, zakazane zastosowania, expected output, stop condition. Nie ma dwóch skills o tym samym job-to-be-done.
+
+**Proof command/artifact:**
+Docs regression / `pnpm test` jeśli testy obejmują skills docs; ręczny artifact: `.agents/skills/*/SKILL.md` diff + short skill overlap matrix.
+
+**Czego nie wolno robić:**
+Nie dodawać nowych skills. Nie robić “large skill pack”. Nie przenosić product manual do SKILL.md.
+
+---
+
+### `/goal 3: Decyzja o `grill-with-docs`: merge, quarantine albo delete`
+
+**Cel:**
+Usunąć niejasność backlogową zanim powstanie kolejny rytuał.
+
+**Minimalny zakres:**
+Jedna decyzja ADR-lite albo docs note: czym `grill-with-docs` różni się od `$review`, `$kanon`, `$pilnuj`; jeśli się nie różni, merge/delete.
+
+**Acceptance criteria:**
+Jest jedno źródło prawdy: `grill-with-docs` jest albo non-core/research-only, albo włączony jako sekcja `$review`, albo usunięty z backlogu. Brak nowego runtime behavior.
+
+**Proof command/artifact:**
+Docs diff + `pnpm test` / docs regression. Artifact: decision note w `docs/product` albo aktualizacja skills README.
+
+**Czego nie wolno robić:**
+Nie tworzyć nowego skill bez bardzo ostrego triggera. Nie używać go jako wymówki do długich docs.
+
+---
+
+### `/goal 4: Target validation contract v0 dla Python/native quality gates`
+
+**Cel:**
+Zredukować wrapper friction bez otwierania niebezpiecznego shell execution.
+
+**Minimalny zakres:**
+Najpierw spec/ADR + fixture. Opisać, jak target deklaruje authoritative validation command, coverage, reason i limitations. Rozstrzygnąć, kiedy `tools/*.py` wrapper jest akceptowalny, a kiedy jest evidence smell.
+
+**Acceptance criteria:**
+Dla Python targetu można jednoznacznie powiedzieć: “ten gate jest target-owned”, “ta komenda jest allowed/blocked z powodu X”, “to pokrywa Y, nie pokrywa Z”. `run-result` i `review` nie overclaimują full-suite proof, jeśli uruchomiony był fast quality gate.
+
+**Proof command/artifact:**
+`krn config doctor --json` na fixture/approved target config; `krn run --task-spec ... --execute-verify --bundle`; artefakty: config doctor JSON, verify-result JSON, run-result JSON z jasnym validation coverage.
+
+**Czego nie wolno robić:**
+Nie dodawać shell mode. Nie dopuszczać arbitralnego `python3 -m pytest` bez policy. Nie robić szerokiego allowlist “bo adopcja boli”. Nie instalować zależności.
+
+---
+
+### `/goal 5: Task-spec boundary hardening`
+
+**Cel:**
+Przenieść najważniejsze operational boundaries z prose do struktury.
+
+**Minimalny zakres:**
+Dodać albo udokumentować minimalne pola dla: no-push, no-merge, rollback boundary, authoritative validation, target approval, protected data boundary. Zacząć od schema/spec i fixtures; dopiero potem runtime enforcement.
+
+**Acceptance criteria:**
+Task spec potrafi jawnie wyrazić “nie pushuj”, “nie merguj”, “rollback poza scope”, “użyj tylko tego validation gate”, “nie dotykaj tych pathów”. Review potrafi sprawdzić, czy wynik nie overclaimuje tych boundary.
+
+**Proof command/artifact:**
+Fixture task spec + task-contract JSON + review-result JSON; `pnpm test`; dry-run `krn run --task-spec <fixture> --dry-run --json`.
+
+**Czego nie wolno robić:**
+Nie budować auto-rollback. Nie budować GitHub merge bot. Nie dodawać target mutation bez approval. Nie rozszerzać bundle variants.
+
+---
+
+## 11. Stop / do-not-build list
+
+To powinno pozostać zakazane jeszcze przez kilka iteracji:
+
+1. **Dashboard server** — nawet jeśli report HTML kusi.
+2. **Production MCP server** — contract/spec only.
+3. **Vector DB / embeddings dependency** — najpierw context noise audit.
+4. **Autonomous subagent framework / swarm** — deterministic reviewers first.
+5. **Publishing pipeline / npm package / global install proof** — pinned/source checkout nadal bardziej wiarygodny.
+6. **Hook enforcement claim** — dopóki non-bypass trust proof nie istnieje.
+7. **Production runner** — KRN nie ma być CI/CD botem.
+8. **Browser/Playwright evidence layer** — zbyt duża powierzchnia bezpieczeństwa.
+9. **Full AST/callgraph/dataflow engine** — nie jako kolejny krok.
+10. **Auto-approved memory** — governed memory zostaje explicit approval.
+11. **Shell verify mode** — nie otwierać tej furtki.
+12. **Broad verify allowlist** — poszerzać tylko przez target validation contract i real friction.
+13. **Auto-push / auto-merge / PR mutation** — osobne jawne approval.
+14. **Bundle variants** — jeden primary bundle aż product center się utrwali.
+15. **Nowe CLI surfaces** — chyba że istnieje powtarzalna adoption friction i acceptance test.
+16. **Raw protected evidence in artifacts** — nie zwiększać ryzyka exfiltration pod pozorem lepszego debugowania.
+
+---
+
+## 12. Brutal 2nd opinion
+
+### Gdybym miał skrytykować bez uprzejmości
+
+KRN Harness jest o krok od zostania **piękną maszyną do produkowania dowodopodobnych artefaktów**. Masz task contract, context package, graph-lite, trace, verify, handoff, review, summary, report, release-check, bundle, evidence matrix, scorecard, skills, ADR lanes — i tylko ograniczoną liczbę real target product-code proofs. To jest klasyczny moment, w którym projekt może zacząć wyglądać dojrzale, zanim faktycznie stał się niezawodny.
+
+Największy problem nie brzmi “brakuje dashboardu”. Największy problem brzmi: **czy po 10 realnych repo KRN nadal skraca drogę do bezpiecznej zmiany, czy tylko dodaje ceremonię?** Na dziś nie ma jeszcze wystarczającego dowodu. `krn run` jest dobrym centrum, ale review/summary/report mogą bardzo łatwo stać się narracyjną tapetą. Graph-lite jest płytki. Verify jest bezpieczny, ale ciasny. Python wrappery są smell. Hook trust nie istnieje. Production proof nie istnieje. Codex exec proof jest ciekawy, ale raw traces nie są commitowane, więc trzeba uważać z reprodukowalnością.
+
+Jeżeli kolejne ruchy pójdą w dashboard, MCP, vector, subagents, publishing albo “agent team”, to projekt stanie się dokładnie tym, przed czym sam się broni: kolejnym agent frameworkiem z dobrymi docsami i małą ilością realnej walidacji.
+
+### Gdybym miał go bronić
+
+KRN ma rzadko spotykaną zaletę: **umie mówić “nie”**. Większość projektów agentic infra natychmiast dodaje dashboard, MCP, vector store, agent roles, marketplace i memory. KRN tego nie robi. Zamiast tego buduje lokalny, dowodowy workflow: contract, context, graph-lite, verify, trace, review, bundle. To jest bardzo zgodne z realnymi wzorcami: prostsze composable workflows przed agentic autonomy, jasny agent-computer interface, ground truth z testów, human oversight, artifact-backed evals, explicit safety boundaries. ([Anthropic][1]) ([arXiv][2])
+
+W porównaniu z rynkowym slopem, KRN ma trzy mocne wyróżniki:
+
+1. **Nie myli local proof z production proof.**
+2. **Nie sprzedaje hook templates jako hook enforcement.**
+3. **Nie próbuje być wszystkim naraz.**
+
+To jest dobry fundament. Ale następny etap musi być mniej “ładniejsze dowody”, bardziej “więcej powtarzalnych, nudnych, realnych target runs i mniej false confidence”.
+
+### Ostateczny werdykt
+
+**KRN Harness idzie w dobrym kierunku, ale nie jest jeszcze przełomem.**
+Jest zdrowym kandydatem na **Codex-first local engineering runtime/control layer**, pod warunkiem że przez najbliższe iteracje centrum pozostanie:
+
+```text
+krn run -> run-result -> run-bundle
+```
+
+a każdy nowy ruch będzie oceniany pytaniem:
+
+```text
+Czy to zwiększa wiarygodność real target change evidence,
+czy tylko tworzy kolejny atrakcyjny artefakt?
+```
+
+Jeżeli odpowiedź brzmi “artefakt”, stop.
+Jeżeli odpowiedź brzmi “mniej overclaimu, mniej friction, lepszy verify contract, lepszy closeout review, więcej real target proof”, budować dalej.
+
+[1]: https://www.anthropic.com/engineering/building-effective-agents "https://www.anthropic.com/engineering/building-effective-agents"
+[2]: https://arxiv.org/abs/2405.15793 "https://arxiv.org/abs/2405.15793"
+[3]: https://developers.openai.com/codex/skills "https://developers.openai.com/codex/skills"
+[4]: https://developers.openai.com/codex/hooks "https://developers.openai.com/codex/hooks"
+[5]: https://arxiv.org/abs/2512.22087 "https://arxiv.org/abs/2512.22087"
+[6]: https://en.wikipedia.org/wiki/Simon_Willison "https://en.wikipedia.org/wiki/Simon_Willison"
