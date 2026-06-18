@@ -120,7 +120,7 @@ function nextActionSummary(input: {
     return "Generate a handoff before final closeout.";
   }
 
-  return "Read the continuation handoff and continue from the latest verified task state.";
+  return "Read the continuation handoff and continue from the latest current task state.";
 }
 
 function renderBool(value: boolean): string {
